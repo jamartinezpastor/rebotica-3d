@@ -1,4 +1,5 @@
 import type { FormaCaja, ProductoResumen } from '@rebotica/shared';
+import type { BaldaEscena } from './Pasillo';
 
 const FORMAS: FormaCaja[] = ['caja-plana', 'caja-alta', 'caja-cuadrada', 'tubo', 'cilindro'];
 const COLORES = ['#3a6fb0', '#c9a227', '#b5483a', '#2b8a6e', '#7a5aa6', '#d9822b', '#4a9bb8'];
@@ -18,10 +19,20 @@ export function productosDemo(cantidad = 20): ProductoResumen[] {
     generico: false,
     conduccion: false,
     asset: {
-      atlasUrl: '/demo/sin-atlas.ktx2',
+      // Vacío a propósito: sin atlas no se intenta cargar ninguna textura.
+      atlasUrl: '',
       uv: [0, 0, 0.14, 0.25] as [number, number, number, number],
       colorDominante: COLORES[i % COLORES.length] ?? '#3a6fb0',
     },
     calculadora: false,
+  }));
+}
+
+/** Seis baldas ficticias (dos estanterías) con productos variados para probar la entrada. */
+export function baldasDemo(): BaldaEscena[] {
+  const productos = productosDemo(36);
+  return Array.from({ length: 6 }, (_, i) => ({
+    titulo: `Grupo ficticio ${String.fromCharCode(65 + i)}`,
+    productos: productos.slice(i * 6, i * 6 + 6),
   }));
 }

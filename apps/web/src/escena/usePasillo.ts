@@ -1,14 +1,15 @@
-import { PasilloResponse, type ProductoResumen } from '@rebotica/shared';
+import { PasilloResponse } from '@rebotica/shared';
 import { useEffect, useState } from 'react';
+import type { BaldaEscena } from './Pasillo';
 
 export type EstadoPasillo =
   | { tipo: 'cargando' }
-  | { tipo: 'listo'; titulo: string; productos: ProductoResumen[] }
+  | { tipo: 'listo'; titulo: string; baldas: BaldaEscena[] }
   | { tipo: 'error'; mensaje: string };
 
 /**
- * Descarga un pasillo y lo valida con el contrato compartido. Los productos salen en el orden de
- * las baldas, que es el orden en que la escena los coloca.
+ * Descarga un pasillo y lo valida con el contrato compartido. Las baldas conservan el orden del
+ * protocolo, que es el orden en que la escena las coloca.
  */
 export function usePasillo(id: string): EstadoPasillo {
   const [estado, setEstado] = useState<{ id: string; valor: EstadoPasillo } | null>(null);
@@ -24,7 +25,7 @@ export function usePasillo(id: string): EstadoPasillo {
           valor: {
             tipo: 'listo',
             titulo: pasillo.titulo,
-            productos: pasillo.baldas.flatMap((b) => b.productos),
+            baldas: pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
           },
         });
       })

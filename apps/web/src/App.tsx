@@ -1,6 +1,6 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
 import { lazy, Suspense, useMemo } from 'react';
-import { productosDemo } from './escena/demo';
+import { baldasDemo } from './escena/demo';
 import { usePasillo } from './escena/usePasillo';
 import { useEstadoApi } from './useEstadoApi';
 
@@ -16,15 +16,15 @@ function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string
 }
 
 function EscenaDemo() {
-  const productos = useMemo(() => productosDemo(), []);
-  return <Escena productos={productos} />;
+  const baldas = useMemo(() => baldasDemo(), []);
+  return <Escena baldas={baldas} />;
 }
 
 function EscenaPasillo({ id }: { id: string }) {
   const estado = usePasillo(id);
   if (estado.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
   if (estado.tipo === 'error') return <Preparando texto={estado.mensaje} />;
-  return <Escena productos={estado.productos} />;
+  return <Escena baldas={estado.baldas} />;
 }
 
 /** Vista de desarrollo: `/escena` con productos ficticios o `/escena?pasillo=<id>` con datos reales. */
