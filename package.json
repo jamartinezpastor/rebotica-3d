@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "demo": "pnpm --parallel --filter @rebotica/sync-cima --filter @rebotica/web demo"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

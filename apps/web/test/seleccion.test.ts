@@ -78,7 +78,7 @@ describe('geometría de la ficha', () => {
   });
 
   it('escala la caja para llenar su sitio sin agrandarla en exceso', () => {
-    expect(escalaEnFicha(0.1)).toBeCloseTo(2);
+    expect(escalaEnFicha(0.07)).toBeCloseTo(2);
     expect(escalaEnFicha(0.3)).toBe(1);
     expect(escalaEnFicha(0.01)).toBe(4);
     expect(escalaEnFicha(0)).toBe(1);

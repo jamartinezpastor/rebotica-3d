@@ -9,8 +9,10 @@ export const DURACION_SELECCION = 0.55;
 export const DISTANCIA_FICHA = 0.62;
 /** Distancia (m) del velo que apaga el resto de la escena; siempre detrás de la caja. */
 export const DISTANCIA_VELO = DISTANCIA_FICHA + 0.3;
-/** Altura que ocupa la caja en la ficha (m): ~una cuarta parte del encuadre. */
-export const ALTO_EN_FICHA = 0.2;
+/** Altura que ocupa la caja en la ficha (m): ~un tercio del encuadre, sobre la hoja de la ficha. */
+export const ALTO_EN_FICHA = 0.14;
+/** Coordenada vertical normalizada (−1 abajo, +1 arriba) donde aterriza el centro de la caja. */
+export const POSICION_FICHA_Y = 0.4;
 /** Velocidad de giro en la ficha (rad/s). */
 export const VELOCIDAD_GIRO = 0.55;
 /** Un toque que se mueve más de esto (px) es un arrastre, no una selección. */

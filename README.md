@@ -71,6 +71,24 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.
 
+## Demo con datos reales (sin PostgreSQL)
+
+```bash
+pnpm demo
+```
+
+Levanta la API con una base de datos en memoria (PGlite), descarga de CIMA unos 18 medicamentos
+sin receta con sus fichas y fotos, genera los atlas de las cajas, monta un pasillo de ejemplo y
+arranca la web. Tarda un par de minutos la primera vez (las fotos se guardan en la carpeta
+temporal del sistema y se reutilizan). Cuando veas «API lista», abre:
+
+- <http://localhost:5173/escena?pasillo=demo>: pasillo con cajas reales y ficha con el texto
+  oficial en las pestañas Uso, Precauciones y Dosis.
+- `DEMO_MEDICAMENTOS=40 pnpm demo` cambia la cantidad (4 a 120).
+
+El protocolo que monta es un borrador de demostración: no es clínico ni está validado. Ctrl+C
+para pararlo.
+
 ## Vista de desarrollo de la escena 3D
 
 `pnpm dev` y abre `http://localhost:5173/escena`: estantería con productos ficticios. Con
@@ -105,6 +123,11 @@ Con `prefers-reduced-motion` la cámara salta al destino sin muelle.
   medios, el percentil 95 y el fotograma más largo mientras se arrastra la cámara. Criterio del plan:
   60 fps con 40 cajas en un Android de gama media.
 - El JavaScript inicial no puede importar three (lo vigila `test/presupuesto.test.ts`).
+
+La ficha lleva tres pestañas (Uso, Precauciones, Dosis) con el texto oficial de la ficha técnica
+y enlaces al prospecto y a la ficha técnica en CIMA. La caja gira sola; se puede arrastrar para
+girarla y a los 3 s sin tocarla vuelve a girar. La pestaña Dosis muestra siempre la posología
+oficial en texto: la calculadora solo aparecerá con una regla validada y vigente.
 
 Selección: tocar una caja (o Enter sobre la que tiene delante la cámara) la hace salir de la balda
 y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la ficha gira despacio.

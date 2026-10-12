@@ -138,7 +138,7 @@ function VistaEscena() {
       </div>
 
       {seleccion.producto && (
-        <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} />
+        <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} modo={vista} />
       )}
     </div>
   );

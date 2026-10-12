@@ -1,17 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import type { ProductoResumen } from '@rebotica/shared';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  Vector3,
-  type Group,
-  type Mesh,
-  type MeshBasicMaterial,
-  type PerspectiveCamera,
-} from 'three';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three';
 import { avance, muelle, planificarEntrada } from './animacion';
 import { Caja } from './Caja';
 import { colocarCajas, dimensionesCaja, type CajaColocada } from './cajas';
 import { Estanteria } from './Estanteria';
+import { GiroFicha } from './giroFicha';
 import { ESTANTERIA_POR_DEFECTO, geometriaEstanteria, type GeometriaEstanteria } from './geometria';
 import { Letrero, LETRERO_ALTO } from './Letrero';
 import { RielCamara } from './RielCamara';
@@ -19,6 +14,7 @@ import {
   ALTO_EN_FICHA,
   DISTANCIA_FICHA,
   DISTANCIA_VELO,
+  POSICION_FICHA_Y,
   VELOCIDAD_GIRO,
   avanzarTransicion,
   cajaMasCercana,
@@ -161,12 +157,18 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
     return mapa;
   }, [modelo]);
 
-  const sel = useRef({ u: 0, origen: new Vector3(), tieneOrigen: false, angulo: 0 });
+  const sel = useRef({ u: 0, origen: new Vector3(), tieneOrigen: false });
+  // Giro de la caja en la ficha: automático, arrastrable con inercia y de vuelta a los 3 s.
+  const giro = useMemo(
+    () => new GiroFicha(menosMovimiento ? 0 : VELOCIDAD_GIRO, !menosMovimiento),
+    [menosMovimiento],
+  );
+  const gl = useThree((s) => s.gl);
   const volando = useRef<Group>(null);
   const velo = useRef<Mesh>(null);
   const direccion = useMemo(() => new Vector3(), []);
   const destino = useMemo(() => new Vector3(), []);
-  const arriba = useMemo(() => new Vector3(), []);
+  const rayo = useMemo(() => new Vector3(), []);
 
   const grupos = useRef<(Group | null)[]>([]);
   const cajas = useRef<(Group | null)[][]>([]);
@@ -177,6 +179,47 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
     t0.current = performance.now();
     invalidar();
   }, [modelo, invalidar]);
+
+  // Arrastrar en la ficha hace girar la caja (el raíl está desactivado mientras hay ficha).
+  useEffect(() => {
+    if (!seleccionada) return;
+    const el = gl.domElement;
+    let puntero: number | null = null;
+    let ultimo = { x: 0, t: 0 };
+
+    const abajo = (e: PointerEvent) => {
+      if (!e.isPrimary || puntero !== null) return;
+      puntero = e.pointerId;
+      el.setPointerCapture(e.pointerId);
+      ultimo = { x: e.clientX, t: e.timeStamp };
+      giro.empezar();
+      invalidar();
+    };
+    const mover = (e: PointerEvent) => {
+      if (e.pointerId !== puntero) return;
+      giro.arrastrar(e.clientX - ultimo.x, (e.timeStamp - ultimo.t) / 1000);
+      ultimo = { x: e.clientX, t: e.timeStamp };
+      invalidar();
+    };
+    const soltar = (e: PointerEvent) => {
+      if (e.pointerId !== puntero) return;
+      puntero = null;
+      giro.soltar(performance.now() / 1000);
+      invalidar();
+    };
+
+    el.addEventListener('pointerdown', abajo);
+    el.addEventListener('pointermove', mover);
+    el.addEventListener('pointerup', soltar);
+    el.addEventListener('pointercancel', soltar);
+    return () => {
+      el.removeEventListener('pointerdown', abajo);
+      el.removeEventListener('pointermove', mover);
+      el.removeEventListener('pointerup', soltar);
+      el.removeEventListener('pointercancel', soltar);
+      if (puntero !== null) giro.soltar(performance.now() / 1000);
+    };
+  }, [seleccionada, gl, giro, invalidar]);
 
   useFrame((_, delta) => {
     const t = reloj();
@@ -245,20 +288,21 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
       original.visible = false;
 
       const e = suavizado(estado.u);
-      const perspectiva = camera as PerspectiveCamera;
       camera.getWorldDirection(direccion);
-      arriba.copy(perspectiva.up).applyQuaternion(camera.quaternion);
-      destino.copy(camera.position).addScaledVector(direccion, DISTANCIA_FICHA);
-      destino.addScaledVector(arriba, ALTO_EN_FICHA * 0.12);
+      // La caja aterriza en el tercio superior de la pantalla, sobre la hoja de la ficha: se
+      // toma el rayo que pasa por ese punto y se avanza hasta la profundidad de la ficha.
+      rayo.set(0, POSICION_FICHA_Y, 0.5).unproject(camera).sub(camera.position).normalize();
+      const profundidad = Math.max(rayo.dot(direccion), 0.1);
+      destino.copy(camera.position).addScaledVector(rayo, DISTANCIA_FICHA / profundidad);
 
       const forma = modelo[lugar.i]?.cajas[lugar.j]?.forma;
       const escala = escalaEnFicha(forma ? dimensionesCaja(forma).alto : ALTO_EN_FICHA);
 
       volando.current.position.lerpVectors(estado.origen, destino, e);
       volando.current.scale.setScalar(1 + (escala - 1) * e);
-      // Gira despacio solo cuando ya está en la ficha; al volver el giro se deshace con el vuelo.
-      if (estado.u >= 1 && !menosMovimiento) estado.angulo += delta * VELOCIDAD_GIRO;
-      volando.current.rotation.y = estado.angulo * e;
+      // Gira solo cuando ya está en la ficha; al volver el giro se deshace con el vuelo.
+      if (estado.u >= 1) giro.actualizar(delta, performance.now() / 1000);
+      volando.current.rotation.y = giro.angulo * e;
 
       velo.current.position.copy(camera.position).addScaledVector(direccion, DISTANCIA_VELO);
       velo.current.quaternion.copy(camera.quaternion);
@@ -268,13 +312,14 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
       if (estado.u === 0 && !seleccionada) {
         original.visible = true;
         estado.tieneOrigen = false;
-        estado.angulo = 0;
+        giro.reiniciar();
         setMostrada(null);
       }
     }
 
     const enVuelo = mostrada !== null && (estado.u > 0 || seleccionada !== null);
-    if (estado.u >= 1 && !menosMovimiento) {
+    const girando = estado.u >= 1 && (!menosMovimiento || giro.estaArrastrando);
+    if (girando) {
       // En la ficha la caja gira: ~30 fotogramas por segundo bastan y ahorran batería.
       window.setTimeout(invalidar, 33);
     } else if (enVuelo || t < plan.total + 0.1) {
