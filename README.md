@@ -46,6 +46,19 @@ docker run --rm -p 3000:3000 rebotica-3d
 El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada en
 Coolify a partir de F1-03).
 
+## Despliegue
+
+Producción: https://rebotica.martinezpastor.dev
+
+| Pieza         | Configuración en Coolify                                                      |
+| ------------- | ----------------------------------------------------------------------------- |
+| Proyecto      | `rebotica`, entorno `production`                                              |
+| Aplicación    | `rebotica-3d`, build pack Dockerfile, puerto 3000                             |
+| Origen        | GitHub App `coolifyrebotica`, rama `main`; cada push a `main` despliega       |
+| Healthcheck   | `GET http://127.0.0.1:3000/api/health` (con `localhost` falla: resuelve IPv6) |
+| Base de datos | `rebotica-postgres` (PostgreSQL 17, sin puerto público)                       |
+| Variables     | `DATABASE_URL` solo en tiempo de ejecución                                    |
+
 ## Documentación
 
 - Plan del proyecto: https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
