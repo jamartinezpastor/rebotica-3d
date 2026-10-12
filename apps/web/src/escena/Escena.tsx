@@ -1,6 +1,6 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
-import { PerspectiveCamera } from 'three';
+import type { PerspectiveCamera } from 'three';
 import { CanvasTexture, LinearFilter } from 'three';
 import { Estanteria } from './Estanteria';
 
