@@ -27,6 +27,25 @@ pnpm dev
 pnpm check   # formato, lint, tipos, tests y build; es lo mismo que ejecuta la CI
 ```
 
+## Docker
+
+Una sola imagen: la API sirve también la web compilada (mismo dominio, sin CORS) e incluye el job
+de sincronización con CIMA.
+
+```bash
+docker build -t rebotica-3d .
+docker run --rm -p 3000:3000 rebotica-3d
+```
+
+| Variable       | Por defecto   | Para qué                                               |
+| -------------- | ------------- | ------------------------------------------------------ |
+| `PORT`         | `3000`        | Puerto HTTP                                            |
+| `WEB_DIST`     | `/app/public` | Carpeta de la web compilada; vacía, la API no la sirve |
+| `DATABASE_URL` | —             | PostgreSQL; se empieza a usar en F1-01                 |
+
+El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada en
+Coolify a partir de F1-03).
+
 ## Documentación
 
 - Plan del proyecto: https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7

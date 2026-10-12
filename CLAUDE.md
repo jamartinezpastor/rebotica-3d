@@ -53,6 +53,11 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 Los paquetes internos exportan su código TypeScript directamente (`exports: ./src/index.ts`).
 Vite y Vitest los consumen tal cual; `apps/api` y `jobs/*` los empaquetan con tsup.
 
+En producción hay una sola imagen Docker (`Dockerfile` en la raíz): la API sirve la web compilada
+desde `WEB_DIST` con fallback a `index.html` para las rutas de la SPA, y `/api/*` desconocido
+responde 404 en JSON. Se despliega en Coolify con el build pack Dockerfile y PostgreSQL gestionado
+por Coolify (`DATABASE_URL`).
+
 ## Comandos
 
 ```bash

@@ -3,7 +3,11 @@ import { buildApp } from './app';
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
 
-const app = buildApp({ logger: true });
+const app = buildApp({
+  // Detrás del proxy de Coolify (Traefik): respeta X-Forwarded-For y X-Forwarded-Proto.
+  fastify: { logger: true, trustProxy: true },
+  webDist: process.env.WEB_DIST || undefined,
+});
 
 const cerrar = async () => {
   await app.close();

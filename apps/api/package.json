@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsup",
@@ -11,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/static": "^10.1.6",
     "@rebotica/shared": "workspace:*",
     "fastify": "^5.12.5"
   },
