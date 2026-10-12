@@ -2,7 +2,7 @@
  * Constructores de URL de la API REST pública de CIMA (AEMPS).
  * Documentación: https://sede.aemps.gob.es/docs/CIMA-REST-API_1_19.pdf (versión vigente 1.23).
  *
- * Solo construyen URLs; las peticiones, reintentos y límite de ritmo llegan en F1-02.
+ * Solo construyen URLs; las peticiones, reintentos y límite de ritmo están en `cliente.ts`.
  */
 
 export const CIMA_BASE = 'https://cima.aemps.es/cima/rest/';
@@ -48,6 +48,13 @@ export function urlSeccionFichaTecnica(nregistro: string, seccion: SeccionFT): U
   const url = new URL('docSegmentado/contenido/1', CIMA_BASE);
   url.searchParams.set('nregistro', nregistro);
   url.searchParams.set('seccion', seccion);
+  return url;
+}
+
+/** Todas las secciones de la ficha técnica en una sola petición (se filtran las 4.x al guardar). */
+export function urlFichaTecnica(nregistro: string): URL {
+  const url = new URL('docSegmentado/contenido/1', CIMA_BASE);
+  url.searchParams.set('nregistro', nregistro);
   return url;
 }
 

@@ -43,8 +43,11 @@ docker run --rm -p 3000:3000 rebotica-3d
 | `WEB_DIST`     | `/app/public` | Carpeta de la web compilada; vacía, la API no la sirve |
 | `DATABASE_URL` | —             | PostgreSQL; la API aplica las migraciones al arrancar  |
 
-El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada en
-Coolify a partir de F1-03).
+El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js [--limite N]` (tarea
+programada en Coolify a partir de F1-03). Necesita `DATABASE_URL`, descarga el catálogo sin receta
+y los grupos con receta (solo principio activo) y al terminar imprime un informe de recuento en
+JSON; sale con código 1 si hubo errores. Va a un ritmo de 4 peticiones por segundo
+(`CIMA_INTERVALO_MS`, 250 por defecto) y reintenta con espera creciente ante 429 y 5xx.
 
 ## Despliegue
 
