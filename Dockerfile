@@ -18,6 +18,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 COPY packages/dosis/package.json packages/dosis/
 COPY packages/protocolos/package.json packages/protocolos/
+COPY packages/db/package.json packages/db/
 COPY jobs/sync-cima/package.json jobs/sync-cima/
 RUN pnpm install --frozen-lockfile
 
