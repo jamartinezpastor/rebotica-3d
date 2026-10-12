@@ -1,5 +1,25 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
+import { lazy, Suspense } from 'react';
 import { useEstadoApi } from './useEstadoApi';
+
+// La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
+const Escena = lazy(() => import('./escena/Escena'));
+
+function VistaEscena() {
+  return (
+    <div className="h-dvh w-full">
+      <Suspense
+        fallback={
+          <p role="status" className="p-6 text-tinta-suave">
+            Preparando la estantería…
+          </p>
+        }
+      >
+        <Escena />
+      </Suspense>
+    </div>
+  );
+}
 
 function Cruz() {
   return (
@@ -32,6 +52,9 @@ function EstadoServidor() {
 }
 
 export function App() {
+  // Vista de desarrollo de la escena (F2-01); el pasillo real llega con las rutas de F2-03.
+  if (window.location.pathname === '/escena') return <VistaEscena />;
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]">
       <header className="flex items-center gap-3">
