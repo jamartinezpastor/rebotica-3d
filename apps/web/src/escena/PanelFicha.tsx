@@ -23,7 +23,7 @@ export function PanelFicha({ producto, onVolver }: PanelFichaProps) {
     <section
       role="dialog"
       aria-label={`Ficha de ${producto.nombre}`}
-      className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),1rem)]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),1rem)]"
     >
       <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/10">
         <h2 className="text-xl leading-snug font-semibold">{producto.nombre}</h2>

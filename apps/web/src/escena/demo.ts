@@ -28,11 +28,15 @@ export function productosDemo(cantidad = 20): ProductoResumen[] {
   }));
 }
 
-/** Seis baldas ficticias (dos estanterías) con productos variados para probar la entrada. */
-export function baldasDemo(): BaldaEscena[] {
-  const productos = productosDemo(36);
-  return Array.from({ length: 6 }, (_, i) => ({
-    titulo: `Grupo ficticio ${String.fromCharCode(65 + i)}`,
+/**
+ * Baldas ficticias (de seis productos como mucho cada una, en grupos de tres por estantería)
+ * con `total` productos repartidos. Con `total` = 40 reproduce el caso de medición del plan.
+ */
+export function baldasDemo(total = 36): BaldaEscena[] {
+  const productos = productosDemo(total);
+  const baldas = Math.max(1, Math.ceil(total / 6));
+  return Array.from({ length: baldas }, (_, i) => ({
+    titulo: `Grupo ficticio ${String.fromCharCode(65 + (i % 26))}`,
     productos: productos.slice(i * 6, i * 6 + 6),
   }));
 }

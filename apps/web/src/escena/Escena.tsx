@@ -1,6 +1,8 @@
 import { Canvas } from '@react-three/fiber';
 import type { ProductoResumen } from '@rebotica/shared';
+import type { EstadisticasFps } from './medidorFps';
 import { Pasillo, type BaldaEscena } from './Pasillo';
+import { Rendimiento } from './Rendimiento';
 
 /** Blanco del vacío: el suelo, la niebla y el fondo son del mismo color y no hay horizonte. */
 export const COLOR_VACIO = '#ffffff';
@@ -20,6 +22,10 @@ export interface EscenaProps {
   /** `nregistro` del producto abierto en la ficha; null en el pasillo. */
   seleccionada?: string | null;
   onSeleccionar?: (producto: ProductoResumen) => void;
+  /** Estadísticas de fotogramas, para el contador de medición (`?fps=1`). */
+  onFps?: (estadisticas: EstadisticasFps) => void;
+  /** Aviso único cuando la escena va por debajo de 24 fps sostenidos. */
+  onLento?: () => void;
 }
 
 /**
@@ -28,7 +34,13 @@ export interface EscenaProps {
  * fotogramas mientras dura la entrada animada, el movimiento de la cámara o cuando algo cambia.
  * La cámara la gobierna `RielCamara` (dentro de `Pasillo`).
  */
-export default function Escena({ baldas = [], seleccionada = null, onSeleccionar }: EscenaProps) {
+export default function Escena({
+  baldas = [],
+  seleccionada = null,
+  onSeleccionar,
+  onFps,
+  onLento,
+}: EscenaProps) {
   return (
     <Canvas
       dpr={[1, 1.5]}
@@ -44,6 +56,7 @@ export default function Escena({ baldas = [], seleccionada = null, onSeleccionar
       {/* Intensidades en unidades físicas (three ≥ r155): ~π veces las del modo antiguo. */}
       <hemisphereLight args={['#ffffff', '#ece6da', 1.6]} />
       <directionalLight position={[2.5, 4, 3]} intensity={2.2} />
+      <Rendimiento onFps={onFps} onLento={onLento} />
       <Suelo />
       <Pasillo baldas={baldas} seleccionada={seleccionada} onSeleccionar={onSeleccionar} />
     </Canvas>

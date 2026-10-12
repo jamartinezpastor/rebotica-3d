@@ -1,9 +1,17 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { baldasDemo } from './escena/demo';
+import {
+  detectarDispositivo,
+  evaluarCapacidad,
+  vistaInicial,
+  type VistaElegida,
+} from './escena/capacidad';
+import type { EstadisticasFps } from './escena/medidorFps';
 import { PanelFicha } from './escena/PanelFicha';
 import { usePasillo } from './escena/usePasillo';
-import { useSeleccion, type Seleccion } from './escena/useSeleccion';
+import { useSeleccion } from './escena/useSeleccion';
+import { VistaLista } from './escena/VistaLista';
 import { useEstadoApi } from './useEstadoApi';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
@@ -17,43 +25,118 @@ function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string
   );
 }
 
-function EscenaDemo({ seleccion }: { seleccion: Seleccion }) {
-  const baldas = useMemo(() => baldasDemo(), []);
+const CLAVE_VISTA = 'rebotica.vista';
+
+function leerPreferencia(): string | null {
+  try {
+    return window.localStorage.getItem(CLAVE_VISTA);
+  } catch {
+    return null; // modo privado o almacenamiento bloqueado
+  }
+}
+
+function guardarPreferencia(vista: VistaElegida): void {
+  try {
+    window.localStorage.setItem(CLAVE_VISTA, vista);
+  } catch {
+    // Sin almacenamiento la vista elegida solo vale para esta sesión.
+  }
+}
+
+/** Contador de fotogramas para medir en un dispositivo real (`?fps=1`). */
+function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number }) {
   return (
-    <Escena
-      baldas={baldas}
-      seleccionada={seleccion.producto?.nregistro ?? null}
-      onSeleccionar={seleccion.seleccionar}
-    />
+    <p
+      role="status"
+      className="pointer-events-none absolute top-3 left-3 z-10 rounded-md bg-black/75 px-2 py-1 font-mono text-xs text-white"
+    >
+      {e
+        ? `${e.fps.toFixed(0)} fps · p95 ${e.p95Ms.toFixed(0)} ms · máx ${e.maxMs.toFixed(0)} ms`
+        : 'sin datos (mueve la cámara)'}
+      {` · ${cajas} cajas · dpr ${Math.min(window.devicePixelRatio, 1.5).toFixed(2)}`}
+    </p>
   );
 }
 
-function EscenaPasillo({ id, seleccion }: { id: string; seleccion: Seleccion }) {
-  const estado = usePasillo(id);
-  if (estado.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
-  if (estado.tipo === 'error') return <Preparando texto={estado.mensaje} />;
-  return (
-    <Escena
-      baldas={estado.baldas}
-      seleccionada={seleccion.producto?.nregistro ?? null}
-      onSeleccionar={seleccion.seleccionar}
-    />
-  );
-}
-
-/** Vista de desarrollo: `/escena` con productos ficticios o `/escena?pasillo=<id>` con datos reales. */
+/**
+ * Vista de desarrollo del pasillo. `/escena` usa productos ficticios y `/escena?pasillo=<id>` los
+ * de la API. Parámetros: `vista=3d|lista`, `cajas=N` (demo) y `fps=1` (contador).
+ */
 function VistaEscena() {
-  const pasillo = new URLSearchParams(window.location.search).get('pasillo');
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const pasillo = params.get('pasillo');
+  const cajasDemo = Math.min(Math.max(Number(params.get('cajas')) || 36, 1), 200);
+  const midiendo = params.get('fps') === '1';
+
+  const capacidad = useMemo(() => evaluarCapacidad(detectarDispositivo()), []);
+  const [vista, setVista] = useState<VistaElegida>(() =>
+    vistaInicial(params.get('vista'), leerPreferencia(), capacidad),
+  );
+  const [lento, setLento] = useState(false);
+  const [fps, setFps] = useState<EstadisticasFps | null>(null);
+
+  const remoto = usePasillo(pasillo);
+  const baldasDemoMemo = useMemo(() => baldasDemo(cajasDemo), [cajasDemo]);
   const seleccion = useSeleccion();
+
+  const cambiarVista = (siguiente: VistaElegida) => {
+    setVista(siguiente);
+    guardarPreferencia(siguiente);
+    setLento(false);
+  };
+
+  let titulo = 'Pasillo de demostración';
+  let baldas = baldasDemoMemo;
+  if (pasillo) {
+    if (remoto.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
+    if (remoto.tipo === 'error') return <Preparando texto={remoto.mensaje} />;
+    titulo = remoto.titulo;
+    baldas = remoto.baldas;
+  }
+  const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
+  const puede3d = capacidad.nivel !== 'sin3d';
+
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      <Suspense fallback={<Preparando />}>
-        {pasillo ? (
-          <EscenaPasillo id={pasillo} seleccion={seleccion} />
-        ) : (
-          <EscenaDemo seleccion={seleccion} />
+    <div
+      className={vista === '3d' ? 'relative h-dvh w-full overflow-hidden' : 'relative min-h-dvh'}
+    >
+      {vista === '3d' ? (
+        <Suspense fallback={<Preparando />}>
+          <Escena
+            baldas={baldas}
+            seleccionada={seleccion.producto?.nregistro ?? null}
+            onSeleccionar={seleccion.seleccionar}
+            onFps={midiendo ? setFps : undefined}
+            onLento={() => setLento(true)}
+          />
+        </Suspense>
+      ) : (
+        <VistaLista titulo={titulo} baldas={baldas} onSeleccionar={seleccion.seleccionar} />
+      )}
+
+      {midiendo && vista === '3d' && <ContadorFps e={fps} cajas={totalCajas} />}
+
+      {/* «Ver como lista» está siempre a mano (plan §reglas de interfaz). */}
+      <div className="fixed top-3 right-3 z-10 flex flex-col items-end gap-2">
+        {(vista === 'lista' ? puede3d : true) && (
+          <button
+            type="button"
+            onClick={() => cambiarVista(vista === '3d' ? 'lista' : '3d')}
+            className="min-h-12 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+          >
+            {vista === '3d' ? 'Ver como lista' : 'Ver en 3D'}
+          </button>
         )}
-      </Suspense>
+        {vista === '3d' && lento && (
+          <p
+            role="status"
+            className="max-w-64 rounded-xl bg-amber-50 p-3 text-sm text-aviso ring-1 ring-amber-200"
+          >
+            El 3D va lento en este dispositivo. La lista muestra lo mismo y es más ligera.
+          </p>
+        )}
+      </div>
+
       {seleccion.producto && (
         <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} />
       )}

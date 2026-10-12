@@ -91,6 +91,21 @@ La cámara viaja por un raíl, no es libre:
 
 Con `prefers-reduced-motion` la cámara salta al destino sin muelle.
 
+### Vista lista y rendimiento
+
+- **Vista lista:** el mismo pasillo como lista de botones (baldas con sus productos, etiquetas de
+  genérico y conducción); elegir un producto abre la misma ficha. El botón «Ver como lista» / «Ver
+  en 3D» está siempre visible.
+- **Vista inicial:** `?vista=3d|lista` manda; si no, la preferencia guardada
+  (`localStorage['rebotica.vista']`) y, si tampoco hay, la que recomienda el dispositivo. Sin WebGL,
+  con renderizado por software, GPU antigua, ≤ 2 GB de memoria, ≤ 2 núcleos o ahorro de datos, la
+  recomendada es la lista.
+- **Aviso de lentitud:** si la escena va por debajo de 24 fps sostenidos se ofrece cambiar a la lista.
+- **Medir en un dispositivo:** `/escena?vista=3d&fps=1&cajas=40` muestra un contador con los fps
+  medios, el percentil 95 y el fotograma más largo mientras se arrastra la cámara. Criterio del plan:
+  60 fps con 40 cajas en un Android de gama media.
+- El JavaScript inicial no puede importar three (lo vigila `test/presupuesto.test.ts`).
+
 Selección: tocar una caja (o Enter sobre la que tiene delante la cámara) la hace salir de la balda
 y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la ficha gira despacio.
 «Volver al pasillo», Escape y el botón atrás del navegador reproducen el vuelo al revés. Un

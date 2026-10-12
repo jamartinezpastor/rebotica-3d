@@ -2,12 +2,10 @@ import { useThree } from '@react-three/fiber';
 import type { AssetCajaPublico, FormaCaja } from '@rebotica/shared';
 import { useEffect, useMemo } from 'react';
 import { MeshStandardMaterial } from 'three';
+import { COLOR_LADO_DEFECTO } from './colores';
 import { crearGeometriaCaja, type RectanguloAtlas } from './geometriaCaja';
 import { UMBRAL_TOQUE } from './seleccion';
 import { useAtlas } from './useAtlas';
-
-/** Color de los laterales cuando no hay foto de la que sacarlo. */
-export const COLOR_LADO_DEFECTO = '#ddd6c8';
 
 export interface CajaProps {
   forma: FormaCaja;

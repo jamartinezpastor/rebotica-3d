@@ -11,10 +11,11 @@ export type EstadoPasillo =
  * Descarga un pasillo y lo valida con el contrato compartido. Las baldas conservan el orden del
  * protocolo, que es el orden en que la escena las coloca.
  */
-export function usePasillo(id: string): EstadoPasillo {
+export function usePasillo(id: string | null): EstadoPasillo {
   const [estado, setEstado] = useState<{ id: string; valor: EstadoPasillo } | null>(null);
 
   useEffect(() => {
+    if (id === null) return;
     const control = new AbortController();
     fetch(`/api/pasillos/${encodeURIComponent(id)}`, { signal: control.signal })
       .then(async (res) => {
@@ -37,5 +38,5 @@ export function usePasillo(id: string): EstadoPasillo {
     return () => control.abort();
   }, [id]);
 
-  return estado?.id === id ? estado.valor : { tipo: 'cargando' };
+  return id !== null && estado?.id === id ? estado.valor : { tipo: 'cargando' };
 }
