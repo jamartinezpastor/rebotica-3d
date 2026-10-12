@@ -118,7 +118,7 @@ describe('construirAssets', () => {
     for (const f of filas) {
       expect(f.colorDominante).toMatch(/^#[0-9a-f]{6}$/i);
       expect(f.uv).toHaveLength(4);
-      expect(f.atlasUrl).toMatch(/^\/assets\/atlas\/[0-9a-f]{16}-[01]\.ktx2$/);
+      expect(f.atlasUrl).toMatch(/^\/media\/atlas\/[0-9a-f]{16}-[01]\.ktx2$/);
     }
     const porId = new Map(filas.map((f) => [f.nregistro, f]));
     expect(porId.get('1')?.forma).toBe('caja-plana');

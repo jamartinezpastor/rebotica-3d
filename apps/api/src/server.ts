@@ -1,17 +1,20 @@
 import { aplicarMigraciones, conectar } from '@rebotica/db';
 import { buildApp } from './app';
+import { cargarProtocolos } from './protocolos';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
+
+// Sin DATABASE_URL la API arranca igual: /api/health no necesita base de datos.
+const conexion = process.env.DATABASE_URL ? conectar(process.env.DATABASE_URL) : undefined;
 
 const app = buildApp({
   // Detrás del proxy de Coolify (Traefik): respeta X-Forwarded-For y X-Forwarded-Proto.
   fastify: { logger: true, trustProxy: true },
   webDist: process.env.WEB_DIST || undefined,
+  db: conexion?.db,
+  assetsDir: process.env.ASSETS_DIR || undefined,
 });
-
-// Sin DATABASE_URL la API arranca igual: /api/health no necesita base de datos.
-const conexion = process.env.DATABASE_URL ? conectar(process.env.DATABASE_URL) : undefined;
 
 const cerrar = async () => {
   await app.close();
@@ -28,6 +31,12 @@ try {
       process.env.MIGRATIONS_DIR ?? '../../packages/db/migrations',
     );
     app.log.info('migraciones aplicadas');
+    if (process.env.PROTOCOLOS_DIR) {
+      const n = await cargarProtocolos(conexion.db, process.env.PROTOCOLOS_DIR, (m) =>
+        app.log.warn(m),
+      );
+      app.log.info(`protocolos cargados: ${n}`);
+    }
   }
   await app.listen({ port, host });
 } catch (err) {

@@ -37,12 +37,13 @@ docker build -t rebotica-3d .
 docker run --rm -p 3000:3000 rebotica-3d
 ```
 
-| Variable       | Por defecto    | Para qué                                                 |
-| -------------- | -------------- | -------------------------------------------------------- |
-| `PORT`         | `3000`         | Puerto HTTP                                              |
-| `WEB_DIST`     | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve   |
-| `DATABASE_URL` | —              | PostgreSQL; la API aplica las migraciones al arrancar    |
-| `ASSETS_DIR`   | `/data/assets` | Carpeta persistente de fotos y atlas (montar un volumen) |
+| Variable         | Por defecto    | Para qué                                                     |
+| ---------------- | -------------- | ------------------------------------------------------------ |
+| `PORT`           | `3000`         | Puerto HTTP                                                  |
+| `WEB_DIST`       | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve       |
+| `DATABASE_URL`   | —              | PostgreSQL; la API aplica las migraciones al arrancar        |
+| `ASSETS_DIR`     | `/data/assets` | Carpeta persistente de fotos y atlas (montar un volumen)     |
+| `PROTOCOLOS_DIR` | —              | Carpeta con los JSON de protocolos que se cargan al arrancar |
 
 El job se lanza dentro del contenedor con `node jobs/sync-cima/dist/index.js` (tarea programada
 diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
@@ -69,6 +70,20 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 - Imprime un informe de recuento en JSON y sale con código 1 si hubo errores.
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.
+
+## API de datos
+
+| Ruta                            | Qué devuelve                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `GET /api/pasillos/:id`         | Baldas con productos por principio activo y vitrina con receta (sin marcas)       |
+| `GET /api/productos/:nregistro` | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente |
+| `GET /media/atlas/:archivo`     | Atlas KTX2 de las cajas, con caché inmutable                                      |
+
+- El pasillo acepta el perfil del triaje: `?grupo=nino&edadMeses=30&condiciones=asma,ulcera`.
+- `estado: "borrador"` en un pasillo obliga a la UI a mostrar la banda de demostración.
+- Un medicamento con receta o no comercializado no tiene ficha: `404`.
+- `reglaDosis` solo viaja si la regla está `validada` y su hash coincide con la 4.2 actual.
+- Los contratos (`PasilloResponse`, `ProductoResponse`…) están en `@rebotica/shared`.
 
 ## Despliegue
 

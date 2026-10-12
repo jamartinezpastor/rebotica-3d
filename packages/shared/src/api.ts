@@ -1,0 +1,127 @@
+import { z } from 'zod';
+import { FormaCaja, GrupoPaciente } from './dominio';
+
+/**
+ * Contratos de la API pública (plan §Endpoints). Los usan la API para validar lo que envía y
+ * la web para validar lo que recibe.
+ */
+
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/** Textura de la caja: página del atlas KTX2 y rectángulo [u0, v0, u1, v1] (origen arriba-izda). */
+export const AssetCajaPublico = z.strictObject({
+  atlasUrl: z.string().min(1),
+  uv: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  colorDominante: hexColor,
+});
+export type AssetCajaPublico = z.infer<typeof AssetCajaPublico>;
+
+export const ProductoResumen = z.strictObject({
+  nregistro: z.string().min(1),
+  nombre: z.string().min(1),
+  principioActivo: z.string().min(1),
+  forma: z.string().nullable(),
+  formaCaja: FormaCaja,
+  dosis: z.string().nullable(),
+  generico: z.boolean(),
+  conduccion: z.boolean(),
+  asset: AssetCajaPublico.nullable(),
+  /** true si hay una regla de dosis validada y vigente: la ficha muestra la calculadora. */
+  calculadora: z.boolean(),
+});
+export type ProductoResumen = z.infer<typeof ProductoResumen>;
+
+export const BaldaPasillo = z.strictObject({
+  titulo: z.string().min(1),
+  principioActivo: z.string().min(1),
+  orden: z.number().int().positive(),
+  productos: z.array(ProductoResumen),
+});
+export type BaldaPasillo = z.infer<typeof BaldaPasillo>;
+
+/**
+ * Grupo con receta de la vitrina. Estricto a propósito (principio 1): sin marca, foto, dosis ni
+ * identificador de producto. Solo principio activo, formas y texto explicativo.
+ */
+export const GrupoVitrinaPublico = z.strictObject({
+  principioActivo: z.string().min(1),
+  formas: z.array(z.string().min(1)),
+  paraQueSeUsa: z.string().min(1),
+  porQueNecesitaReceta: z.string().min(1),
+  situacion: z.string().min(1),
+});
+export type GrupoVitrinaPublico = z.infer<typeof GrupoVitrinaPublico>;
+
+/** Perfil del triaje con el que se filtran las baldas (query de GET /api/pasillos/:id). */
+export const PerfilPasillo = z.object({
+  grupo: GrupoPaciente.optional(),
+  edadMeses: z.coerce.number().int().min(0).max(1500).optional(),
+  condiciones: z
+    .string()
+    .max(500)
+    .transform((s) =>
+      s
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean),
+    )
+    .optional(),
+});
+export type PerfilPasillo = z.infer<typeof PerfilPasillo>;
+
+export const PasilloResponse = z.strictObject({
+  id: z.string().min(1),
+  version: z.number().int().positive(),
+  titulo: z.string().min(1),
+  /** `borrador`: la UI debe mostrar «Demostración: pendiente de validación farmacéutica». */
+  estado: z.enum(['borrador', 'validado']),
+  baldas: z.array(BaldaPasillo),
+  /** Baldas que el perfil del paciente deja fuera (no se detallan). */
+  ocultasPorPerfil: z.number().int().min(0),
+  vitrina: z.array(GrupoVitrinaPublico),
+  consejos: z.array(z.string()),
+  parafarmacia: z.array(z.string()),
+});
+export type PasilloResponse = z.infer<typeof PasilloResponse>;
+
+export const PresentacionPublica = z.strictObject({
+  cn: z.string().min(1),
+  nombre: z.string(),
+  problemaSuministro: z.boolean(),
+});
+
+export const SeccionFichaPublica = z.strictObject({
+  seccion: z.string().regex(/^4\.[1-7]$/),
+  titulo: z.string(),
+  /** Texto plano de la ficha técnica, nunca HTML. */
+  texto: z.string(),
+  /** Resumen en lenguaje llano ya revisado por un farmacéutico; nulo si no existe. */
+  resumenLlano: z.string().nullable(),
+});
+
+export const ProductoResponse = z.strictObject({
+  nregistro: z.string().min(1),
+  nombre: z.string().min(1),
+  principioActivo: z.string().min(1),
+  laboratorio: z.string().nullable(),
+  forma: z.string().nullable(),
+  formaCaja: FormaCaja,
+  dosis: z.string().nullable(),
+  generico: z.boolean(),
+  conduccion: z.boolean(),
+  triangulo: z.boolean(),
+  problemaSuministro: z.boolean(),
+  asset: AssetCajaPublico.nullable(),
+  presentaciones: z.array(PresentacionPublica),
+  secciones: z.array(SeccionFichaPublica),
+  enlaces: z.strictObject({ prospecto: z.url(), fichaTecnica: z.url() }),
+  /**
+   * Regla de dosis validada y vigente (esquema `ReglaDosis` de `@rebotica/dosis`, que la API
+   * valida antes de enviarla). Si es null, la ficha muestra el texto de la sección 4.2.
+   */
+  reglaDosis: z.unknown().nullable(),
+});
+export type ProductoResponse = z.infer<typeof ProductoResponse>;
+
+export const ErrorResponse = z.strictObject({ error: z.string() });
+export type ErrorResponse = z.infer<typeof ErrorResponse>;

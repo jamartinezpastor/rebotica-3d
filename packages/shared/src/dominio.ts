@@ -1,0 +1,35 @@
+import { z } from 'zod';
+
+/** Para quién es la consulta (pantalla de triaje). */
+export const GrupoPaciente = z.enum(['adulto', 'nino', 'bebe', 'embarazo', 'lactancia']);
+export type GrupoPaciente = z.infer<typeof GrupoPaciente>;
+
+/** Forma de la caja 3D, derivada de la forma farmacéutica de CIMA. */
+export const FormaCaja = z.enum(['caja-plana', 'caja-alta', 'caja-cuadrada', 'tubo', 'cilindro']);
+export type FormaCaja = z.infer<typeof FormaCaja>;
+
+/** Nivel de urgencia de una derivación. */
+export const Urgencia = z.enum(['112', 'urgencias', 'medico', 'farmaceutico']);
+export type Urgencia = z.infer<typeof Urgencia>;
+
+const sinAcentos = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
+/**
+ * Forma de la caja 3D según la forma farmacéutica de CIMA (plan §3D): caja plana para
+ * comprimidos y similares, alta para líquidos orales, cuadrada para sobres y polvos, tubo para
+ * cremas y geles, cilindro para sprays e inhaladores. Lo desconocido va a caja plana.
+ */
+export function formaCajaDesde(formaFarmaceutica: string | null | undefined): FormaCaja {
+  const forma = sinAcentos(formaFarmaceutica ?? '');
+  if (/aerosol|spray|nebuliz|inhal|pulveriz/.test(forma)) return 'cilindro';
+  if (/crema|pomada|gel\b|unguento|pasta|emulsion cutanea|locion/.test(forma)) return 'tubo';
+  if (/sobre|granulado|polvo/.test(forma)) return 'caja-cuadrada';
+  if (/jarabe|solucion|suspension|emulsion|gotas|elixir|colirio|liquido/.test(forma)) {
+    return 'caja-alta';
+  }
+  return 'caja-plana';
+}

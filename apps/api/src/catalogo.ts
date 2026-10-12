@@ -1,0 +1,250 @@
+import { ReglaDosis } from '@rebotica/dosis';
+import {
+  assetCaja,
+  grupoReceta,
+  medicamento,
+  presentacion,
+  reglaDosis,
+  seccionFt,
+  type Db,
+} from '@rebotica/db';
+import {
+  formaCajaDesde,
+  type AssetCajaPublico,
+  type ProductoResponse,
+  type ProductoResumen,
+} from '@rebotica/shared';
+import { and, asc, eq } from 'drizzle-orm';
+import type { PgDatabase } from 'drizzle-orm/pg-core';
+import { claveActivo } from './activos';
+
+/** Cualquier base PostgreSQL de Drizzle (node-postgres en producción, PGlite en los tests). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type BaseDatos = PgDatabase<any, any>;
+
+interface OpcionesCatalogo {
+  /** Los datos cambian una vez al día; un minuto de caché evita recorrer el catálogo por petición. */
+  ttlMs?: number;
+}
+
+interface Indice {
+  porClave: Map<string, ProductoResumen[]>;
+}
+
+const esGenerico = (nombre: string) => /\bEFG\b/i.test(nombre);
+
+/**
+ * Lectura del catálogo local. Solo expone medicamentos sin receta y comercializados: la tabla
+ * `medicamento` puede contener filas con receta, pero ninguna consulta de aquí las devuelve.
+ */
+export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalogo = {}) {
+  const conexion = db as unknown as Db;
+  let indice: { hasta: number; datos: Promise<Indice> } | null = null;
+  let formas: { hasta: number; datos: Promise<Map<string, string[]>> } | null = null;
+
+  /** Reglas validadas cuya sección 4.2 sigue siendo la que se transcribió. */
+  async function reglasVigentes(nregistro?: string): Promise<Map<string, ReglaDosis>> {
+    const filas = await conexion
+      .select({
+        nregistro: reglaDosis.nregistro,
+        json: reglaDosis.json,
+        version: reglaDosis.version,
+      })
+      .from(reglaDosis)
+      .innerJoin(
+        seccionFt,
+        and(
+          eq(seccionFt.nregistro, reglaDosis.nregistro),
+          eq(seccionFt.seccion, '4.2'),
+          eq(seccionFt.hash, reglaDosis.hashSeccion),
+        ),
+      )
+      .innerJoin(medicamento, eq(medicamento.nregistro, reglaDosis.nregistro))
+      .where(
+        and(
+          eq(reglaDosis.estado, 'validada'),
+          eq(medicamento.receta, false),
+          nregistro ? eq(reglaDosis.nregistro, nregistro) : undefined,
+        ),
+      )
+      .orderBy(asc(reglaDosis.version));
+    const reglas = new Map<string, ReglaDosis>();
+    for (const f of filas) {
+      const analizada = ReglaDosis.safeParse(f.json);
+      // Una regla que no cumple el esquema o cuyo JSON no está validado no activa la calculadora.
+      if (analizada.success && analizada.data.estado === 'validada') {
+        reglas.set(f.nregistro, analizada.data);
+      } else {
+        reglas.delete(f.nregistro);
+      }
+    }
+    return reglas;
+  }
+
+  async function construirIndice(): Promise<Indice> {
+    const filas = await conexion
+      .select({
+        nregistro: medicamento.nregistro,
+        nombre: medicamento.nombre,
+        pactivos: medicamento.pactivos,
+        forma: medicamento.forma,
+        dosis: medicamento.dosis,
+        conduc: medicamento.conduc,
+        atlasUrl: assetCaja.atlasUrl,
+        uv: assetCaja.uv,
+        colorDominante: assetCaja.colorDominante,
+        formaCaja: assetCaja.forma,
+      })
+      .from(medicamento)
+      .leftJoin(assetCaja, eq(assetCaja.nregistro, medicamento.nregistro))
+      .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, false)))
+      .orderBy(asc(medicamento.nombre), asc(medicamento.nregistro));
+    const reglas = await reglasVigentes();
+
+    const porClave = new Map<string, ProductoResumen[]>();
+    for (const f of filas) {
+      const asset: AssetCajaPublico | null =
+        f.atlasUrl && f.uv && f.uv.length === 4 && f.colorDominante
+          ? {
+              atlasUrl: f.atlasUrl,
+              uv: [f.uv[0] ?? 0, f.uv[1] ?? 0, f.uv[2] ?? 0, f.uv[3] ?? 0],
+              colorDominante: f.colorDominante,
+            }
+          : null;
+      const producto: ProductoResumen = {
+        nregistro: f.nregistro,
+        nombre: f.nombre,
+        principioActivo: f.pactivos,
+        forma: f.forma,
+        formaCaja: formaCajaDesde(f.forma),
+        dosis: f.dosis,
+        generico: esGenerico(f.nombre),
+        conduccion: f.conduc,
+        asset,
+        calculadora: reglas.has(f.nregistro),
+      };
+      const clave = claveActivo(f.pactivos);
+      const lista = porClave.get(clave) ?? [];
+      lista.push(producto);
+      porClave.set(clave, lista);
+    }
+    return { porClave };
+  }
+
+  async function obtenerIndice(): Promise<Indice> {
+    const ahora = Date.now();
+    if (!indice || indice.hasta < ahora) {
+      const datos = construirIndice();
+      indice = { hasta: ahora + ttlMs, datos };
+      // Un fallo no se queda en caché.
+      datos.catch(() => {
+        if (indice?.datos === datos) indice = null;
+      });
+    }
+    return indice.datos;
+  }
+
+  async function obtenerFormas(): Promise<Map<string, string[]>> {
+    const ahora = Date.now();
+    if (!formas || formas.hasta < ahora) {
+      const datos = (async () => {
+        const filas = await conexion
+          .select({ pactivo: grupoReceta.pactivo, forma: grupoReceta.forma })
+          .from(grupoReceta)
+          .orderBy(asc(grupoReceta.forma));
+        const mapa = new Map<string, string[]>();
+        for (const f of filas) {
+          const clave = claveActivo(f.pactivo);
+          const lista = mapa.get(clave) ?? [];
+          if (!lista.includes(f.forma)) lista.push(f.forma);
+          mapa.set(clave, lista);
+        }
+        return mapa;
+      })();
+      formas = { hasta: ahora + ttlMs, datos };
+      datos.catch(() => {
+        if (formas?.datos === datos) formas = null;
+      });
+    }
+    return formas.datos;
+  }
+
+  return {
+    /** Productos sin receta de un principio activo (o asociación), por orden alfabético. */
+    async productosDe(principioActivo: string): Promise<ProductoResumen[]> {
+      const { porClave } = await obtenerIndice();
+      return porClave.get(claveActivo(principioActivo)) ?? [];
+    },
+
+    /** Formas farmacéuticas con receta de un principio activo, para la vitrina. */
+    async formasConReceta(principioActivo: string): Promise<string[]> {
+      return (await obtenerFormas()).get(claveActivo(principioActivo)) ?? [];
+    },
+
+    /** Ficha de un medicamento sin receta; `null` si no existe, no se comercializa o exige receta. */
+    async ficha(nregistro: string): Promise<ProductoResponse | null> {
+      const [m] = await conexion
+        .select()
+        .from(medicamento)
+        .where(eq(medicamento.nregistro, nregistro));
+      if (!m || m.receta || !m.comerc) return null;
+
+      const [asset] = await conexion
+        .select()
+        .from(assetCaja)
+        .where(eq(assetCaja.nregistro, nregistro));
+      const presentaciones = await conexion
+        .select()
+        .from(presentacion)
+        .where(and(eq(presentacion.nregistro, nregistro), eq(presentacion.comerc, true)))
+        .orderBy(asc(presentacion.cn));
+      const secciones = await conexion
+        .select()
+        .from(seccionFt)
+        .where(eq(seccionFt.nregistro, nregistro))
+        .orderBy(asc(seccionFt.seccion));
+      const regla = (await reglasVigentes(nregistro)).get(nregistro) ?? null;
+
+      const id = encodeURIComponent(nregistro);
+      return {
+        nregistro: m.nregistro,
+        nombre: m.nombre,
+        principioActivo: m.pactivos,
+        laboratorio: m.labtitular,
+        forma: m.forma,
+        formaCaja: formaCajaDesde(m.forma),
+        dosis: m.dosis,
+        generico: esGenerico(m.nombre),
+        conduccion: m.conduc,
+        triangulo: m.triangulo,
+        problemaSuministro: m.psum || presentaciones.some((p) => p.psum),
+        asset:
+          asset && asset.uv.length === 4
+            ? {
+                atlasUrl: asset.atlasUrl,
+                uv: [asset.uv[0] ?? 0, asset.uv[1] ?? 0, asset.uv[2] ?? 0, asset.uv[3] ?? 0],
+                colorDominante: asset.colorDominante,
+              }
+            : null,
+        presentaciones: presentaciones.map((p) => ({
+          cn: p.cn,
+          nombre: p.nombre,
+          problemaSuministro: p.psum,
+        })),
+        secciones: secciones.map((s) => ({
+          seccion: s.seccion,
+          titulo: s.titulo,
+          texto: s.texto,
+          resumenLlano: s.resumenLlano,
+        })),
+        enlaces: {
+          prospecto: `https://cima.aemps.es/cima/dochtml/p/${id}/P_${id}.html`,
+          fichaTecnica: `https://cima.aemps.es/cima/dochtml/ft/${id}/FT_${id}.html`,
+        },
+        reglaDosis: regla,
+      };
+    },
+  };
+}
+
+export type Catalogo = ReturnType<typeof crearCatalogo>;

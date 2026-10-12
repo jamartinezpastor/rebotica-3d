@@ -61,7 +61,7 @@ export async function construirAssets(
   const inicio = Date.now();
   const conexion = db as unknown as Db;
   const log = opciones.log ?? (() => {});
-  const urlBase = (opciones.urlBase ?? '/assets').replace(/\/$/, '');
+  const urlBase = (opciones.urlBase ?? '/media').replace(/\/$/, '');
   const codificar = opciones.codificar ?? codificarKtx2;
   const extension = opciones.extension ?? 'ktx2';
   const carpetaAtlas = join(opciones.directorio, 'atlas');
