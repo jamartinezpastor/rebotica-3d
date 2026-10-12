@@ -37,13 +37,14 @@ docker build -t rebotica-3d .
 docker run --rm -p 3000:3000 rebotica-3d
 ```
 
-| Variable       | Por defecto   | Para qué                                               |
-| -------------- | ------------- | ------------------------------------------------------ |
-| `PORT`         | `3000`        | Puerto HTTP                                            |
-| `WEB_DIST`     | `/app/public` | Carpeta de la web compilada; vacía, la API no la sirve |
-| `DATABASE_URL` | —             | PostgreSQL; la API aplica las migraciones al arrancar  |
+| Variable       | Por defecto    | Para qué                                                 |
+| -------------- | -------------- | -------------------------------------------------------- |
+| `PORT`         | `3000`         | Puerto HTTP                                              |
+| `WEB_DIST`     | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve   |
+| `DATABASE_URL` | —              | PostgreSQL; la API aplica las migraciones al arrancar    |
+| `ASSETS_DIR`   | `/data/assets` | Carpeta persistente de fotos y atlas (montar un volumen) |
 
-El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada
+El job se lanza dentro del contenedor con `node jobs/sync-cima/dist/index.js` (tarea programada
 diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 
 | Invocación   | Qué hace                                                                 |
@@ -59,6 +60,12 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
   y la calculadora se oculta hasta que un farmacéutico las revise.
 - Lo que pasa a receta o deja de comercializarse sale de las baldas (`comerc = false`).
 - La marca de la última pasada (`sync_estado`) solo avanza si no hubo errores.
+- Con `ASSETS_DIR` definido, genera tras la sincronización la cara frontal de cada producto (foto
+  del embalaje de CIMA o textura generada con el color del grupo terapéutico), la empaqueta en
+  atlas KTX2 de 1024×1024 y rellena `asset_caja` con la URL del atlas, el rectángulo UV, el color
+  dominante y la forma de la caja. Los atlas llevan en el nombre la huella del catálogo: se
+  regeneran solo si algo cambia y se borran los antiguos. Las fotos descargadas se guardan en
+  `ASSETS_DIR/fotos` y no se piden dos veces.
 - Imprime un informe de recuento en JSON y sale con código 1 si hubo errores.
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.

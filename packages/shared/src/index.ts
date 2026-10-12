@@ -32,3 +32,25 @@ export const HealthResponse = z.object({
   time: z.iso.datetime(),
 });
 export type HealthResponse = z.infer<typeof HealthResponse>;
+
+const sinAcentos = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
+/**
+ * Forma de la caja 3D según la forma farmacéutica de CIMA (plan §3D): caja plana para
+ * comprimidos y similares, alta para líquidos orales, cuadrada para sobres y polvos, tubo para
+ * cremas y geles, cilindro para sprays e inhaladores. Lo desconocido va a caja plana.
+ */
+export function formaCajaDesde(formaFarmaceutica: string | null | undefined): FormaCaja {
+  const forma = sinAcentos(formaFarmaceutica ?? '');
+  if (/aerosol|spray|nebuliz|inhal|pulveriz/.test(forma)) return 'cilindro';
+  if (/crema|pomada|gel\b|unguento|pasta|emulsion cutanea|locion/.test(forma)) return 'tubo';
+  if (/sobre|granulado|polvo/.test(forma)) return 'caja-cuadrada';
+  if (/jarabe|solucion|suspension|emulsion|gotas|elixir|colirio|liquido/.test(forma)) {
+    return 'caja-alta';
+  }
+  return 'caja-plana';
+}

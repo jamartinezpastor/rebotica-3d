@@ -24,20 +24,28 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm --filter @rebotica/web --filter @rebotica/api --filter @rebotica/sync-cima build \
- && pnpm --filter @rebotica/api deploy --prod --legacy /out/api
+ && pnpm --filter @rebotica/api deploy --prod --legacy /out/api \
+ && pnpm --filter @rebotica/sync-cima deploy --prod --legacy /out/sync-cima
 
 # ---------- runtime: solo lo necesario para ejecutar ----------
 FROM node:${NODE_VERSION}-alpine AS runtime
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
-    WEB_DIST=/app/public \n    MIGRATIONS_DIR=/app/migrations
+    WEB_DIST=/app/public \
+    MIGRATIONS_DIR=/app/migrations \
+    ASSETS_DIR=/data/assets
 WORKDIR /app
 
 COPY --from=build --chown=node:node /out/api ./api
 COPY --from=build --chown=node:node /repo/apps/web/dist ./public
 COPY --from=build --chown=node:node /repo/packages/db/migrations ./migrations
-COPY --from=build --chown=node:node /repo/jobs/sync-cima/dist ./jobs/sync-cima
+COPY --from=build --chown=node:node /out/sync-cima ./jobs/sync-cima
+
+# El generador de texturas dibuja texto con SVG: necesita una fuente instalada en el sistema.
+RUN apk add --no-cache fontconfig ttf-dejavu \
+ && mkdir -p /data/assets \
+ && chown node:node /data/assets
 
 USER node
 EXPOSE 3000

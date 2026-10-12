@@ -29,6 +29,8 @@ const dormir = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve
 export interface ClienteCima {
   /** Devuelve el JSON validado, o `null` si CIMA responde 204 o 404. */
   obtener<T>(url: URL, esquema: ZodType<T>): Promise<T | null>;
+  /** Descarga un archivo (foto); `null` si CIMA responde 204 o 404. */
+  obtenerBinario(url: URL): Promise<Uint8Array | null>;
   /** Peticiones HTTP realizadas, reintentos incluidos. */
   readonly peticiones: number;
 }
@@ -63,14 +65,15 @@ export function crearClienteCima(opciones: OpcionesCliente = {}): ClienteCima {
     return Math.min(esperaBaseMs * 2 ** intento, esperaMaxMs);
   }
 
-  async function obtener<T>(url: URL, esquema: ZodType<T>): Promise<T | null> {
+  /** Petición con límite de ritmo y reintentos; `null` ante 404 y 204. */
+  async function pedir(url: URL, accept: string): Promise<Response | null> {
     for (let intento = 0; ; intento++) {
       await turno();
       peticiones++;
       let respuesta: Response;
       try {
         respuesta = await fetchImpl(url, {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: accept },
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {
@@ -99,28 +102,42 @@ export function crearClienteCima(opciones: OpcionesCliente = {}): ClienteCima {
         throw new ErrorCima(`CIMA respondió ${respuesta.status}`, url.toString(), respuesta.status);
       }
 
-      const texto = await respuesta.text();
-      if (texto.trim() === '') return null;
-      let json: unknown;
-      try {
-        json = JSON.parse(texto);
-      } catch {
-        throw new ErrorCima('Respuesta de CIMA que no es JSON', url.toString(), respuesta.status);
-      }
-      const analizado = esquema.safeParse(json);
-      if (!analizado.success) {
-        throw new ErrorCima(
-          `Respuesta de CIMA con forma inesperada: ${analizado.error.message}`,
-          url.toString(),
-          respuesta.status,
-        );
-      }
-      return analizado.data;
+      return respuesta;
     }
+  }
+
+  async function obtener<T>(url: URL, esquema: ZodType<T>): Promise<T | null> {
+    const respuesta = await pedir(url, 'application/json');
+    if (!respuesta) return null;
+    const texto = await respuesta.text();
+    if (texto.trim() === '') return null;
+    let json: unknown;
+    try {
+      json = JSON.parse(texto);
+    } catch {
+      throw new ErrorCima('Respuesta de CIMA que no es JSON', url.toString(), respuesta.status);
+    }
+    const analizado = esquema.safeParse(json);
+    if (!analizado.success) {
+      throw new ErrorCima(
+        `Respuesta de CIMA con forma inesperada: ${analizado.error.message}`,
+        url.toString(),
+        respuesta.status,
+      );
+    }
+    return analizado.data;
+  }
+
+  async function obtenerBinario(url: URL): Promise<Uint8Array | null> {
+    const respuesta = await pedir(url, 'image/*');
+    if (!respuesta) return null;
+    const bytes = new Uint8Array(await respuesta.arrayBuffer());
+    return bytes.length > 0 ? bytes : null;
   }
 
   return {
     obtener,
+    obtenerBinario,
     get peticiones() {
       return peticiones;
     },
