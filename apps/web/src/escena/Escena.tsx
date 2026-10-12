@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber';
+import type { ProductoResumen } from '@rebotica/shared';
 import { Pasillo, type BaldaEscena } from './Pasillo';
 
 /** Blanco del vacío: el suelo, la niebla y el fondo son del mismo color y no hay horizonte. */
@@ -16,6 +17,9 @@ function Suelo() {
 export interface EscenaProps {
   /** Baldas del pasillo, en orden; se agrupan de tres en tres en estanterías. */
   baldas?: BaldaEscena[];
+  /** `nregistro` del producto abierto en la ficha; null en el pasillo. */
+  seleccionada?: string | null;
+  onSeleccionar?: (producto: ProductoResumen) => void;
 }
 
 /**
@@ -24,7 +28,7 @@ export interface EscenaProps {
  * fotogramas mientras dura la entrada animada, el movimiento de la cámara o cuando algo cambia.
  * La cámara la gobierna `RielCamara` (dentro de `Pasillo`).
  */
-export default function Escena({ baldas = [] }: EscenaProps) {
+export default function Escena({ baldas = [], seleccionada = null, onSeleccionar }: EscenaProps) {
   return (
     <Canvas
       dpr={[1, 1.5]}
@@ -41,7 +45,7 @@ export default function Escena({ baldas = [] }: EscenaProps) {
       <hemisphereLight args={['#ffffff', '#ece6da', 1.6]} />
       <directionalLight position={[2.5, 4, 3]} intensity={2.2} />
       <Suelo />
-      <Pasillo baldas={baldas} />
+      <Pasillo baldas={baldas} seleccionada={seleccionada} onSeleccionar={onSeleccionar} />
     </Canvas>
   );
 }

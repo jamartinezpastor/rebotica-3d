@@ -1,7 +1,9 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
 import { lazy, Suspense, useMemo } from 'react';
 import { baldasDemo } from './escena/demo';
+import { PanelFicha } from './escena/PanelFicha';
 import { usePasillo } from './escena/usePasillo';
+import { useSeleccion, type Seleccion } from './escena/useSeleccion';
 import { useEstadoApi } from './useEstadoApi';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
@@ -15,26 +17,46 @@ function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string
   );
 }
 
-function EscenaDemo() {
+function EscenaDemo({ seleccion }: { seleccion: Seleccion }) {
   const baldas = useMemo(() => baldasDemo(), []);
-  return <Escena baldas={baldas} />;
+  return (
+    <Escena
+      baldas={baldas}
+      seleccionada={seleccion.producto?.nregistro ?? null}
+      onSeleccionar={seleccion.seleccionar}
+    />
+  );
 }
 
-function EscenaPasillo({ id }: { id: string }) {
+function EscenaPasillo({ id, seleccion }: { id: string; seleccion: Seleccion }) {
   const estado = usePasillo(id);
   if (estado.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
   if (estado.tipo === 'error') return <Preparando texto={estado.mensaje} />;
-  return <Escena baldas={estado.baldas} />;
+  return (
+    <Escena
+      baldas={estado.baldas}
+      seleccionada={seleccion.producto?.nregistro ?? null}
+      onSeleccionar={seleccion.seleccionar}
+    />
+  );
 }
 
 /** Vista de desarrollo: `/escena` con productos ficticios o `/escena?pasillo=<id>` con datos reales. */
 function VistaEscena() {
   const pasillo = new URLSearchParams(window.location.search).get('pasillo');
+  const seleccion = useSeleccion();
   return (
-    <div className="h-dvh w-full">
+    <div className="relative h-dvh w-full overflow-hidden">
       <Suspense fallback={<Preparando />}>
-        {pasillo ? <EscenaPasillo id={pasillo} /> : <EscenaDemo />}
+        {pasillo ? (
+          <EscenaPasillo id={pasillo} seleccion={seleccion} />
+        ) : (
+          <EscenaDemo seleccion={seleccion} />
+        )}
       </Suspense>
+      {seleccion.producto && (
+        <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} />
+      )}
     </div>
   );
 }

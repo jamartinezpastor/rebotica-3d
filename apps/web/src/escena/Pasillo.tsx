@@ -1,14 +1,30 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import type { ProductoResumen } from '@rebotica/shared';
-import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
-import type { Group, Mesh, MeshBasicMaterial } from 'three';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Vector3,
+  type Group,
+  type Mesh,
+  type MeshBasicMaterial,
+  type PerspectiveCamera,
+} from 'three';
 import { avance, muelle, planificarEntrada } from './animacion';
 import { Caja } from './Caja';
-import { colocarCajas, type CajaColocada } from './cajas';
+import { colocarCajas, dimensionesCaja, type CajaColocada } from './cajas';
 import { Estanteria } from './Estanteria';
 import { ESTANTERIA_POR_DEFECTO, geometriaEstanteria, type GeometriaEstanteria } from './geometria';
 import { Letrero, LETRERO_ALTO } from './Letrero';
 import { RielCamara } from './RielCamara';
+import {
+  ALTO_EN_FICHA,
+  DISTANCIA_FICHA,
+  DISTANCIA_VELO,
+  VELOCIDAD_GIRO,
+  avanzarTransicion,
+  cajaMasCercana,
+  escalaEnFicha,
+  suavizado,
+} from './seleccion';
 import { Sombra } from './Sombra';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
@@ -103,6 +119,10 @@ function useMenosMovimiento(): boolean {
 
 export interface PasilloProps {
   baldas: readonly BaldaEscena[];
+  /** `nregistro` del producto abierto en la ficha, o null en el pasillo. */
+  seleccionada?: string | null;
+  /** Se llama al tocar una caja (con el producto) o al elegirla con el teclado. */
+  onSeleccionar?: (producto: ProductoResumen) => void;
 }
 
 /**
@@ -110,8 +130,9 @@ export interface PasilloProps {
  * o desde un lateral y frena con un muelle; después las cajas caen a su hueco una a una y los
  * letreros se descifran. Todo el movimiento se calcula aquí con una sola línea de tiempo.
  */
-export function Pasillo({ baldas }: PasilloProps) {
+export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloProps) {
   const invalidar = useThree((s) => s.invalidate);
+  const camera = useThree((s) => s.camera);
   const menosMovimiento = useMenosMovimiento();
   const geometria = useMemo(() => geometriaEstanteria(), []);
   const modelo = useMemo(() => modeloPasillo(baldas, geometria), [baldas, geometria]);
@@ -125,6 +146,28 @@ export function Pasillo({ baldas }: PasilloProps) {
     return (performance.now() - t0.current) / 1000;
   }, [menosMovimiento]);
 
+  // Producto que se está mostrando en la ficha. Se conserva mientras dura el vuelo de vuelta,
+  // aunque `seleccionada` ya sea null, y se limpia cuando la caja ha regresado a su balda.
+  const [mostrada, setMostrada] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
+  if (seleccionada !== previa) {
+    setPrevia(seleccionada);
+    if (seleccionada) setMostrada(seleccionada);
+  }
+
+  const indice = useMemo(() => {
+    const mapa = new Map<string, { i: number; j: number }>();
+    modelo.forEach((est, i) => est.cajas.forEach((c, j) => mapa.set(c.item.nregistro, { i, j })));
+    return mapa;
+  }, [modelo]);
+
+  const sel = useRef({ u: 0, origen: new Vector3(), tieneOrigen: false, angulo: 0 });
+  const volando = useRef<Group>(null);
+  const velo = useRef<Mesh>(null);
+  const direccion = useMemo(() => new Vector3(), []);
+  const destino = useMemo(() => new Vector3(), []);
+  const arriba = useMemo(() => new Vector3(), []);
+
   const grupos = useRef<(Group | null)[]>([]);
   const cajas = useRef<(Group | null)[][]>([]);
   const estelas = useRef<(Group | null)[]>([]);
@@ -135,7 +178,7 @@ export function Pasillo({ baldas }: PasilloProps) {
     invalidar();
   }, [modelo, invalidar]);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const t = reloj();
     modelo.forEach((est, i) => {
       const tramo = plan.estanterias[i];
@@ -182,12 +225,92 @@ export function Pasillo({ baldas }: PasilloProps) {
       });
     });
 
-    if (t < plan.total + 0.1) invalidar();
+    // ---- Selección: la caja vuela a la ficha y el resto se apaga tras un velo blanco -------------
+    const estado = sel.current;
+    estado.u = avanzarTransicion(
+      estado.u,
+      delta,
+      seleccionada ? 1 : 0,
+      menosMovimiento ? 0 : undefined,
+    );
+    const lugar = mostrada ? indice.get(mostrada) : undefined;
+    const original = lugar ? cajas.current[lugar.i]?.[lugar.j] : null;
+
+    if (lugar && original && volando.current && velo.current) {
+      if (!estado.tieneOrigen) {
+        original.getWorldPosition(estado.origen);
+        estado.tieneOrigen = true;
+      }
+      // La caja real se oculta mientras su copia está fuera de la balda.
+      original.visible = false;
+
+      const e = suavizado(estado.u);
+      const perspectiva = camera as PerspectiveCamera;
+      camera.getWorldDirection(direccion);
+      arriba.copy(perspectiva.up).applyQuaternion(camera.quaternion);
+      destino.copy(camera.position).addScaledVector(direccion, DISTANCIA_FICHA);
+      destino.addScaledVector(arriba, ALTO_EN_FICHA * 0.12);
+
+      const forma = modelo[lugar.i]?.cajas[lugar.j]?.forma;
+      const escala = escalaEnFicha(forma ? dimensionesCaja(forma).alto : ALTO_EN_FICHA);
+
+      volando.current.position.lerpVectors(estado.origen, destino, e);
+      volando.current.scale.setScalar(1 + (escala - 1) * e);
+      // Gira despacio solo cuando ya está en la ficha; al volver el giro se deshace con el vuelo.
+      if (estado.u >= 1 && !menosMovimiento) estado.angulo += delta * VELOCIDAD_GIRO;
+      volando.current.rotation.y = estado.angulo * e;
+
+      velo.current.position.copy(camera.position).addScaledVector(direccion, DISTANCIA_VELO);
+      velo.current.quaternion.copy(camera.quaternion);
+      (velo.current.material as MeshBasicMaterial).opacity = 0.94 * e;
+      velo.current.visible = e > 0.001;
+
+      if (estado.u === 0 && !seleccionada) {
+        original.visible = true;
+        estado.tieneOrigen = false;
+        estado.angulo = 0;
+        setMostrada(null);
+      }
+    }
+
+    const enVuelo = mostrada !== null && (estado.u > 0 || seleccionada !== null);
+    if (estado.u >= 1 && !menosMovimiento) {
+      // En la ficha la caja gira: ~30 fotogramas por segundo bastan y ahorran batería.
+      window.setTimeout(invalidar, 33);
+    } else if (enVuelo || t < plan.total + 0.1) {
+      invalidar();
+    }
   });
+
+  /** Enter sobre el raíl: elige el producto que la cámara tiene delante. */
+  const activarPorTeclado = useCallback(
+    (x: number, fila: number) => {
+      const ubicadas = modelo.flatMap((est) =>
+        est.cajas.map((c) => ({
+          balda: c.balda,
+          x: est.posicion[0] + c.posicion[0],
+          item: c.item,
+        })),
+      );
+      const k = cajaMasCercana(ubicadas, x, fila);
+      const elegida = ubicadas[k];
+      if (elegida) onSeleccionar?.(elegida.item);
+    },
+    [modelo, onSeleccionar],
+  );
+
+  const lugarMostrada = mostrada ? indice.get(mostrada) : undefined;
+  const cajaMostrada = lugarMostrada ? modelo[lugarMostrada.i]?.cajas[lugarMostrada.j] : undefined;
 
   return (
     <group>
-      <RielCamara puntos={riel.puntos} alturas={riel.alturas} instantaneo={menosMovimiento} />
+      <RielCamara
+        puntos={riel.puntos}
+        alturas={riel.alturas}
+        instantaneo={menosMovimiento}
+        activo={mostrada === null}
+        onActivar={activarPorTeclado}
+      />
       {modelo.map((est, i) => {
         const tramo = plan.estanterias[i];
         const horizontal = est.origen[0] !== 0;
@@ -254,12 +377,33 @@ export function Pasillo({ baldas }: PasilloProps) {
                 position={c.posicion}
                 visible={menosMovimiento}
               >
-                <Caja forma={c.forma} asset={c.item.asset} posicion={[0, 0, 0]} />
+                <Caja
+                  forma={c.forma}
+                  asset={c.item.asset}
+                  posicion={[0, 0, 0]}
+                  onSeleccionar={mostrada === null ? () => onSeleccionar?.(c.item) : undefined}
+                />
               </group>
             ))}
           </group>
         );
       })}
+      {cajaMostrada && (
+        <group ref={volando}>
+          <Caja forma={cajaMostrada.forma} asset={cajaMostrada.item.asset} posicion={[0, 0, 0]} />
+        </group>
+      )}
+      {/* Velo blanco entre la caja de la ficha y el resto de la escena (más lejos que ella). */}
+      <mesh ref={velo} visible={false} raycast={() => null} renderOrder={5}>
+        <planeGeometry args={[6, 6]} />
+        <meshBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={0}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
     </group>
   );
 }

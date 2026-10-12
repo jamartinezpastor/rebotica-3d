@@ -91,6 +91,11 @@ La cámara viaja por un raíl, no es libre:
 
 Con `prefers-reduced-motion` la cámara salta al destino sin muelle.
 
+Selección: tocar una caja (o Enter sobre la que tiene delante la cámara) la hace salir de la balda
+y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la ficha gira despacio.
+«Volver al pasillo», Escape y el botón atrás del navegador reproducen el vuelo al revés. Un
+arrastre nunca selecciona: solo cuenta un toque que se mueve menos de 8 px.
+
 ## API de datos
 
 | Ruta                            | Qué devuelve                                                                      |

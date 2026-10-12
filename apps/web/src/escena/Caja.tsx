@@ -3,6 +3,7 @@ import type { AssetCajaPublico, FormaCaja } from '@rebotica/shared';
 import { useEffect, useMemo } from 'react';
 import { MeshStandardMaterial } from 'three';
 import { crearGeometriaCaja, type RectanguloAtlas } from './geometriaCaja';
+import { UMBRAL_TOQUE } from './seleccion';
 import { useAtlas } from './useAtlas';
 
 /** Color de los laterales cuando no hay foto de la que sacarlo. */
@@ -12,13 +13,15 @@ export interface CajaProps {
   forma: FormaCaja;
   asset: AssetCajaPublico | null;
   posicion: [number, number, number];
+  /** Se llama con un toque o clic limpio (no con el final de un arrastre). */
+  onSeleccionar?: () => void;
 }
 
 /**
  * Una caja generada: forma según la forma farmacéutica, cara frontal del atlas KTX2 y laterales
  * con el color dominante de la foto. Mientras llega el atlas se ve con el color de los laterales.
  */
-export function Caja({ forma, asset, posicion }: CajaProps) {
+export function Caja({ forma, asset, posicion, onSeleccionar }: CajaProps) {
   const invalidar = useThree((s) => s.invalidate);
   const atlas = useAtlas(asset?.atlasUrl);
   const uv = asset?.uv;
@@ -59,5 +62,21 @@ export function Caja({ forma, asset, posicion }: CajaProps) {
   );
 
   const lista = ranuras.map((r) => (r === 'frente' ? materiales.frente : materiales.lado));
-  return <mesh position={posicion} geometry={geometria} material={lista} />;
+  return (
+    <mesh
+      position={posicion}
+      geometry={geometria}
+      material={lista}
+      onClick={
+        onSeleccionar
+          ? (e) => {
+              // R3F informa de cuánto se movió el puntero entre pulsar y soltar.
+              if (e.delta > UMBRAL_TOQUE) return;
+              e.stopPropagation();
+              onSeleccionar();
+            }
+          : undefined
+      }
+    />
+  );
 }

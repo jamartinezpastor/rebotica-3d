@@ -39,6 +39,10 @@ export interface RielCamaraProps {
   alturas: readonly number[];
   /** Menos movimiento: la cámara salta al destino sin muelle. */
   instantaneo?: boolean;
+  /** Con `false` el raíl ignora gestos y teclas (p. ej. mientras hay una ficha abierta). */
+  activo?: boolean;
+  /** Enter o espacio: el producto que la cámara tiene delante (posición x y balda). */
+  onActivar?: (x: number, fila: number) => void;
 }
 
 /**
@@ -46,7 +50,13 @@ export interface RielCamaraProps {
  * vertical cambia de balda y en escritorio funcionan las flechas y la rueda. No hay cámara libre.
  * Conecta los eventos del lienzo con `ControlRiel` y lo aplica a la cámara en cada fotograma.
  */
-export function RielCamara({ puntos, alturas, instantaneo = false }: RielCamaraProps) {
+export function RielCamara({
+  puntos,
+  alturas,
+  instantaneo = false,
+  activo = true,
+  onActivar,
+}: RielCamaraProps) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const size = useThree((s) => s.size);
@@ -75,7 +85,7 @@ export function RielCamara({ puntos, alturas, instantaneo = false }: RielCamaraP
     let ultimo = { x: 0, y: 0, t: 0 };
 
     const abajo = (e: PointerEvent) => {
-      if (!e.isPrimary || puntero !== null) return;
+      if (!activo || !e.isPrimary || puntero !== null) return;
       puntero = e.pointerId;
       el.setPointerCapture(e.pointerId);
       cursorLienzo(el, 'grabbing');
@@ -98,13 +108,19 @@ export function RielCamara({ puntos, alturas, instantaneo = false }: RielCamaraP
       invalidar();
     };
     const tecla = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (!activo || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onActivar?.(control.destinoActual(), control.filaObjetivo);
+        return;
+      }
       if (control.teclado(e.key)) {
         e.preventDefault();
         invalidar();
       }
     };
     const rueda = (e: WheelEvent) => {
+      if (!activo) return;
       e.preventDefault();
       control.rueda(e.deltaX, e.deltaY, e.timeStamp);
       invalidar();
@@ -125,7 +141,7 @@ export function RielCamara({ puntos, alturas, instantaneo = false }: RielCamaraP
       el.removeEventListener('keydown', tecla);
       el.removeEventListener('wheel', rueda);
     };
-  }, [gl, control, invalidar]);
+  }, [gl, control, invalidar, activo, onActivar]);
 
   useFrame((_, delta) => {
     const perspectiva = camera as PerspectiveCamera;
