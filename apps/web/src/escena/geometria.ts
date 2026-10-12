@@ -17,7 +17,7 @@ export interface ParametrosEstanteria {
 
 export const ESTANTERIA_POR_DEFECTO: ParametrosEstanteria = {
   ancho: 1.2,
-  alto: 1.9,
+  alto: 1.25,
   fondo: 0.34,
   baldas: 3,
   grosor: 0.03,

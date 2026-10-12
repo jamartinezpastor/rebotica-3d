@@ -1,21 +1,39 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
+import { productosDemo } from './escena/demo';
+import { usePasillo } from './escena/usePasillo';
 import { useEstadoApi } from './useEstadoApi';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
 
+function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string }) {
+  return (
+    <p role="status" className="p-6 text-tinta-suave">
+      {texto}
+    </p>
+  );
+}
+
+function EscenaDemo() {
+  const productos = useMemo(() => productosDemo(), []);
+  return <Escena productos={productos} />;
+}
+
+function EscenaPasillo({ id }: { id: string }) {
+  const estado = usePasillo(id);
+  if (estado.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
+  if (estado.tipo === 'error') return <Preparando texto={estado.mensaje} />;
+  return <Escena productos={estado.productos} />;
+}
+
+/** Vista de desarrollo: `/escena` con productos ficticios o `/escena?pasillo=<id>` con datos reales. */
 function VistaEscena() {
+  const pasillo = new URLSearchParams(window.location.search).get('pasillo');
   return (
     <div className="h-dvh w-full">
-      <Suspense
-        fallback={
-          <p role="status" className="p-6 text-tinta-suave">
-            Preparando la estantería…
-          </p>
-        }
-      >
-        <Escena />
+      <Suspense fallback={<Preparando />}>
+        {pasillo ? <EscenaPasillo id={pasillo} /> : <EscenaDemo />}
       </Suspense>
     </div>
   );

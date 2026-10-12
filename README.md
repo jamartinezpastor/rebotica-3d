@@ -71,6 +71,13 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.
 
+## Vista de desarrollo de la escena 3D
+
+`pnpm dev` y abre `http://localhost:5173/escena`: estantería con productos ficticios. Con
+`?pasillo=<id>` coloca los productos reales de `/api/pasillos/<id>` (necesita la API con la base
+de datos sincronizada y los atlas generados). Los atlas KTX2 se descomprimen con el
+transcodificador de `apps/web/public/basis/`, copiado de `three`.
+
 ## API de datos
 
 | Ruta                            | Qué devuelve                                                                      |

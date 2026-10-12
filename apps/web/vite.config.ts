@@ -8,6 +8,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3000',
+      // Atlas de texturas de las cajas, servidos por la API.
+      '/media': 'http://localhost:3000',
     },
   },
   test: {

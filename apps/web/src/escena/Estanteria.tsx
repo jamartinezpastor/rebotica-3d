@@ -1,7 +1,7 @@
 import { useThree } from '@react-three/fiber';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { Matrix4, Quaternion, Vector3, type InstancedMesh } from 'three';
-import { geometriaEstanteria, type ParametrosEstanteria, type Pieza } from './geometria';
+import type { GeometriaEstanteria, Pieza } from './geometria';
 
 /** Colores de la escena: blanco cálido y el verde de la cruz como único acento. */
 export const COLOR_MADERA = '#efe9df';
@@ -31,21 +31,20 @@ function useInstancias(piezas: readonly Pieza[]) {
 }
 
 export interface EstanteriaProps {
-  parametros?: Partial<ParametrosEstanteria>;
-  posicion?: [number, number, number];
+  /** Resultado de `geometriaEstanteria()`; lo calcula el padre porque también coloca las cajas. */
+  geometria: GeometriaEstanteria;
 }
 
 /**
  * Estantería de tres baldas: toda la estructura es una sola malla instanciada (laterales,
  * tableros y panel trasero) y los frisos verdes otra. Dos llamadas de dibujo por estantería.
  */
-export function Estanteria({ parametros, posicion = [0, 0, 0] }: EstanteriaProps) {
-  const geometria = useMemo(() => geometriaEstanteria(parametros), [parametros]);
+export function Estanteria({ geometria }: EstanteriaProps) {
   const estructura = useInstancias(geometria.estructura);
   const frisos = useInstancias(geometria.frisos);
 
   return (
-    <group position={posicion}>
+    <group>
       <instancedMesh
         ref={estructura}
         args={[undefined, undefined, geometria.estructura.length]}

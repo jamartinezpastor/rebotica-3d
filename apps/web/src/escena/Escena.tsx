@@ -2,7 +2,11 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import type { PerspectiveCamera } from 'three';
 import { CanvasTexture, LinearFilter } from 'three';
+import type { ProductoResumen } from '@rebotica/shared';
+import { Caja } from './Caja';
+import { colocarCajas } from './cajas';
 import { Estanteria } from './Estanteria';
+import { geometriaEstanteria } from './geometria';
 
 /** Blanco del vacío: el suelo, la niebla y el fondo son del mismo color y no hay horizonte. */
 export const COLOR_VACIO = '#ffffff';
@@ -39,14 +43,14 @@ function useTexturaSombra() {
 
 /** Semiancho que debe caber en pantalla: la estantería más un margen. */
 const SEMIANCHO_VISIBLE = 0.78;
-const ALTURA_OJOS = 1.25;
-const OBJETIVO_Y = 0.95;
+const ALTURA_OJOS = 0.85;
+const OBJETIVO_Y = 0.6;
 
 /** Aleja la cámara lo justo para que la estantería quepa a lo ancho en pantallas estrechas. */
 export function distanciaCamara(fovVerticalGrados: number, aspecto: number): number {
   const mitadFov = (fovVerticalGrados * Math.PI) / 360;
   const paraAncho = SEMIANCHO_VISIBLE / (Math.tan(mitadFov) * aspecto);
-  const paraAlto = (1.1 * 1.0) / Math.tan(mitadFov);
+  const paraAlto = 0.8 / Math.tan(mitadFov);
   return Math.max(2.6, paraAncho, paraAlto);
 }
 
@@ -83,11 +87,22 @@ function Suelo() {
   );
 }
 
+export interface EscenaProps {
+  /** Productos que se colocan en las baldas, de izquierda a derecha y de arriba abajo. */
+  productos?: ProductoResumen[];
+}
+
 /**
  * Vacío blanco sin horizonte: fondo y niebla del mismo color, suelo claro, luz de cielo suave
  * y una principal lateral. Pixel ratio limitado a 1,5 y dibujo bajo demanda (la ficha no anima).
  */
-export default function Escena() {
+export default function Escena({ productos = [] }: EscenaProps) {
+  const geometria = useMemo(() => geometriaEstanteria(), []);
+  const { colocadas } = useMemo(
+    () => colocarCajas(geometria.huecos, productos),
+    [geometria, productos],
+  );
+
   return (
     <Canvas
       dpr={[1, 1.5]}
@@ -106,7 +121,10 @@ export default function Escena() {
       <directionalLight position={[2.5, 4, 3]} intensity={2.2} />
       <CamaraAjustada />
       <Suelo />
-      <Estanteria />
+      <Estanteria geometria={geometria} />
+      {colocadas.map((c) => (
+        <Caja key={c.item.nregistro} forma={c.forma} asset={c.item.asset} posicion={c.posicion} />
+      ))}
     </Canvas>
   );
 }
