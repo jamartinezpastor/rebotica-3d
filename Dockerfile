@@ -16,6 +16,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/db/package.json packages/db/
 COPY packages/dosis/package.json packages/dosis/
 COPY packages/protocolos/package.json packages/protocolos/
 COPY jobs/sync-cima/package.json jobs/sync-cima/
@@ -30,11 +31,12 @@ FROM node:${NODE_VERSION}-alpine AS runtime
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
-    WEB_DIST=/app/public
+    WEB_DIST=/app/public \n    MIGRATIONS_DIR=/app/migrations
 WORKDIR /app
 
 COPY --from=build --chown=node:node /out/api ./api
 COPY --from=build --chown=node:node /repo/apps/web/dist ./public
+COPY --from=build --chown=node:node /repo/packages/db/migrations ./migrations
 COPY --from=build --chown=node:node /repo/jobs/sync-cima/dist ./jobs/sync-cima
 
 USER node

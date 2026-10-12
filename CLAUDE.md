@@ -46,6 +46,7 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 | `apps/web`            | Vite + React + Tailwind (escena 3D con React Three Fiber en F2) |
 | `apps/api`            | Fastify; contratos validados con los esquemas de `shared`       |
 | `packages/shared`     | Esquemas Zod y constantes comunes (aviso legal, teléfonos)      |
+| `packages/db`         | Esquema Drizzle (PostgreSQL), migraciones y conexión            |
 | `packages/dosis`      | Esquema de reglas de dosis; el cálculo llega en F3-02           |
 | `packages/protocolos` | Esquema de protocolos; los JSON firmados van en `data/`         |
 | `jobs/sync-cima`      | Job nocturno de sincronización con CIMA                         |

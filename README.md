@@ -41,7 +41,7 @@ docker run --rm -p 3000:3000 rebotica-3d
 | -------------- | ------------- | ------------------------------------------------------ |
 | `PORT`         | `3000`        | Puerto HTTP                                            |
 | `WEB_DIST`     | `/app/public` | Carpeta de la web compilada; vacía, la API no la sirve |
-| `DATABASE_URL` | —             | PostgreSQL; se empieza a usar en F1-01                 |
+| `DATABASE_URL` | —             | PostgreSQL; la API aplica las migraciones al arrancar  |
 
 El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada en
 Coolify a partir de F1-03).
