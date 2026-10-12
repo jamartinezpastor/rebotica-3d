@@ -8,7 +8,6 @@ import {
   jsonb,
   pgTable,
   primaryKey,
-  real,
   serial,
   text,
   timestamp,
@@ -39,6 +38,8 @@ export const medicamento = pgTable(
     psum: boolean('psum').notNull().default(false),
     forma: text('forma'),
     dosis: text('dosis'),
+    /** Categoría terapéutica legible (nombre ATC de nivel 3 en CIMA); la usa la caja 3D. */
+    categoria: text('categoria'),
     atcs: text('atcs')
       .array()
       .notNull()
@@ -168,21 +169,37 @@ export const reglaDosis = pgTable(
   ],
 );
 
-/** Textura y forma de la caja 3D, generadas en la sincronización (F1-04). */
+/**
+ * Aspecto de la caja 3D de un producto sin receta. La caja se dibuja en el navegador a partir de
+ * los datos del producto y de esta paleta, extraída de la foto del envase en CIMA (que solo se
+ * publica en miniatura, ≤ 200 px). `foto` es la miniatura que sirve la propia API.
+ */
 export const assetCaja = pgTable(
   'asset_caja',
   {
     nregistro: text('nregistro')
       .primaryKey()
       .references(() => medicamento.nregistro, { onDelete: 'cascade' }),
-    atlasUrl: text('atlas_url').notNull(),
-    uv: real('uv').array().notNull(),
     colorDominante: text('color_dominante').notNull(),
+    /** Colores del envase de mayor a menor presencia (el primero es el dominante). */
+    paleta: text('paleta')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     forma: text('forma').notNull(),
+    /** Ruta pública de la miniatura (`/media/miniaturas/…`); nula si CIMA no tiene foto. */
+    foto: text('foto'),
   },
   (t) => [
-    check('asset_caja_uv_rect', sql`cardinality(${t.uv}) = 4`),
     check('asset_caja_color_hex', sql`${t.colorDominante} ~ '^#[0-9a-fA-F]{6}$'`),
+    check(
+      'asset_caja_paleta_hex',
+      sql`${t.paleta}::text ~ '^\\{(#[0-9a-fA-F]{6}(,#[0-9a-fA-F]{6})*)?\\}$'`,
+    ),
+    check(
+      'asset_caja_foto_ruta',
+      sql`${t.foto} IS NULL OR ${t.foto} ~ '^/media/miniaturas/[A-Za-z0-9._-]+$'`,
+    ),
   ],
 );
 

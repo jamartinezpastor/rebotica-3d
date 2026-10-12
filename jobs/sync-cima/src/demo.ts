@@ -1,12 +1,12 @@
 /**
  * Demo local sin PostgreSQL: levanta la API con una base de datos en memoria (PGlite),
- * sincroniza unos medicamentos reales de CIMA, genera los atlas de las cajas y monta un pasillo
+ * sincroniza unos medicamentos reales de CIMA, extrae la paleta de sus envases y monta un pasillo
  * de ejemplo con ellos. Pensado para ver la web con datos reales:
  *
  *   pnpm demo            (arranca esta API y la web)
  *   http://localhost:5173/escena?pasillo=demo
  *
- * Variables: `DEMO_MEDICAMENTOS` (por defecto 18) y `DEMO_DIR` (caché de fotos y atlas).
+ * Variables: `DEMO_MEDICAMENTOS` (por defecto 18) y `DEMO_DIR` (caché de fotos y miniaturas).
  * El protocolo que monta es un borrador de demostración: no es clínico ni está validado.
  */
 import { mkdirSync } from 'node:fs';
@@ -48,9 +48,9 @@ log(
     (informe.errores.length > 0 ? `, ${informe.errores.length} errores` : ''),
 );
 
-log('generando fotos y atlas de las cajas…');
+log('extrayendo la paleta de color y las miniaturas de los envases…');
 const assets = await construirAssets(db, { directorio, cliente, log });
-log(`atlas: ${assets.paginas} páginas, ${assets.conFoto} con foto, ${assets.generados} generados`);
+log(`miniaturas: ${assets.conFoto} con foto de CIMA, ${assets.sinFoto} sin foto`);
 
 // Baldas de ejemplo: los principios activos con más productos, hasta dos estanterías.
 const filas = await db

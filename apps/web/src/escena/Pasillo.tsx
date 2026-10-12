@@ -3,6 +3,7 @@ import type { ProductoResumen } from '@rebotica/shared';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three';
 import { avance, muelle, planificarEntrada } from './animacion';
+import { datosEnvase } from './arteEnvase';
 import { Caja } from './Caja';
 import { colocarCajas, dimensionesCaja, type CajaColocada } from './cajas';
 import { Estanteria } from './Estanteria';
@@ -424,7 +425,7 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
               >
                 <Caja
                   forma={c.forma}
-                  asset={c.item.asset}
+                  datos={datosEnvase(c.item)}
                   posicion={[0, 0, 0]}
                   onSeleccionar={mostrada === null ? () => onSeleccionar?.(c.item) : undefined}
                 />
@@ -435,7 +436,12 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
       })}
       {cajaMostrada && (
         <group ref={volando}>
-          <Caja forma={cajaMostrada.forma} asset={cajaMostrada.item.asset} posicion={[0, 0, 0]} />
+          <Caja
+            forma={cajaMostrada.forma}
+            datos={datosEnvase(cajaMostrada.item)}
+            calidad="ficha"
+            posicion={[0, 0, 0]}
+          />
         </group>
       )}
       {/* Velo blanco entre la caja de la ficha y el resto de la escena (más lejos que ella). */}

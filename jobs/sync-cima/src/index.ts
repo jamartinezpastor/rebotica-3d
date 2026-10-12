@@ -8,8 +8,8 @@ import { sincronizar } from './sync';
 //   sin opciones: pasada nocturna (completa la primera vez; después, solo los cambios de CIMA)
 //   --completo:   fuerza la sincronización completa
 //   --limite N:   ensayo con N medicamentos; no avanza la marca de la última pasada
-//   --solo-assets: no sincroniza; solo regenera fotos y atlas (necesita ASSETS_DIR)
-//   --forzar-assets: regenera los atlas aunque nada haya cambiado
+//   --solo-assets: no sincroniza; solo regenera miniaturas y paletas (necesita ASSETS_DIR)
+//   --forzar-assets: regenera miniaturas y paletas aunque nada haya cambiado
 const argumentos = process.argv.slice(2);
 const posicion = argumentos.indexOf('--limite');
 const limite = posicion >= 0 ? Number(argumentos[posicion + 1]) : undefined;
@@ -58,7 +58,6 @@ try {
       const assets = await construirAssets(db, {
         directorio: process.env.ASSETS_DIR,
         cliente,
-        urlBase: process.env.ASSETS_URL_BASE,
         forzar: argumentos.includes('--forzar-assets'),
         log,
       });
@@ -68,7 +67,7 @@ try {
       codigo = 1;
     }
   } else if (limite === undefined) {
-    log('ASSETS_DIR sin definir: se omiten fotos y atlas');
+    log('ASSETS_DIR sin definir: se omiten miniaturas y paletas');
   }
 } catch (err) {
   console.error('sync-cima: fallo', err);

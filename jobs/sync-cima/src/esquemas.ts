@@ -42,7 +42,11 @@ export const Detalle = z.object({
   dosis: z.string().nullish(),
   formaFarmaceutica: nombreId.nullish(),
   principiosActivos: z.array(z.object({ nombre: z.string() })).default([]),
-  atcs: z.array(z.object({ codigo: z.string() })).default([]),
+  atcs: z
+    .array(
+      z.object({ codigo: z.string(), nombre: z.string().nullish(), nivel: z.number().nullish() }),
+    )
+    .default([]),
   presentaciones: z
     .array(
       z.object({

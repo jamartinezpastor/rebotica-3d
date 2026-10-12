@@ -2,30 +2,32 @@ import type { FormaCaja, ProductoResumen } from '@rebotica/shared';
 import type { BaldaEscena } from './Pasillo';
 
 const FORMAS: FormaCaja[] = ['caja-plana', 'caja-alta', 'caja-cuadrada', 'tubo', 'cilindro'];
+const FORMAS_TEXTO = ['COMPRIMIDO', 'JARABE', 'SOBRE', 'CREMA', 'SOLUCIÓN PARA PULVERIZACIÓN'];
 const COLORES = ['#3a6fb0', '#c9a227', '#b5483a', '#2b8a6e', '#7a5aa6', '#d9822b', '#4a9bb8'];
 
 /**
- * Productos ficticios para la vista de desarrollo `/escena`: ninguno procede de CIMA. Sin atlas
- * real, las cajas se ven con el color lateral. Las reales llegan con los datos de `/api/pasillos`.
+ * Productos ficticios para la vista de desarrollo `/escena`: ninguno procede de CIMA. Las cajas
+ * reales llegan con los datos de `/api/pasillos`.
  */
 export function productosDemo(cantidad = 20): ProductoResumen[] {
-  return Array.from({ length: cantidad }, (_, i) => ({
-    nregistro: `demo-${i + 1}`,
-    nombre: `Producto de demostración ${i + 1}`,
-    principioActivo: 'principio ficticio',
-    forma: null,
-    formaCaja: FORMAS[i % FORMAS.length] ?? 'caja-plana',
-    dosis: null,
-    generico: false,
-    conduccion: false,
-    asset: {
-      // Vacío a propósito: sin atlas no se intenta cargar ninguna textura.
-      atlasUrl: '',
-      uv: [0, 0, 0.14, 0.25] as [number, number, number, number],
-      colorDominante: COLORES[i % COLORES.length] ?? '#3a6fb0',
-    },
-    calculadora: false,
-  }));
+  return Array.from({ length: cantidad }, (_, i) => {
+    const color = COLORES[i % COLORES.length] ?? '#3a6fb0';
+    const otro = COLORES[(i + 3) % COLORES.length] ?? '#c9a227';
+    return {
+      nregistro: `demo-${i + 1}`,
+      nombre: `PRODUCTO DE DEMOSTRACIÓN ${i + 1}`,
+      principioActivo: 'principio ficticio',
+      forma: FORMAS_TEXTO[i % FORMAS_TEXTO.length] ?? 'COMPRIMIDO',
+      formaCaja: FORMAS[i % FORMAS.length] ?? 'caja-plana',
+      dosis: `${(i % 5) * 100 + 100} mg`,
+      categoria: 'Categoría ficticia',
+      laboratorio: 'Laboratorio ficticio S.A.',
+      generico: i % 3 === 0,
+      conduccion: i % 4 === 0,
+      asset: { colorDominante: color, paleta: [color, otro], foto: null },
+      calculadora: false,
+    };
+  });
 }
 
 /**

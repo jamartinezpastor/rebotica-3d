@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GrupoVitrinaPublico, PerfilPasillo, ProductoResumen } from '../src';
+import {
+  AssetCajaPublico,
+  GrupoVitrinaPublico,
+  PerfilPasillo,
+  ProductoResumen,
+  grupoAtc,
+} from '../src';
 
 describe('contratos de la API', () => {
   it('la vitrina rechaza marcas, fotos, dosis o identificadores de producto', () => {
@@ -33,6 +39,30 @@ describe('contratos de la API', () => {
     expect(PerfilPasillo.safeParse({ grupo: 'robot' }).success).toBe(false);
   });
 
+  it('el aspecto de la caja solo admite colores hexadecimales y una miniatura de la propia API', () => {
+    const base = { colorDominante: '#336699', paleta: ['#336699', '#ffffff'], foto: null };
+    expect(AssetCajaPublico.safeParse(base).success).toBe(true);
+    expect(
+      AssetCajaPublico.safeParse({ ...base, foto: '/media/miniaturas/123.webp' }).success,
+    ).toBe(true);
+    for (const malo of [
+      { ...base, colorDominante: 'azul' },
+      { ...base, paleta: ['#12'] },
+      { ...base, foto: 'https://otro.example/foto.jpg' },
+      { ...base, foto: '/media/fotos/123.jpg' },
+      { ...base, atlasUrl: '/media/atlas/x.ktx2' },
+    ]) {
+      expect(AssetCajaPublico.safeParse(malo).success).toBe(false);
+    }
+  });
+
+  it('grupoAtc da el nombre del grupo anatómico a partir del código más específico', () => {
+    expect(grupoAtc(['N02B', 'N02BA01'])).toBe('Sistema nervioso');
+    expect(grupoAtc(['R05CB01'])).toBe('Sistema respiratorio');
+    expect(grupoAtc([])).toBeNull();
+    expect(grupoAtc(['X99'])).toBeNull();
+  });
+
   it('el resumen de producto exige una forma de caja válida', () => {
     const ok = {
       nregistro: '1',
@@ -41,6 +71,8 @@ describe('contratos de la API', () => {
       forma: null,
       formaCaja: 'tubo',
       dosis: null,
+      categoria: null,
+      laboratorio: null,
       generico: false,
       conduccion: false,
       asset: null,

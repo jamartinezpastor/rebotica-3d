@@ -10,6 +10,7 @@ import {
 } from '@rebotica/db';
 import {
   formaCajaDesde,
+  grupoAtc,
   type AssetCajaPublico,
   type ProductoResponse,
   type ProductoResumen,
@@ -32,6 +33,17 @@ interface Indice {
 }
 
 const esGenerico = (nombre: string) => /\bEFG\b/i.test(nombre);
+
+/** Aspecto de la caja a partir de la fila de `asset_caja`; null si el producto no tiene. */
+function aspectoDe(
+  colorDominante: string | null | undefined,
+  paleta: string[] | null | undefined,
+  foto: string | null | undefined,
+): AssetCajaPublico | null {
+  if (!colorDominante) return null;
+  const colores = paleta && paleta.length > 0 ? paleta.slice(0, 4) : [colorDominante];
+  return { colorDominante, paleta: colores, foto: foto ?? null };
+}
 
 /**
  * Lectura del catálogo local. Solo expone medicamentos sin receta y comercializados: la tabla
@@ -90,10 +102,12 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         forma: medicamento.forma,
         dosis: medicamento.dosis,
         conduc: medicamento.conduc,
-        atlasUrl: assetCaja.atlasUrl,
-        uv: assetCaja.uv,
+        labtitular: medicamento.labtitular,
+        categoria: medicamento.categoria,
+        atcs: medicamento.atcs,
         colorDominante: assetCaja.colorDominante,
-        formaCaja: assetCaja.forma,
+        paleta: assetCaja.paleta,
+        foto: assetCaja.foto,
       })
       .from(medicamento)
       .leftJoin(assetCaja, eq(assetCaja.nregistro, medicamento.nregistro))
@@ -103,14 +117,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
 
     const porClave = new Map<string, ProductoResumen[]>();
     for (const f of filas) {
-      const asset: AssetCajaPublico | null =
-        f.atlasUrl && f.uv && f.uv.length === 4 && f.colorDominante
-          ? {
-              atlasUrl: f.atlasUrl,
-              uv: [f.uv[0] ?? 0, f.uv[1] ?? 0, f.uv[2] ?? 0, f.uv[3] ?? 0],
-              colorDominante: f.colorDominante,
-            }
-          : null;
+      const asset = aspectoDe(f.colorDominante, f.paleta, f.foto);
       const producto: ProductoResumen = {
         nregistro: f.nregistro,
         nombre: f.nombre,
@@ -118,6 +125,8 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         forma: f.forma,
         formaCaja: formaCajaDesde(f.forma),
         dosis: f.dosis,
+        categoria: f.categoria ?? grupoAtc(f.atcs),
+        laboratorio: f.labtitular,
         generico: esGenerico(f.nombre),
         conduccion: f.conduc,
         asset,
@@ -211,6 +220,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         nombre: m.nombre,
         principioActivo: m.pactivos,
         laboratorio: m.labtitular,
+        categoria: m.categoria ?? grupoAtc(m.atcs),
         forma: m.forma,
         formaCaja: formaCajaDesde(m.forma),
         dosis: m.dosis,
@@ -218,14 +228,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         conduccion: m.conduc,
         triangulo: m.triangulo,
         problemaSuministro: m.psum || presentaciones.some((p) => p.psum),
-        asset:
-          asset && asset.uv.length === 4
-            ? {
-                atlasUrl: asset.atlasUrl,
-                uv: [asset.uv[0] ?? 0, asset.uv[1] ?? 0, asset.uv[2] ?? 0, asset.uv[3] ?? 0],
-                colorDominante: asset.colorDominante,
-              }
-            : null,
+        asset: aspectoDe(asset?.colorDominante, asset?.paleta, asset?.foto),
         presentaciones: presentaciones.map((p) => ({
           cn: p.cn,
           nombre: p.nombre,

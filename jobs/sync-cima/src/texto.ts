@@ -44,3 +44,55 @@ export function htmlATexto(html: string): string {
 export function hashTexto(texto: string): string {
   return createHash('sha256').update(texto, 'utf8').digest('hex');
 }
+
+/** Palabras que CIMA escribe sin tilde en los nombres ATC y que en español la llevan. */
+const TILDES: Record<string, string> = {
+  analgesicos: 'analgésicos',
+  antipireticos: 'antipiréticos',
+  antihistaminicos: 'antihistamínicos',
+  antiespasmodicos: 'antiespasmódicos',
+  antiacidos: 'antiácidos',
+  anticolinergicos: 'anticolinérgicos',
+  antifungicos: 'antifúngicos',
+  antisepticos: 'antisépticos',
+  antibioticos: 'antibióticos',
+  antiinflamatorios: 'antiinflamatorios',
+  antitusivos: 'antitusivos',
+  expectorantes: 'expectorantes',
+  mucoliticos: 'mucolíticos',
+  broncodilatadores: 'broncodilatadores',
+  gastrointestinales: 'gastrointestinales',
+  topicos: 'tópicos',
+  topica: 'tópica',
+  sistemicos: 'sistémicos',
+  sistemico: 'sistémico',
+  oftalmologicos: 'oftalmológicos',
+  otologicos: 'otológicos',
+  nasales: 'nasales',
+  vitaminas: 'vitaminas',
+  minerales: 'minerales',
+  laxantes: 'laxantes',
+  digestivos: 'digestivos',
+  hormonales: 'hormonales',
+  esteroides: 'esteroides',
+  dermatologicos: 'dermatológicos',
+  musculares: 'musculares',
+  oseos: 'óseos',
+  acido: 'ácido',
+  acidos: 'ácidos',
+  otros: 'otros',
+  y: 'y',
+};
+
+/**
+ * Nombre ATC de CIMA («OTROS ANALGESICOS Y ANTIPIRETICOS») en frase normal, con las tildes que
+ * faltan en las palabras más habituales. Lo que no está en la lista se deja tal cual.
+ */
+export function categoriaLegible(nombreAtc: string): string {
+  const minusculas = nombreAtc.trim().toLowerCase().replace(/\s+/g, ' ');
+  const conTildes = minusculas
+    .split(' ')
+    .map((p) => TILDES[p] ?? p)
+    .join(' ');
+  return conTildes.charAt(0).toUpperCase() + conTildes.slice(1);
+}

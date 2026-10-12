@@ -10,6 +10,8 @@ const producto = (n: string): ProductoResumen => ({
   forma: null,
   formaCaja: 'caja-plana',
   dosis: null,
+  categoria: 'Categoría ficticia',
+  laboratorio: 'Laboratorio ficticio',
   generico: false,
   conduccion: false,
   asset: null,

@@ -1,70 +1,95 @@
 import { useThree } from '@react-three/fiber';
-import type { AssetCajaPublico, FormaCaja } from '@rebotica/shared';
+import type { FormaCaja } from '@rebotica/shared';
 import { useEffect, useMemo } from 'react';
-import { MeshStandardMaterial } from 'three';
-import { COLOR_LADO_DEFECTO } from './colores';
-import { crearGeometriaCaja, type RectanguloAtlas } from './geometriaCaja';
+import { CanvasTexture, LinearFilter, MeshStandardMaterial, SRGBColorSpace } from 'three';
+import {
+  dibujarCara,
+  dibujarEnvolvente,
+  tamanoCara,
+  type Calidad,
+  type DatosEnvase,
+} from './arteEnvase';
+import { crearGeometriaCaja, medidasCara } from './geometriaCaja';
 import { UMBRAL_TOQUE } from './seleccion';
-import { useAtlas } from './useAtlas';
+
+/** Dibuja una cara en su propio lienzo y la convierte en textura. */
+function texturaDe(
+  forma: FormaCaja,
+  ranura: ReturnType<typeof crearGeometriaCaja>['ranuras'][number],
+  datos: DatosEnvase,
+  calidad: Calidad,
+): CanvasTexture {
+  const medidas = medidasCara(forma, ranura);
+  const { ancho, alto } = tamanoCara(medidas.ancho, medidas.alto, calidad);
+  const lienzo = document.createElement('canvas');
+  lienzo.width = ancho;
+  lienzo.height = alto;
+  const ctx = lienzo.getContext('2d');
+  if (ctx) {
+    if (ranura === 'lateral') dibujarEnvolvente(ctx, ancho, alto, datos);
+    else dibujarCara(ctx, ranura, ancho, alto, datos);
+  }
+  const textura = new CanvasTexture(lienzo);
+  textura.colorSpace = SRGBColorSpace;
+  textura.minFilter = LinearFilter;
+  textura.generateMipmaps = false;
+  textura.anisotropy = 4;
+  return textura;
+}
+
+/** Geometría, texturas y materiales de una caja; las mutaciones viven aquí, fuera del render. */
+function construirCaja(forma: FormaCaja, datos: DatosEnvase, calidad: Calidad) {
+  const { geometria, ranuras } = crearGeometriaCaja(forma);
+  const texturas = ranuras.map((r) => texturaDe(forma, r, datos, calidad));
+  const materiales = texturas.map(
+    (map) => new MeshStandardMaterial({ map, roughness: 0.62, metalness: 0 }),
+  );
+  return {
+    geometria,
+    materiales,
+    liberar() {
+      geometria.dispose();
+      materiales.forEach((m) => m.dispose());
+      texturas.forEach((t) => t.dispose());
+    },
+  };
+}
 
 export interface CajaProps {
   forma: FormaCaja;
-  asset: AssetCajaPublico | null;
+  datos: DatosEnvase;
+  /** `estanteria`: poca resolución, muchas cajas; `ficha`: la máxima, una sola caja. */
+  calidad?: Calidad;
   posicion: [number, number, number];
   /** Se llama con un toque o clic limpio (no con el final de un arrastre). */
   onSeleccionar?: () => void;
 }
 
 /**
- * Una caja generada: forma según la forma farmacéutica, cara frontal del atlas KTX2 y laterales
- * con el color dominante de la foto. Mientras llega el atlas se ve con el color de los laterales.
+ * Una caja generada: forma según la forma farmacéutica y las seis caras dibujadas con los datos
+ * del producto y los colores de su envase. Frente: nombre, principio activo, dosis y forma.
+ * Trasera: ficha con laboratorio y categoría. Laterales, tapa y base: nombre, dosis, laboratorio…
  */
-export function Caja({ forma, asset, posicion, onSeleccionar }: CajaProps) {
+export function Caja({ forma, datos, calidad = 'estanteria', posicion, onSeleccionar }: CajaProps) {
   const invalidar = useThree((s) => s.invalidate);
-  const atlas = useAtlas(asset?.atlasUrl);
-  const uv = asset?.uv;
-  const colorLado = asset?.colorDominante ?? COLOR_LADO_DEFECTO;
+  // Los datos cambian de identidad en cada render del padre: se comparan por valor.
+  const clave = JSON.stringify(datos);
 
-  // `uv` es un array nuevo en cada render del padre: se compara por valor mediante su clave.
-  const claveUv = uv ? uv.join(',') : '';
-  const { geometria, ranuras } = useMemo(
-    () =>
-      crearGeometriaCaja(
-        forma,
-        claveUv ? (claveUv.split(',').map(Number) as unknown as RectanguloAtlas) : undefined,
-      ),
-    [forma, claveUv],
+  const caja = useMemo(
+    () => construirCaja(forma, JSON.parse(clave) as DatosEnvase, calidad),
+    [forma, clave, calidad],
   );
-
-  const materiales = useMemo(() => {
-    const lado = new MeshStandardMaterial({ color: colorLado, roughness: 0.7, metalness: 0 });
-    const frente = atlas
-      ? new MeshStandardMaterial({ map: atlas, roughness: 0.55, metalness: 0 })
-      : lado;
-    return { lado, frente };
-  }, [colorLado, atlas]);
 
   useEffect(() => {
     invalidar();
-    return () => {
-      geometria.dispose();
-    };
-  }, [geometria, invalidar]);
+    return () => caja.liberar();
+  }, [caja, invalidar]);
 
-  useEffect(
-    () => () => {
-      materiales.lado.dispose();
-      if (materiales.frente !== materiales.lado) materiales.frente.dispose();
-    },
-    [materiales],
-  );
-
-  const lista = ranuras.map((r) => (r === 'frente' ? materiales.frente : materiales.lado));
   return (
     <mesh
       position={posicion}
-      geometry={geometria}
-      material={lista}
+      geometry={caja.geometria}
+      material={caja.materiales}
       onClick={
         onSeleccionar
           ? (e) => {

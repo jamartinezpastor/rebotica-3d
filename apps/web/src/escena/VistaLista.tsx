@@ -8,6 +8,34 @@ export interface VistaListaProps {
   onSeleccionar: (producto: ProductoResumen) => void;
 }
 
+/**
+ * Foto del envase tal como la publica CIMA (miniatura de la propia API). Si el producto no tiene
+ * foto se muestra un cuadro con su color de marca, para no dejar un hueco.
+ */
+function Miniatura({ producto }: { producto: ProductoResumen }) {
+  const foto = producto.asset?.foto ?? null;
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt=""
+        width={64}
+        height={64}
+        loading="lazy"
+        decoding="async"
+        className="h-16 w-16 shrink-0 rounded-md bg-white object-contain ring-1 ring-black/10"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="h-16 w-16 shrink-0 rounded-md ring-1 ring-black/10"
+      style={{ backgroundColor: producto.asset?.colorDominante ?? COLOR_LADO_DEFECTO }}
+    />
+  );
+}
+
 function Etiqueta({ children }: { children: string }) {
   return (
     <span className="rounded-full bg-cruz-claro px-2 py-0.5 text-sm font-medium text-cruz">
@@ -48,11 +76,7 @@ export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
                       onClick={() => onSeleccionar(p)}
                       className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="h-10 w-10 shrink-0 rounded-md ring-1 ring-black/10"
-                        style={{ backgroundColor: p.asset?.colorDominante ?? COLOR_LADO_DEFECTO }}
-                      />
+                      <Miniatura producto={p} />
                       <span className="min-w-0 flex-1">
                         <span className="block text-base leading-snug font-medium">{p.nombre}</span>
                         <span className="block text-sm text-tinta-suave">

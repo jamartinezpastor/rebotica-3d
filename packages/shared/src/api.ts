@@ -8,11 +8,17 @@ import { FormaCaja, GrupoPaciente } from './dominio';
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
-/** Textura de la caja: página del atlas KTX2 y rectángulo [u0, v0, u1, v1] (origen arriba-izda). */
+/**
+ * Aspecto de la caja: la web la dibuja con estos colores (extraídos de la foto del envase) y los
+ * datos del producto. `foto` es la miniatura de CIMA que sirve la API, si existe.
+ */
 export const AssetCajaPublico = z.strictObject({
-  atlasUrl: z.string().min(1),
-  uv: z.tuple([z.number(), z.number(), z.number(), z.number()]),
   colorDominante: hexColor,
+  paleta: z.array(hexColor).max(4),
+  foto: z
+    .string()
+    .regex(/^\/media\/miniaturas\/[A-Za-z0-9._-]+$/)
+    .nullable(),
 });
 export type AssetCajaPublico = z.infer<typeof AssetCajaPublico>;
 
@@ -23,6 +29,10 @@ export const ProductoResumen = z.strictObject({
   forma: z.string().nullable(),
   formaCaja: FormaCaja,
   dosis: z.string().nullable(),
+  /** Categoría terapéutica legible (p. ej. «Analgésicos»), o el grupo ATC si no hay otra. */
+  categoria: z.string().nullable(),
+  /** Laboratorio titular de la autorización. */
+  laboratorio: z.string().nullable(),
   generico: z.boolean(),
   conduccion: z.boolean(),
   asset: AssetCajaPublico.nullable(),
@@ -104,6 +114,7 @@ export const ProductoResponse = z.strictObject({
   nombre: z.string().min(1),
   principioActivo: z.string().min(1),
   laboratorio: z.string().nullable(),
+  categoria: z.string().nullable(),
   forma: z.string().nullable(),
   formaCaja: FormaCaja,
   dosis: z.string().nullable(),

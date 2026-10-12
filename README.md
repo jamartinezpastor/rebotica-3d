@@ -37,13 +37,13 @@ docker build -t rebotica-3d .
 docker run --rm -p 3000:3000 rebotica-3d
 ```
 
-| Variable         | Por defecto    | Para qué                                                     |
-| ---------------- | -------------- | ------------------------------------------------------------ |
-| `PORT`           | `3000`         | Puerto HTTP                                                  |
-| `WEB_DIST`       | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve       |
-| `DATABASE_URL`   | —              | PostgreSQL; la API aplica las migraciones al arrancar        |
-| `ASSETS_DIR`     | `/data/assets` | Carpeta persistente de fotos y atlas (montar un volumen)     |
-| `PROTOCOLOS_DIR` | —              | Carpeta con los JSON de protocolos que se cargan al arrancar |
+| Variable         | Por defecto    | Para qué                                                      |
+| ---------------- | -------------- | ------------------------------------------------------------- |
+| `PORT`           | `3000`         | Puerto HTTP                                                   |
+| `WEB_DIST`       | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve        |
+| `DATABASE_URL`   | —              | PostgreSQL; la API aplica las migraciones al arrancar         |
+| `ASSETS_DIR`     | `/data/assets` | Carpeta persistente de fotos y miniaturas (montar un volumen) |
+| `PROTOCOLOS_DIR` | —              | Carpeta con los JSON de protocolos que se cargan al arrancar  |
 
 El job se lanza dentro del contenedor con `node jobs/sync-cima/dist/index.js` (tarea programada
 diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
@@ -61,12 +61,11 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
   y la calculadora se oculta hasta que un farmacéutico las revise.
 - Lo que pasa a receta o deja de comercializarse sale de las baldas (`comerc = false`).
 - La marca de la última pasada (`sync_estado`) solo avanza si no hubo errores.
-- Con `ASSETS_DIR` definido, genera tras la sincronización la cara frontal de cada producto (foto
-  del embalaje de CIMA o textura generada con el color del grupo terapéutico), la empaqueta en
-  atlas KTX2 de 1024×1024 y rellena `asset_caja` con la URL del atlas, el rectángulo UV, el color
-  dominante y la forma de la caja. Los atlas llevan en el nombre la huella del catálogo: se
-  regeneran solo si algo cambia y se borran los antiguos. Las fotos descargadas se guardan en
-  `ASSETS_DIR/fotos` y no se piden dos veces.
+- Con `ASSETS_DIR` definido, genera tras la sincronización el aspecto de cada caja: descarga la
+  miniatura del envase que publica CIMA (como máximo 200 px), extrae su paleta de colores y guarda
+  una miniatura WebP servible. Rellena `asset_caja` con la paleta, el color dominante, la forma de
+  la caja y la ruta de la miniatura. Las fotos descargadas se guardan en `ASSETS_DIR/fotos` y no
+  se piden dos veces; las miniaturas llevan en el nombre la huella de su contenido.
 - Imprime un informe de recuento en JSON y sale con código 1 si hubo errores.
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.
@@ -78,7 +77,7 @@ pnpm demo
 ```
 
 Levanta la API con una base de datos en memoria (PGlite), descarga de CIMA unos 18 medicamentos
-sin receta con sus fichas y fotos, genera los atlas de las cajas, monta un pasillo de ejemplo y
+sin receta con sus fichas y fotos, extrae la paleta de sus envases, monta un pasillo de ejemplo y
 arranca la web. Tarda un par de minutos la primera vez (las fotos se guardan en la carpeta
 temporal del sistema y se reutilizan). Cuando veas «API lista», abre:
 
@@ -93,8 +92,22 @@ para pararlo.
 
 `pnpm dev` y abre `http://localhost:5173/escena`: estantería con productos ficticios. Con
 `?pasillo=<id>` coloca los productos reales de `/api/pasillos/<id>` (necesita la API con la base
-de datos sincronizada y los atlas generados). Los atlas KTX2 se descomprimen con el
-transcodificador de `apps/web/public/basis/`, copiado de `three`.
+de datos sincronizada; `pnpm demo` lo monta).
+
+**Cómo se dibuja una caja.** Las cajas no llevan la foto pegada: CIMA solo publica miniaturas de
+hasta 200 px y en perspectiva, que quedan borrosas y raras sobre una cara plana. Cada caja se
+genera en el navegador con Canvas 2D a partir de los datos del producto y de los colores de su
+envase, así que el texto sale nítido a cualquier zoom. Las seis caras llevan información:
+
+| Cara              | Contenido                                                                   |
+| ----------------- | --------------------------------------------------------------------------- |
+| Frente            | Nombre, principio activo, dosis, forma farmacéutica, EFG y aviso conducción |
+| Trasera           | Ficha: principio activo, dosis, forma, categoría, laboratorio y avisos      |
+| Lateral izquierdo | Nombre y dosis · forma, girados a lo largo de la cara                       |
+| Lateral derecho   | Categoría y laboratorio titular                                             |
+| Tapa y base       | Nombre y dosis / laboratorio y categoría                                    |
+
+La foto real de CIMA se ve en la vista lista y en la cabecera de la ficha.
 
 La cámara viaja por un raíl, no es libre:
 
@@ -136,11 +149,11 @@ arrastre nunca selecciona: solo cuenta un toque que se mueve menos de 8 px.
 
 ## API de datos
 
-| Ruta                            | Qué devuelve                                                                      |
-| ------------------------------- | --------------------------------------------------------------------------------- |
-| `GET /api/pasillos/:id`         | Baldas con productos por principio activo y vitrina con receta (sin marcas)       |
-| `GET /api/productos/:nregistro` | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente |
-| `GET /media/atlas/:archivo`     | Atlas KTX2 de las cajas, con caché inmutable                                      |
+| Ruta                             | Qué devuelve                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| `GET /api/pasillos/:id`          | Baldas con productos por principio activo y vitrina con receta (sin marcas)       |
+| `GET /api/productos/:nregistro`  | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente |
+| `GET /media/miniaturas/:archivo` | Miniatura del envase (solo productos sin receta), con caché inmutable             |
 
 - El pasillo acepta el perfil del triaje: `?grupo=nino&edadMeses=30&condiciones=asma,ulcera`.
 - `estado: "borrador"` en un pasillo obliga a la UI a mostrar la banda de demostración.

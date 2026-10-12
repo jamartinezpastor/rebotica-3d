@@ -33,3 +33,31 @@ export function formaCajaDesde(formaFarmaceutica: string | null | undefined): Fo
   }
   return 'caja-plana';
 }
+
+/** Grupos anatómicos principales de la clasificación ATC (primer nivel), en el idioma de CIMA. */
+const GRUPOS_ATC: Record<string, string> = {
+  A: 'Aparato digestivo y metabolismo',
+  B: 'Sangre y órganos hematopoyéticos',
+  C: 'Sistema cardiovascular',
+  D: 'Dermatológicos',
+  G: 'Sistema genitourinario y hormonas sexuales',
+  H: 'Hormonas de uso sistémico',
+  J: 'Antiinfecciosos de uso sistémico',
+  L: 'Antineoplásicos e inmunomoduladores',
+  M: 'Sistema musculoesquelético',
+  N: 'Sistema nervioso',
+  P: 'Antiparasitarios y repelentes',
+  R: 'Sistema respiratorio',
+  S: 'Órganos de los sentidos',
+  V: 'Varios',
+};
+
+/**
+ * Nombre del grupo anatómico ATC a partir de los códigos del medicamento (el más específico
+ * manda). Sirve de categoría cuando CIMA no ha dado el nombre del nivel 3.
+ */
+export function grupoAtc(atcs: readonly string[]): string | null {
+  const codigo = [...atcs].sort((a, b) => b.length - a.length)[0];
+  const letra = codigo?.[0]?.toUpperCase();
+  return (letra && GRUPOS_ATC[letra]) || null;
+}

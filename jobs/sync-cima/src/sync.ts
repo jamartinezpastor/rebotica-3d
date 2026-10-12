@@ -17,7 +17,7 @@ import {
   urlSeccionFichaTecnica,
 } from './cima';
 import { Detalle, Listado, SeccionesFT, type ItemListado } from './esquemas';
-import { hashTexto, htmlATexto } from './texto';
+import { categoriaLegible, hashTexto, htmlATexto } from './texto';
 
 /** Cualquier base PostgreSQL de Drizzle (node-postgres en producción, PGlite en los tests). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -276,6 +276,13 @@ function extracto(texto: string, max: number): string {
   return `${corte.slice(0, ultimoEspacio > max * 0.6 ? ultimoEspacio : max)}…`;
 }
 
+/** Categoría legible: el nombre ATC de nivel 3 (o el más cercano por debajo) que da CIMA. */
+export function categoriaDe(detalle: Pick<Detalle, 'atcs'>): string | null {
+  const con = detalle.atcs.filter((a) => a.nombre && a.nivel);
+  const nivel3 = con.find((a) => a.nivel === 3) ?? con.find((a) => a.nivel === 4);
+  return nivel3?.nombre ? categoriaLegible(nivel3.nombre) : null;
+}
+
 export interface ResultadoGuardado {
   presentaciones: number;
   secciones: number;
@@ -305,6 +312,7 @@ export async function guardarMedicamento(
     psum: detalle.psum,
     forma: detalle.formaFarmaceutica?.nombre ?? null,
     dosis: detalle.dosis ?? null,
+    categoria: categoriaDe(detalle),
     atcs: detalle.atcs.map((a) => a.codigo),
     fotoUrl: foto,
     actualizadoEn: ahora,

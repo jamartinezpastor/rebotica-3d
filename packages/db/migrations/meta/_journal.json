@@ -15,6 +15,27 @@
       "when": 1791815555204,
       "tag": "0001_square_the_watchers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791843260028,
+      "tag": "0002_flat_iron_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791843261881,
+      "tag": "0003_fine_wild_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791843274733,
+      "tag": "0004_fat_arachne",
+      "breakpoints": true
     }
   ]
 }

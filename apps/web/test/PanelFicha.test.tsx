@@ -10,6 +10,8 @@ const resumen: ProductoResumen = {
   forma: 'COMPRIMIDO',
   formaCaja: 'caja-plana',
   dosis: '500 mg',
+  categoria: 'Categoría ficticia',
+  laboratorio: 'Laboratorio ficticio',
   generico: false,
   conduccion: false,
   asset: null,
@@ -21,6 +23,7 @@ const ficha = (extra: Partial<ProductoResponse> = {}): ProductoResponse => ({
   nombre: 'PRODUCTO FICTICIO 500 mg',
   principioActivo: 'principio ficticio',
   laboratorio: 'Laboratorio ficticio',
+  categoria: 'Categoría ficticia',
   forma: 'COMPRIMIDO',
   formaCaja: 'caja-plana',
   dosis: '500 mg',
@@ -146,6 +149,32 @@ describe('PanelFicha', () => {
     render(<PanelFicha producto={resumen} onVolver={() => {}} />);
     await screen.findByRole('link', { name: 'Ficha técnica oficial' });
     expect(screen.queryByRole('link', { name: 'Prospecto oficial en CIMA' })).toBeNull();
+  });
+
+  it('muestra la foto del envase de CIMA, la categoría y el laboratorio', async () => {
+    responder(
+      ficha({
+        asset: {
+          colorDominante: '#336699',
+          paleta: ['#336699'],
+          foto: '/media/miniaturas/12345-abcd1234.webp',
+        },
+      }),
+    );
+    render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+    const foto = (await screen.findByAltText(
+      'Foto del envase publicada en CIMA',
+    )) as HTMLImageElement;
+    expect(foto.getAttribute('src')).toBe('/media/miniaturas/12345-abcd1234.webp');
+    expect(screen.getByText('Categoría ficticia')).toBeTruthy();
+    expect(screen.getByText('Laboratorio ficticio')).toBeTruthy();
+  });
+
+  it('sin foto no deja un hueco ni una imagen rota', async () => {
+    responder(ficha({ asset: null }));
+    render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+    await screen.findByText('Texto de uso ficticio.');
+    expect(screen.queryByAltText('Foto del envase publicada en CIMA')).toBeNull();
   });
 
   it('avisa de los problemas de suministro y muestra siempre el aviso legal', async () => {

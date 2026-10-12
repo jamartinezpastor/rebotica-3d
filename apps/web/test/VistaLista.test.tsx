@@ -49,6 +49,32 @@ describe('VistaLista', () => {
     expect(screen.getByText('No hay productos disponibles para este grupo.')).toBeTruthy();
   });
 
+  it('muestra la foto del medicamento en lugar de un cuadro de color cuando existe', () => {
+    const [uno, dos] = baldasDemo(2)[0]?.productos as [ProductoResumen, ProductoResumen];
+    const conFoto: ProductoResumen = {
+      ...uno,
+      asset: {
+        colorDominante: '#336699',
+        paleta: ['#336699'],
+        foto: '/media/miniaturas/1-abcd1234.webp',
+      },
+    };
+    const { container } = render(
+      <VistaLista
+        titulo="Pasillo"
+        baldas={[{ titulo: 'Con foto', productos: [conFoto, dos] }]}
+        onSeleccionar={() => {}}
+      />,
+    );
+    const imagenes = container.querySelectorAll('img');
+    expect(imagenes).toHaveLength(1);
+    expect(imagenes[0]?.getAttribute('src')).toBe('/media/miniaturas/1-abcd1234.webp');
+    // Es decorativa: el nombre del producto ya está en el botón.
+    expect(imagenes[0]?.getAttribute('alt')).toBe('');
+    // El producto sin foto conserva el cuadro con su color, para no dejar un hueco.
+    expect(container.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(1);
+  });
+
   it('no muestra dosis ni pautas, solo nombre, principio activo y forma', () => {
     const [p] = baldasDemo(1)[0]?.productos ?? [];
     render(

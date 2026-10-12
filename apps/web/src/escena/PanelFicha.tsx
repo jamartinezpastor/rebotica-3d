@@ -108,11 +108,28 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
       >
         <header className="px-4 pt-3">
           <div className="flex items-start gap-3">
+            {ficha?.asset?.foto && (
+              <img
+                src={ficha.asset.foto}
+                alt="Foto del envase publicada en CIMA"
+                width={64}
+                height={64}
+                className="h-16 w-16 shrink-0 rounded-lg bg-white object-contain ring-1 ring-black/10"
+              />
+            )}
             <div className="min-w-0 flex-1">
               <h2 className="text-lg leading-snug font-semibold">{producto.nombre}</h2>
               <p className="mt-0.5 text-sm text-tinta-suave">
                 {[producto.principioActivo, producto.forma].filter(Boolean).join(' · ')}
               </p>
+              {(ficha?.categoria ?? producto.categoria) && (
+                <p className="text-sm text-tinta-suave">{ficha?.categoria ?? producto.categoria}</p>
+              )}
+              {(ficha?.laboratorio ?? producto.laboratorio) && (
+                <p className="text-sm text-tinta-suave">
+                  {ficha?.laboratorio ?? producto.laboratorio}
+                </p>
+              )}
             </div>
             <button
               type="button"

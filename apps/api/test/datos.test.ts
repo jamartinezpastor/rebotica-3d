@@ -114,6 +114,7 @@ beforeAll(async () => {
       forma: 'SOLUCION ORAL',
       dosis: '10 mg/ml',
       labtitular: 'Laboratorio Ficticio',
+      categoria: 'Categoría ficticia',
       psum: true,
     },
     {
@@ -123,6 +124,7 @@ beforeAll(async () => {
       pactivos: 'principio activo a',
       forma: 'COMPRIMIDO',
       conduc: true,
+      atcs: ['N02B', 'N02BA01'],
     },
     // Asociación: no es el mismo principio activo que «principio activo a».
     { ...base, nregistro: '1003', nombre: 'COMBINADO', pactivos: 'PRINCIPIO ACTIVO A, OTRO' },
@@ -146,9 +148,9 @@ beforeAll(async () => {
   ]);
   await db.insert(assetCaja).values({
     nregistro: '1001',
-    atlasUrl: '/media/atlas/abc-0.ktx2',
-    uv: [0, 0, 0.25, 0.25],
     colorDominante: '#336699',
+    paleta: ['#336699', '#e8b030'],
+    foto: '/media/miniaturas/1001-abc123.webp',
     forma: 'caja-alta',
   });
   await db.insert(presentacion).values([
@@ -263,10 +265,21 @@ describe('GET /api/pasillos/:id', () => {
     expect(uno).toMatchObject({
       formaCaja: 'caja-alta',
       generico: false,
-      asset: { atlasUrl: '/media/atlas/abc-0.ktx2', colorDominante: '#336699' },
+      asset: {
+        colorDominante: '#336699',
+        paleta: ['#336699', '#e8b030'],
+        foto: '/media/miniaturas/1001-abc123.webp',
+      },
       calculadora: true,
     });
     expect(dos).toMatchObject({ formaCaja: 'caja-plana', generico: true, conduccion: true });
+    // Laboratorio titular y categoría llegan para dibujar las caras de la caja.
+    expect(uno).toMatchObject({
+      laboratorio: 'Laboratorio Ficticio',
+      categoria: 'Categoría ficticia',
+    });
+    // Sin categoría de CIMA, se usa el grupo ATC del medicamento.
+    expect(dos?.categoria).toBe('Sistema nervioso');
     expect(dos?.asset).toBeNull();
     // Su regla está validada, pero la 4.2 ya no coincide: sin calculadora.
     expect(dos?.calculadora).toBe(false);

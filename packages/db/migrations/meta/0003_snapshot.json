@@ -1,0 +1,749 @@
+{
+  "id": "1bbcd688-c8e2-47f1-aaff-4c14de6fc990",
+  "prevId": "f08c9335-a025-4272-bf4b-6df480439405",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.asset_caja": {
+      "name": "asset_caja",
+      "schema": "",
+      "columns": {
+        "nregistro": {
+          "name": "nregistro",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "color_dominante": {
+          "name": "color_dominante",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paleta": {
+          "name": "paleta",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "forma": {
+          "name": "forma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foto": {
+          "name": "foto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "asset_caja_nregistro_medicamento_nregistro_fk": {
+          "name": "asset_caja_nregistro_medicamento_nregistro_fk",
+          "tableFrom": "asset_caja",
+          "tableTo": "medicamento",
+          "columnsFrom": ["nregistro"],
+          "columnsTo": ["nregistro"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "asset_caja_color_hex": {
+          "name": "asset_caja_color_hex",
+          "value": "\"asset_caja\".\"color_dominante\" ~ '^#[0-9a-fA-F]{6}$'"
+        },
+        "asset_caja_paleta_hex": {
+          "name": "asset_caja_paleta_hex",
+          "value": "\"asset_caja\".\"paleta\"::text ~ '^\\{(#[0-9a-fA-F]{6}(,#[0-9a-fA-F]{6})*)?\\}$'"
+        },
+        "asset_caja_foto_ruta": {
+          "name": "asset_caja_foto_ruta",
+          "value": "\"asset_caja\".\"foto\" IS NULL OR \"asset_caja\".\"foto\" ~ '^/media/miniaturas/[A-Za-z0-9._-]+$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cita_ccaa": {
+      "name": "cita_ccaa",
+      "schema": "",
+      "columns": {
+        "ccaa": {
+          "name": "ccaa",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_cita": {
+          "name": "url_cita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefono": {
+          "name": "telefono",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verificado_en": {
+          "name": "verificado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.consulta_evento": {
+      "name": "consulta_evento",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fecha": {
+          "name": "fecha",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "protocolo_id": {
+          "name": "protocolo_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origen": {
+          "name": "origen",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "derivado": {
+          "name": "derivado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "consulta_evento_origen_valido": {
+          "name": "consulta_evento_origen_valido",
+          "value": "\"consulta_evento\".\"origen\" IN ('chip', 'texto')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.grupo_receta": {
+      "name": "grupo_receta",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pactivo": {
+          "name": "pactivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "forma": {
+          "name": "forma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "indicacion": {
+          "name": "indicacion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "condiciones_prescripcion": {
+          "name": "condiciones_prescripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actualizado_en": {
+          "name": "actualizado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "grupo_receta_pactivo_forma_uq": {
+          "name": "grupo_receta_pactivo_forma_uq",
+          "nullsNotDistinct": false,
+          "columns": ["pactivo", "forma"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.medicamento": {
+      "name": "medicamento",
+      "schema": "",
+      "columns": {
+        "nregistro": {
+          "name": "nregistro",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pactivos": {
+          "name": "pactivos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "labtitular": {
+          "name": "labtitular",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receta": {
+          "name": "receta",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comerc": {
+          "name": "comerc",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conduc": {
+          "name": "conduc",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "triangulo": {
+          "name": "triangulo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "psum": {
+          "name": "psum",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "forma": {
+          "name": "forma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dosis": {
+          "name": "dosis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atcs": {
+          "name": "atcs",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "foto_url": {
+          "name": "foto_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actualizado_en": {
+          "name": "actualizado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "medicamento_pactivos_idx": {
+          "name": "medicamento_pactivos_idx",
+          "columns": [
+            {
+              "expression": "pactivos",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "medicamento_nregistro_receta_uq": {
+          "name": "medicamento_nregistro_receta_uq",
+          "nullsNotDistinct": false,
+          "columns": ["nregistro", "receta"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "medicamento_receta_sin_foto": {
+          "name": "medicamento_receta_sin_foto",
+          "value": "NOT \"medicamento\".\"receta\" OR \"medicamento\".\"foto_url\" IS NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.presentacion": {
+      "name": "presentacion",
+      "schema": "",
+      "columns": {
+        "cn": {
+          "name": "cn",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nregistro": {
+          "name": "nregistro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comerc": {
+          "name": "comerc",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psum": {
+          "name": "psum",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "presentacion_nregistro_idx": {
+          "name": "presentacion_nregistro_idx",
+          "columns": [
+            {
+              "expression": "nregistro",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "presentacion_nregistro_medicamento_nregistro_fk": {
+          "name": "presentacion_nregistro_medicamento_nregistro_fk",
+          "tableFrom": "presentacion",
+          "tableTo": "medicamento",
+          "columnsFrom": ["nregistro"],
+          "columnsTo": ["nregistro"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.producto_para": {
+      "name": "producto_para",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ean": {
+          "name": "ean",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoria": {
+          "name": "categoria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_url": {
+          "name": "foto_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revisado": {
+          "name": "revisado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "producto_para_ean_unique": {
+          "name": "producto_para_ean_unique",
+          "nullsNotDistinct": false,
+          "columns": ["ean"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.protocolo": {
+      "name": "protocolo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json": {
+          "name": "json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'borrador'"
+        },
+        "validado_por": {
+          "name": "validado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validado_en": {
+          "name": "validado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "protocolo_id_version_pk": {
+          "name": "protocolo_id_version_pk",
+          "columns": ["id", "version"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "protocolo_estado_valido": {
+          "name": "protocolo_estado_valido",
+          "value": "\"protocolo\".\"estado\" IN ('borrador', 'revisar', 'validada')"
+        },
+        "protocolo_validado_con_firma": {
+          "name": "protocolo_validado_con_firma",
+          "value": "\"protocolo\".\"estado\" <> 'validada' OR (\"protocolo\".\"validado_por\" IS NOT NULL AND \"protocolo\".\"validado_en\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.regla_dosis": {
+      "name": "regla_dosis",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nregistro": {
+          "name": "nregistro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receta": {
+          "name": "receta",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json": {
+          "name": "json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hash_seccion": {
+          "name": "hash_seccion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'borrador'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "regla_dosis_medicamento_fk": {
+          "name": "regla_dosis_medicamento_fk",
+          "tableFrom": "regla_dosis",
+          "tableTo": "medicamento",
+          "columnsFrom": ["nregistro", "receta"],
+          "columnsTo": ["nregistro", "receta"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "regla_dosis_nregistro_version_uq": {
+          "name": "regla_dosis_nregistro_version_uq",
+          "nullsNotDistinct": false,
+          "columns": ["nregistro", "version"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "regla_dosis_sin_receta": {
+          "name": "regla_dosis_sin_receta",
+          "value": "\"regla_dosis\".\"receta\" = false"
+        },
+        "regla_dosis_estado_valido": {
+          "name": "regla_dosis_estado_valido",
+          "value": "\"regla_dosis\".\"estado\" IN ('borrador', 'revisar', 'validada')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.seccion_ft": {
+      "name": "seccion_ft",
+      "schema": "",
+      "columns": {
+        "nregistro": {
+          "name": "nregistro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seccion": {
+          "name": "seccion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "html": {
+          "name": "html",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "texto": {
+          "name": "texto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resumen_llano": {
+          "name": "resumen_llano",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "seccion_ft_nregistro_medicamento_nregistro_fk": {
+          "name": "seccion_ft_nregistro_medicamento_nregistro_fk",
+          "tableFrom": "seccion_ft",
+          "tableTo": "medicamento",
+          "columnsFrom": ["nregistro"],
+          "columnsTo": ["nregistro"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "seccion_ft_nregistro_seccion_pk": {
+          "name": "seccion_ft_nregistro_seccion_pk",
+          "columns": ["nregistro", "seccion"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "seccion_ft_seccion_valida": {
+          "name": "seccion_ft_seccion_valida",
+          "value": "\"seccion_ft\".\"seccion\" IN ('4.1','4.2','4.3','4.4','4.5','4.6','4.7')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sync_estado": {
+      "name": "sync_estado",
+      "schema": "",
+      "columns": {
+        "clave": {
+          "name": "clave",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actualizado_en": {
+          "name": "actualizado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

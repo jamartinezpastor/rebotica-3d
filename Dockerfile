@@ -42,9 +42,8 @@ COPY --from=build --chown=node:node /repo/apps/web/dist ./public
 COPY --from=build --chown=node:node /repo/packages/db/migrations ./migrations
 COPY --from=build --chown=node:node /out/sync-cima ./jobs/sync-cima
 
-# El generador de texturas dibuja texto con SVG: necesita una fuente instalada en el sistema.
-RUN apk add --no-cache fontconfig ttf-dejavu \
- && mkdir -p /data/assets \
+# Carpeta persistente (volumen) de la caché de fotos y las miniaturas de los envases.
+RUN mkdir -p /data/assets \
  && chown node:node /data/assets
 
 USER node

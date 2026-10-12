@@ -17,8 +17,8 @@ export interface AppOptions {
   /** Base de datos con el catálogo sincronizado; sin ella, las rutas de datos responden 503. */
   db?: BaseDatos;
   /**
-   * Carpeta del job de assets. Solo se publica `atlas/` en `/media/atlas/`; la caché de fotos
-   * descargadas de CIMA queda fuera.
+   * Carpeta del job de assets. Solo se publica `miniaturas/` en `/media/miniaturas/`; la caché
+   * de fotos descargadas de CIMA queda fuera.
    */
   assetsDir?: string;
 }
@@ -47,13 +47,14 @@ export function buildApp({ fastify = {}, webDist, db, assetsDir }: AppOptions = 
   registrarRutas(app, db);
 
   if (assetsDir) {
-    const atlas = join(assetsDir, 'atlas');
+    const miniaturas = join(assetsDir, 'miniaturas');
     // El job puede ejecutarse después de que la API arranque: la carpeta debe existir ya.
-    mkdirSync(atlas, { recursive: true });
-    // Los nombres llevan la huella del catálogo: nunca cambian de contenido.
+    mkdirSync(miniaturas, { recursive: true });
+    // Solo miniaturas de productos sin receta; la caché de descargas de CIMA queda fuera. El
+    // nombre lleva la huella de la foto, así que nunca cambia de contenido.
     app.register(fastifyStatic, {
-      root: atlas,
-      prefix: '/media/atlas/',
+      root: miniaturas,
+      prefix: '/media/miniaturas/',
       decorateReply: false,
       cacheControl: false,
       index: false,
