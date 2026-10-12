@@ -43,11 +43,25 @@ docker run --rm -p 3000:3000 rebotica-3d
 | `WEB_DIST`     | `/app/public` | Carpeta de la web compilada; vacía, la API no la sirve |
 | `DATABASE_URL` | —             | PostgreSQL; la API aplica las migraciones al arrancar  |
 
-El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js [--limite N]` (tarea
-programada en Coolify a partir de F1-03). Necesita `DATABASE_URL`, descarga el catálogo sin receta
-y los grupos con receta (solo principio activo) y al terminar imprime un informe de recuento en
-JSON; sale con código 1 si hubo errores. Va a un ritmo de 4 peticiones por segundo
-(`CIMA_INTERVALO_MS`, 250 por defecto) y reintenta con espera creciente ante 429 y 5xx.
+El job se lanza dentro del contenedor con `node jobs/sync-cima/index.js` (tarea programada
+diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
+
+| Invocación   | Qué hace                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| (sin opción) | Primera vez: sincronización completa. Después: solo los cambios de CIMA. |
+| `--completo` | Fuerza la sincronización completa.                                       |
+| `--limite N` | Ensayo con N medicamentos; no avanza la marca de la última pasada.       |
+
+- Catálogo sin receta con presentaciones y secciones 4.1–4.7, más los grupos con receta (solo
+  principio activo) para la vitrina.
+- Pasada diaria: relee los medicamentos con cambios en la ficha técnica, el estado, la
+  comercialización o el suministro. Si cambia la sección 4.2, sus reglas de dosis pasan a `revisar`
+  y la calculadora se oculta hasta que un farmacéutico las revise.
+- Lo que pasa a receta o deja de comercializarse sale de las baldas (`comerc = false`).
+- La marca de la última pasada (`sync_estado`) solo avanza si no hubo errores.
+- Imprime un informe de recuento en JSON y sale con código 1 si hubo errores.
+- Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
+  creciente ante 429 y 5xx.
 
 ## Despliegue
 

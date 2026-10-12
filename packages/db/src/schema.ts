@@ -207,3 +207,10 @@ export const citaCcaa = pgTable('cita_ccaa', {
   telefono: text('telefono'),
   verificadoEn: timestamp('verificado_en', { withTimezone: true }),
 });
+
+/** Marcas del job de sincronización (p. ej. fecha de la última pasada correcta). */
+export const syncEstado = pgTable('sync_estado', {
+  clave: text('clave').primaryKey(),
+  valor: text('valor').notNull(),
+  actualizadoEn: timestamp('actualizado_en', { withTimezone: true }).notNull().defaultNow(),
+});

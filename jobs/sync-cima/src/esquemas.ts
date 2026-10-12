@@ -67,3 +67,21 @@ export const SeccionesFT = z.array(
   }),
 );
 export type SeccionesFT = z.infer<typeof SeccionesFT>;
+
+/**
+ * GET /registroCambios. `tipoCambio`: 1 alta, 2 baja, 3 modificación.
+ * `cambio` lista qué cambió: «ft» (ficha técnica), «prosp», «estado», «comerc», «psum»…
+ */
+export const PaginaCambios = z.object({
+  totalFilas: z.number().int().nonnegative(),
+  pagina: z.number().int().positive(),
+  tamanioPagina: z.number().int().positive(),
+  resultados: z.array(
+    z.object({
+      nregistro: z.string().min(1),
+      tipoCambio: z.number().int(),
+      cambio: z.array(z.string()).default([]),
+    }),
+  ),
+});
+export type PaginaCambios = z.infer<typeof PaginaCambios>;

@@ -1,8 +1,12 @@
 import { conectar } from '@rebotica/db';
 import { crearClienteCima } from './cliente';
+import { sincronizacionDiaria } from './cambios';
 import { sincronizar } from './sync';
 
-// Uso: node index.js [--limite N]   (sin --limite, sincronización completa)
+// Uso: node index.js [--completo] [--limite N]
+//   sin opciones: pasada nocturna (completa la primera vez; después, solo los cambios de CIMA)
+//   --completo:   fuerza la sincronización completa
+//   --limite N:   ensayo con N medicamentos; no avanza la marca de la última pasada
 const argumentos = process.argv.slice(2);
 const posicion = argumentos.indexOf('--limite');
 const limite = posicion >= 0 ? Number(argumentos[posicion + 1]) : undefined;
@@ -24,12 +28,19 @@ const cliente = crearClienteCima({
 
 let codigo = 0;
 try {
-  const informe = await sincronizar(db, cliente, {
-    limite,
-    log: (mensaje) => console.log(`sync-cima: ${mensaje}`),
-  });
-  console.log(JSON.stringify({ informe }, null, 2));
-  if (informe.errores.length > 0) codigo = 1;
+  const log = (mensaje: string) => console.log(`sync-cima: ${mensaje}`);
+  if (limite !== undefined) {
+    const informe = await sincronizar(db, cliente, { limite, log });
+    console.log(JSON.stringify({ modo: 'ensayo', informe }, null, 2));
+    if (informe.errores.length > 0) codigo = 1;
+  } else {
+    const resultado = await sincronizacionDiaria(db, cliente, {
+      forzarCompleto: argumentos.includes('--completo'),
+      log,
+    });
+    console.log(JSON.stringify(resultado, null, 2));
+    if (resultado.informe.errores.length > 0) codigo = 1;
+  }
 } catch (err) {
   console.error('sync-cima: fallo', err);
   codigo = 1;

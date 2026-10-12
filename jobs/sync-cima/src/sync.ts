@@ -1,5 +1,12 @@
-import { grupoReceta, medicamento, presentacion, seccionFt, type Db } from '@rebotica/db';
-import { and, eq, notInArray } from 'drizzle-orm';
+import {
+  grupoReceta,
+  medicamento,
+  presentacion,
+  reglaDosis,
+  seccionFt,
+  type Db,
+} from '@rebotica/db';
+import { and, eq, ne, notInArray, sql } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { ErrorCima, type ClienteCima } from './cliente';
 import {
@@ -25,6 +32,7 @@ export interface Informe {
     secciones: number;
     sinPosologia: number;
     retirados: number;
+    reglasARevisar: number;
   };
   vitrina: {
     medicamentosConReceta: number;
@@ -81,6 +89,7 @@ export async function sincronizar(
       secciones: 0,
       sinPosologia: 0,
       retirados: 0,
+      reglasARevisar: 0,
     },
     vitrina: { medicamentosConReceta: 0, grupos: 0, conIndicacion: 0, sinPrincipioActivo: 0 },
     errores: [],
@@ -123,6 +132,7 @@ export async function sincronizar(
         informe.sinReceta.sincronizados++;
         informe.sinReceta.presentaciones += resultado.presentaciones;
         informe.sinReceta.secciones += resultado.secciones;
+        informe.sinReceta.reglasARevisar += resultado.reglasARevisar;
         if (!resultado.tienePosologia) informe.sinReceta.sinPosologia++;
         if (informe.sinReceta.sincronizados % 50 === 0) {
           log(`sin receta: ${informe.sinReceta.sincronizados} sincronizados`);
@@ -266,11 +276,19 @@ function extracto(texto: string, max: number): string {
   return `${corte.slice(0, ultimoEspacio > max * 0.6 ? ultimoEspacio : max)}…`;
 }
 
-async function guardarMedicamento(
+export interface ResultadoGuardado {
+  presentaciones: number;
+  secciones: number;
+  tienePosologia: boolean;
+  /** Reglas de dosis que pasan a `revisar` porque la sección 4.2 ya no coincide con su hash. */
+  reglasARevisar: number;
+}
+
+export async function guardarMedicamento(
   db: Db,
   detalle: Detalle,
   secciones: SeccionesFT,
-): Promise<{ presentaciones: number; secciones: number; tienePosologia: boolean }> {
+): Promise<ResultadoGuardado> {
   const pactivos =
     detalle.pactivos?.trim() || detalle.principiosActivos.map((p) => p.nombre).join(', ');
   const foto = detalle.fotos.find((f) => f.tipo === 'materialas')?.url ?? null;
@@ -322,6 +340,7 @@ async function guardarMedicamento(
     ).values(),
   ];
 
+  let reglasARevisar = 0;
   await db.transaction(async (tx) => {
     const { nregistro, ...cambios } = fila;
     await tx
@@ -339,7 +358,14 @@ async function guardarMedicamento(
         .values(f)
         .onConflictDoUpdate({
           target: [seccionFt.nregistro, seccionFt.seccion],
-          set: { titulo: f.titulo, html: f.html, texto: f.texto, hash: f.hash },
+          set: {
+            titulo: f.titulo,
+            html: f.html,
+            texto: f.texto,
+            hash: f.hash,
+            // Un resumen revisado deja de valer si cambia el texto del que sale.
+            resumenLlano: sql`CASE WHEN ${seccionFt.hash} = ${f.hash} THEN ${seccionFt.resumenLlano} ELSE NULL END`,
+          },
         });
     }
     const presentes = filasSeccion.map((f) => f.seccion);
@@ -350,11 +376,29 @@ async function guardarMedicamento(
           ? and(eq(seccionFt.nregistro, nregistro), notInArray(seccionFt.seccion, presentes))
           : eq(seccionFt.nregistro, nregistro),
       );
+
+    // Una regla se transcribió de una versión concreta de la 4.2 (su `hashSeccion` es el hash de
+    // `seccion_ft`). Si la ficha técnica ya no coincide, la calculadora se oculta hasta que un
+    // farmacéutico la revise (plan §Sincronización).
+    const hash42 = filasSeccion.find((f) => f.seccion === '4.2')?.hash;
+    const obsoletas = await tx
+      .update(reglaDosis)
+      .set({ estado: 'revisar' })
+      .where(
+        and(
+          eq(reglaDosis.nregistro, nregistro),
+          ne(reglaDosis.estado, 'revisar'),
+          hash42 ? ne(reglaDosis.hashSeccion, hash42) : undefined,
+        ),
+      )
+      .returning({ id: reglaDosis.id });
+    reglasARevisar = obsoletas.length;
   });
 
   return {
     presentaciones: filasPresentacion.length,
     secciones: filasSeccion.length,
     tienePosologia: filasSeccion.some((f) => f.seccion === '4.2' && f.texto.length > 0),
+    reglasARevisar,
   };
 }

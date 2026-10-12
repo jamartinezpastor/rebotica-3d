@@ -59,11 +59,12 @@ export function urlFichaTecnica(nregistro: string): URL {
 }
 
 /** Cambios desde una fecha (dd/mm/aaaa en la API). */
-export function urlRegistroCambios(desde: Date): URL {
+export function urlRegistroCambios(desde: Date, pagina?: number): URL {
   const dd = String(desde.getUTCDate()).padStart(2, '0');
   const mm = String(desde.getUTCMonth() + 1).padStart(2, '0');
   const url = new URL('registroCambios', CIMA_BASE);
   url.searchParams.set('fecha', `${dd}/${mm}/${desde.getUTCFullYear()}`);
+  if (pagina !== undefined) url.searchParams.set('pagina', String(pagina));
   return url;
 }
 
