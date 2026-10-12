@@ -78,6 +78,19 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 de datos sincronizada y los atlas generados). Los atlas KTX2 se descomprimen con el
 transcodificador de `apps/web/public/basis/`, copiado de `three`.
 
+La cámara viaja por un raíl, no es libre:
+
+| Entrada                 | Acción                                                             |
+| ----------------------- | ------------------------------------------------------------------ |
+| Arrastrar en horizontal | Mueve la cámara con inercia y se ajusta al producto más cercano    |
+| Arrastrar en vertical   | Cambia de balda (dedo arriba = baja, como al desplazar una página) |
+| Flechas ← →             | Producto anterior o siguiente                                      |
+| Flechas ↑ ↓             | Balda superior o inferior                                          |
+| Inicio / Fin            | Primer o último producto de la balda                               |
+| Rueda o trackpad        | Un golpe = un producto (horizontal) o una balda (vertical)         |
+
+Con `prefers-reduced-motion` la cámara salta al destino sin muelle.
+
 ## API de datos
 
 | Ruta                            | Qué devuelve                                                                      |

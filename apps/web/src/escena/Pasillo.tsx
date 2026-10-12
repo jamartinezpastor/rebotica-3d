@@ -8,6 +8,7 @@ import { colocarCajas, type CajaColocada } from './cajas';
 import { Estanteria } from './Estanteria';
 import { ESTANTERIA_POR_DEFECTO, geometriaEstanteria, type GeometriaEstanteria } from './geometria';
 import { Letrero, LETRERO_ALTO } from './Letrero';
+import { RielCamara } from './RielCamara';
 import { Sombra } from './Sombra';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
@@ -70,6 +71,25 @@ export function modeloPasillo(
   });
 }
 
+/**
+ * Destinos del raíl: la posición x de cada producto en cada balda, de todas las estanterías, y la
+ * altura del centro de cada balda. Una balda sin productos aporta una lista vacía.
+ */
+export function datosRiel(
+  modelo: readonly ModeloEstanteria[],
+  geometria: GeometriaEstanteria,
+): { puntos: number[][]; alturas: number[] } {
+  const puntos: number[][] = geometria.huecos.map(() => []);
+  for (const est of modelo) {
+    for (const caja of est.cajas) {
+      puntos[caja.balda]?.push(est.posicion[0] + caja.posicion[0]);
+    }
+  }
+  for (const fila of puntos) fila.sort((a, b) => a - b);
+  const alturas = geometria.huecos.map((h) => h.centro[1] + h.alto * 0.45);
+  return { puntos, alturas };
+}
+
 /** `prefers-reduced-motion`: la escena nace ya montada, sin entrada animada. */
 function useMenosMovimiento(): boolean {
   return useMemo(
@@ -96,6 +116,7 @@ export function Pasillo({ baldas }: PasilloProps) {
   const geometria = useMemo(() => geometriaEstanteria(), []);
   const modelo = useMemo(() => modeloPasillo(baldas, geometria), [baldas, geometria]);
   const plan = useMemo(() => planificarEntrada(modelo.map((m) => m.cajas.length)), [modelo]);
+  const riel = useMemo(() => datosRiel(modelo, geometria), [modelo, geometria]);
 
   const t0 = useRef<number | null>(null);
   const reloj = useCallback(() => {
@@ -166,6 +187,7 @@ export function Pasillo({ baldas }: PasilloProps) {
 
   return (
     <group>
+      <RielCamara puntos={riel.puntos} alturas={riel.alturas} instantaneo={menosMovimiento} />
       {modelo.map((est, i) => {
         const tramo = plan.estanterias[i];
         const horizontal = est.origen[0] !== 0;

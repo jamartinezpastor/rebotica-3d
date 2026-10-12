@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { baldasDemo, productosDemo } from '../src/escena/demo';
 import { geometriaEstanteria } from '../src/escena/geometria';
-import { modeloPasillo, SEPARACION_ESTANTERIAS } from '../src/escena/Pasillo';
+import { datosRiel, modeloPasillo, SEPARACION_ESTANTERIAS } from '../src/escena/Pasillo';
+import { alturaEnFila } from '../src/escena/RielCamara';
 
 const geometria = geometriaEstanteria();
 
@@ -50,5 +51,45 @@ describe('modeloPasillo', () => {
 
   it('sin baldas no hay estanterías', () => {
     expect(modeloPasillo([], geometria)).toEqual([]);
+  });
+});
+
+describe('datosRiel', () => {
+  it('reúne las posiciones x de cada balda de todas las estanterías, ordenadas', () => {
+    const modelo = modeloPasillo(baldasDemo(), geometria);
+    const { puntos, alturas } = datosRiel(modelo, geometria);
+    expect(puntos).toHaveLength(3);
+    // 6 productos por balda en cada una de las 2 estanterías.
+    for (const fila of puntos) {
+      expect(fila).toHaveLength(12);
+      expect(fila).toEqual([...fila].sort((a, b) => a - b));
+    }
+    // Las de la segunda estantería quedan a la derecha de las de la primera.
+    expect(puntos[0]?.[6]).toBeGreaterThan(puntos[0]?.[5] ?? 0);
+    expect(alturas).toHaveLength(3);
+    expect(alturas[0]).toBeLessThan(alturas[1] ?? 0);
+    expect(alturas[1]).toBeLessThan(alturas[2] ?? 0);
+  });
+
+  it('una balda vacía aporta una lista vacía', () => {
+    const baldas = [
+      { titulo: 'A', productos: [] },
+      { titulo: 'B', productos: productosDemo(2) },
+    ];
+    const { puntos } = datosRiel(modeloPasillo(baldas, geometria), geometria);
+    expect(puntos[0]).toEqual([]);
+    expect(puntos[1]).toHaveLength(2);
+  });
+});
+
+describe('alturaEnFila', () => {
+  it('interpola entre baldas y se acota a los extremos', () => {
+    const alturas = [0.2, 0.6, 1.0];
+    expect(alturaEnFila(alturas, 0)).toBeCloseTo(0.2);
+    expect(alturaEnFila(alturas, 0.5)).toBeCloseTo(0.4);
+    expect(alturaEnFila(alturas, 2)).toBeCloseTo(1.0);
+    expect(alturaEnFila(alturas, -1)).toBeCloseTo(0.2);
+    expect(alturaEnFila(alturas, 9)).toBeCloseTo(1.0);
+    expect(alturaEnFila([], 1)).toBe(0);
   });
 });
