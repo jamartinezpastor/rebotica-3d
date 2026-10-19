@@ -12,11 +12,11 @@ export const LETRERO_ALTO = (LETRERO_ANCHO * ALTO_PX) / ANCHO_PX;
 const VERDE = '#0f8a4b';
 const VERDE_CLARO = '#8fd3ac';
 
-function dibujar(ctx: CanvasRenderingContext2D, texto: string, fijos: number) {
+function dibujar(ctx: CanvasRenderingContext2D, texto: string, fijos: number, receta: boolean) {
   ctx.clearRect(0, 0, ANCHO_PX, ALTO_PX);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = receta ? '#fff3d6' : '#ffffff';
   ctx.fillRect(0, 0, ANCHO_PX, ALTO_PX);
-  ctx.strokeStyle = VERDE;
+  ctx.strokeStyle = receta ? '#92400e' : VERDE;
   ctx.lineWidth = 5;
   ctx.strokeRect(2.5, 2.5, ANCHO_PX - 5, ALTO_PX - 5);
 
@@ -29,13 +29,13 @@ function dibujar(ctx: CanvasRenderingContext2D, texto: string, fijos: number) {
   const ancho = tamano * 0.6;
   const x0 = (ANCHO_PX - ancho * n) / 2;
   for (let i = 0; i < texto.length; i++) {
-    ctx.fillStyle = i < fijos ? VERDE : VERDE_CLARO;
+    ctx.fillStyle = receta ? '#78350f' : i < fijos ? VERDE : VERDE_CLARO;
     ctx.fillText(texto[i] ?? '', x0 + i * ancho, ALTO_PX / 2 + 2);
   }
 }
 
 /** Lienzo y textura de un cartel; las mutaciones viven aquí, fuera del render de React. */
-function crearCartel() {
+function crearCartel(receta: boolean) {
   const lienzo = document.createElement('canvas');
   lienzo.width = ANCHO_PX;
   lienzo.height = ALTO_PX;
@@ -55,7 +55,7 @@ function crearCartel() {
       if (dibujado && dibujado.texto === visible && dibujado.fijos === fijos) return;
       const ctx = lienzo.getContext('2d');
       if (!ctx) return;
-      dibujar(ctx, visible, fijos);
+      dibujar(ctx, visible, fijos, receta);
       textura.needsUpdate = true;
       dibujado = { texto: visible, semilla, fijos };
     },
@@ -66,6 +66,7 @@ function crearCartel() {
 }
 
 export interface LetreroProps {
+  receta?: boolean;
   texto: string;
   posicion: [number, number, number];
   /** Segundos de la entrada en los que empieza a descifrarse y lo que dura. */
@@ -80,8 +81,15 @@ export interface LetreroProps {
  * derecha hasta formar el nombre del grupo (guiño al Matrix del plan). Al terminar queda el
  * texto fijo; con «menos movimiento» el reloj ya viene completo y nace descifrado.
  */
-export function Letrero({ texto, posicion, inicio, duracion, reloj }: LetreroProps) {
-  const cartel = useMemo(() => crearCartel(), []);
+export function Letrero({
+  texto,
+  posicion,
+  inicio,
+  duracion,
+  reloj,
+  receta = false,
+}: LetreroProps) {
+  const cartel = useMemo(() => crearCartel(receta), [receta]);
 
   useEffect(() => () => cartel.liberar(), [cartel]);
 

@@ -68,6 +68,7 @@ export function registrarRutas(app: FastifyInstance, db: BaseDatos | undefined):
       const vitrina = [];
       for (const g of protocolo.vitrina) {
         vitrina.push({
+          productos: await catalogo.productosDe(g.principioActivo, true),
           principioActivo: g.principioActivo,
           formas: await catalogo.formasConReceta(g.principioActivo),
           paraQueSeUsa: g.paraQueSeUsa,
@@ -100,7 +101,7 @@ export function registrarRutas(app: FastifyInstance, db: BaseDatos | undefined):
         return reply.code(400).send(error('Número de registro no válido'));
       }
       const ficha = await catalogo.ficha(nregistro);
-      // Los medicamentos con receta no tienen ficha: ni existen para esta API (principio 1).
+      // Los productos retirados o desconocidos no tienen ficha pública.
       if (!ficha) return reply.code(404).send(error('Producto no encontrado'));
       return reply.header('Cache-Control', CACHE_DATOS).send(ProductoResponse.parse(ficha));
     },

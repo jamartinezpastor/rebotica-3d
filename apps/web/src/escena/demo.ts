@@ -14,6 +14,7 @@ export function productosDemo(cantidad = 20): ProductoResumen[] {
     const color = COLORES[i % COLORES.length] ?? '#3a6fb0';
     const otro = COLORES[(i + 3) % COLORES.length] ?? '#c9a227';
     return {
+      receta: false,
       nregistro: `demo-${i + 1}`,
       nombre: `PRODUCTO DE DEMOSTRACIÓN ${i + 1}`,
       principioActivo: 'principio ficticio',
@@ -28,6 +29,22 @@ export function productosDemo(cantidad = 20): ProductoResumen[] {
       calculadora: false,
     };
   });
+}
+
+/** Vitrina ficticia opcional para revisar su aspecto sin descargar datos clínicos. */
+export function vitrinaDemo(): BaldaEscena[] {
+  return [
+    {
+      titulo: 'Principio restringido ficticio',
+      receta: true,
+      productos: productosDemo(5).map((p, i) => ({
+        ...p,
+        receta: true,
+        nregistro: `receta-demo-${i + 1}`,
+        nombre: `PRODUCTO CON RECETA DE DEMOSTRACIÓN ${i + 1}`,
+      })),
+    },
+  ];
 }
 
 /**

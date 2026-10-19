@@ -5,7 +5,7 @@ import { z } from 'zod';
  *
  * Una regla se transcribe a mano de la sección 4.2 (posología) de la ficha técnica de CIMA
  * y la firma un farmacéutico. Este paquete NUNCA inventa valores: solo valida la forma de la
- * regla y, en F3-02, ejecutará el cálculo determinista sobre reglas validadas.
+ * regla y ejecuta el cálculo determinista sobre reglas validadas.
  */
 
 /** Condiciones del paciente que pueden bloquear una regla o generar un aviso. */
@@ -33,6 +33,8 @@ const Fuente = z.strictObject({
   hashSeccion: z.string().min(1),
   validadoPor: z.string().min(1).nullable(),
   fecha: z.iso.date().nullable(),
+  /** Cita literal de la sección 4.2, necesaria para obtener un resultado del motor. */
+  cita: z.string().trim().min(1).optional(),
 });
 
 const Presentacion = z.strictObject({
@@ -59,6 +61,7 @@ const TramoPorPeso = z.strictObject({
   mgKgToma: positivo,
   maxMgKgDia: positivo,
   maxMgToma: positivo,
+  maxMgDia: positivo.optional(),
 });
 
 const TramoFija = z.strictObject({
@@ -66,6 +69,8 @@ const TramoFija = z.strictObject({
   modo: z.literal('fija'),
   mgToma: positivo,
   maxMgDia: positivo,
+  maxMgToma: positivo.optional(),
+  maxMgKgDia: positivo.optional(),
 });
 
 export const Tramo = z
@@ -100,6 +105,37 @@ export const ReglaDosis = z
         message: 'mg/ml solo se toma en ml, y mg/unidad nunca en ml',
         path: ['presentacion', 'unidadToma'],
       });
+    }
+    const { pasoDosificable, fraccionable } = regla.presentacion;
+    if (
+      unidad === 'mg/unidad' &&
+      !Number.isInteger(pasoDosificable) &&
+      (!fraccionable || !['comprimido', 'sobre'].includes(unidadToma))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'El paso fraccionario requiere un comprimido o sobre fraccionable',
+        path: ['presentacion', 'pasoDosificable'],
+      });
+    }
+    // Edades y pesos usan intervalos [mínimo, máximo). No se elige por orden de aparición.
+    for (let i = 0; i < regla.tramos.length; i++) {
+      const a = regla.tramos[i]!;
+      for (let j = i + 1; j < regla.tramos.length; j++) {
+        const b = regla.tramos[j]!;
+        if (
+          Math.max(a.edadMinMeses, b.edadMinMeses) <
+            Math.min(a.edadMaxMeses ?? Infinity, b.edadMaxMeses ?? Infinity) &&
+          Math.max(a.pesoMinKg ?? 0, b.pesoMinKg ?? 0) <
+            Math.min(a.pesoMaxKg ?? Infinity, b.pesoMaxKg ?? Infinity)
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Los tramos no pueden solaparse',
+            path: ['tramos', j],
+          });
+        }
+      }
     }
     if (regla.estado === 'validada' && (!regla.fuente.validadoPor || !regla.fuente.fecha)) {
       ctx.addIssue({

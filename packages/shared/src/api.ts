@@ -23,6 +23,7 @@ export const AssetCajaPublico = z.strictObject({
 export type AssetCajaPublico = z.infer<typeof AssetCajaPublico>;
 
 export const ProductoResumen = z.strictObject({
+  receta: z.boolean(),
   nregistro: z.string().min(1),
   nombre: z.string().min(1),
   principioActivo: z.string().min(1),
@@ -45,15 +46,19 @@ export const BaldaPasillo = z.strictObject({
   titulo: z.string().min(1),
   principioActivo: z.string().min(1),
   orden: z.number().int().positive(),
-  productos: z.array(ProductoResumen),
+  productos: z.array(ProductoResumen).refine((productos) => productos.every((p) => !p.receta), {
+    message: 'Las baldas sin receta no admiten medicamentos de la vitrina',
+  }),
 });
 export type BaldaPasillo = z.infer<typeof BaldaPasillo>;
 
 /**
- * Grupo con receta de la vitrina. Estricto a propósito (principio 1): sin marca, foto, dosis ni
- * identificador de producto. Solo principio activo, formas y texto explicativo.
+ * Grupo de la vitrina, separado del catálogo sin receta y con acceso a las mismas fichas.
  */
 export const GrupoVitrinaPublico = z.strictObject({
+  productos: z.array(ProductoResumen).refine((productos) => productos.every((p) => p.receta), {
+    message: 'La vitrina solo contiene productos que requieren receta',
+  }),
   principioActivo: z.string().min(1),
   formas: z.array(z.string().min(1)),
   paraQueSeUsa: z.string().min(1),
@@ -110,6 +115,7 @@ export const SeccionFichaPublica = z.strictObject({
 });
 
 export const ProductoResponse = z.strictObject({
+  receta: z.boolean(),
   nregistro: z.string().min(1),
   nombre: z.string().min(1),
   principioActivo: z.string().min(1),

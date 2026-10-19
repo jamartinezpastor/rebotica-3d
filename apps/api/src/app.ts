@@ -50,7 +50,7 @@ export function buildApp({ fastify = {}, webDist, db, assetsDir }: AppOptions = 
     const miniaturas = join(assetsDir, 'miniaturas');
     // El job puede ejecutarse después de que la API arranque: la carpeta debe existir ya.
     mkdirSync(miniaturas, { recursive: true });
-    // Solo miniaturas de productos sin receta; la caché de descargas de CIMA queda fuera. El
+    // Miniaturas de ambos catálogos; la caché de descargas de CIMA queda fuera. El
     // nombre lleva la huella de la foto, así que nunca cambia de contenido.
     app.register(fastifyStatic, {
       root: miniaturas,

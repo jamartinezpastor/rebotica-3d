@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelFicha } from '../src/escena/PanelFicha';
 
 const resumen: ProductoResumen = {
+  receta: false,
   nregistro: '12345',
   nombre: 'PRODUCTO FICTICIO 500 mg',
   principioActivo: 'principio ficticio',
@@ -19,6 +20,7 @@ const resumen: ProductoResumen = {
 };
 
 const ficha = (extra: Partial<ProductoResponse> = {}): ProductoResponse => ({
+  receta: false,
   nregistro: '12345',
   nombre: 'PRODUCTO FICTICIO 500 mg',
   principioActivo: 'principio ficticio',
@@ -72,6 +74,22 @@ afterEach(() => {
 });
 
 describe('PanelFicha', () => {
+  it('la ficha con receta conserva las pestañas, la foto y el aviso durante toda la consulta', async () => {
+    responder(
+      ficha({
+        receta: true,
+        asset: { colorDominante: '#336699', paleta: [], foto: '/media/miniaturas/receta.webp' },
+      }),
+    );
+    render(<PanelFicha producto={{ ...resumen, receta: true }} onVolver={() => {}} />);
+    expect(screen.getByText(/no inicies ni cambies/)).toBeTruthy();
+    await screen.findByAltText('Foto del envase publicada en CIMA');
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosis' }));
+    expect(screen.getByText('Texto de posología ficticio.')).toBeTruthy();
+    expect(screen.getByText(/no inicies ni cambies/)).toBeTruthy();
+    expect(screen.queryByRole('slider')).toBeNull();
+  });
+
   it('muestra la cabecera enseguida y el texto de Uso cuando llega la ficha', async () => {
     responder(ficha());
     render(<PanelFicha producto={resumen} onVolver={() => {}} />);

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { useSeleccion } from '../src/escena/useSeleccion';
 
 const producto = (n: string): ProductoResumen => ({
+  receta: false,
   nregistro: n,
   nombre: `Producto ${n}`,
   principioActivo: 'principio ficticio',

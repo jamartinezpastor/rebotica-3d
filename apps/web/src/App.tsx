@@ -1,6 +1,6 @@
 import { AVISO_LEGAL } from '@rebotica/shared';
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { baldasDemo } from './escena/demo';
+import { baldasDemo, vitrinaDemo } from './escena/demo';
 import {
   detectarDispositivo,
   evaluarCapacidad,
@@ -66,6 +66,7 @@ function VistaEscena() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const pasillo = params.get('pasillo');
   const cajasDemo = Math.min(Math.max(Number(params.get('cajas')) || 36, 1), 200);
+  const mostrarVitrinaDemo = params.get('vitrina') === '1';
   const midiendo = params.get('fps') === '1';
 
   const capacidad = useMemo(() => evaluarCapacidad(detectarDispositivo()), []);
@@ -76,7 +77,10 @@ function VistaEscena() {
   const [fps, setFps] = useState<EstadisticasFps | null>(null);
 
   const remoto = usePasillo(pasillo);
-  const baldasDemoMemo = useMemo(() => baldasDemo(cajasDemo), [cajasDemo]);
+  const baldasDemoMemo = useMemo(
+    () => [...baldasDemo(cajasDemo), ...(mostrarVitrinaDemo ? vitrinaDemo() : [])],
+    [cajasDemo, mostrarVitrinaDemo],
+  );
   const seleccion = useSeleccion();
 
   const cambiarVista = (siguiente: VistaElegida) => {
@@ -95,6 +99,8 @@ function VistaEscena() {
   }
   const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const puede3d = capacidad.nivel !== 'sin3d';
+  const borrador = !pasillo || (remoto.tipo === 'listo' && remoto.estado === 'borrador');
+  const tieneVitrina = baldas.some((b) => b.receta);
 
   return (
     <div
@@ -115,6 +121,30 @@ function VistaEscena() {
       )}
 
       {midiendo && vista === '3d' && <ContadorFps e={fps} cajas={totalCajas} />}
+
+      {!seleccion.producto && (
+        <div
+          className={`z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
+        >
+          {borrador && (
+            <p
+              role="note"
+              className="rounded-xl bg-amber-50 p-3 text-base text-amber-950 ring-1 ring-amber-700"
+            >
+              Demostración: pendiente de validación farmacéutica
+            </p>
+          )}
+          {tieneVitrina && vista === '3d' && (
+            <p
+              role="note"
+              className="rounded-xl border-2 border-amber-500 bg-slate-900 p-3 text-base text-white"
+            >
+              ⚠ Al final del pasillo: vitrina con receta. Estos medicamentos requieren indicación
+              médica.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* «Ver como lista» está siempre a mano (plan §reglas de interfaz). */}
       <div className="fixed top-3 right-3 z-10 flex flex-col items-end gap-2">

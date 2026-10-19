@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AssetCajaPublico,
+  BaldaPasillo,
   GrupoVitrinaPublico,
   PerfilPasillo,
   ProductoResumen,
@@ -8,8 +9,9 @@ import {
 } from '../src';
 
 describe('contratos de la API', () => {
-  it('la vitrina rechaza marcas, fotos, dosis o identificadores de producto', () => {
+  it('la vitrina agrupa productos con receta y no admite campos fuera del contrato', () => {
     const base = {
+      productos: [],
       principioActivo: 'principio ficticio',
       formas: ['comprimido'],
       paraQueSeUsa: 'para algo',
@@ -65,6 +67,7 @@ describe('contratos de la API', () => {
 
   it('el resumen de producto exige una forma de caja válida', () => {
     const ok = {
+      receta: false,
       nregistro: '1',
       nombre: 'X',
       principioActivo: 'y',
@@ -79,6 +82,25 @@ describe('contratos de la API', () => {
       calculadora: false,
     };
     expect(ProductoResumen.safeParse(ok).success).toBe(true);
+    const conReceta = { ...ok, receta: true };
+    expect(
+      GrupoVitrinaPublico.safeParse({
+        principioActivo: 'y',
+        formas: [],
+        paraQueSeUsa: 'x',
+        porQueNecesitaReceta: 'x',
+        situacion: 'x',
+        productos: [conReceta],
+      }).success,
+    ).toBe(true);
+    expect(
+      BaldaPasillo.safeParse({
+        titulo: 'y',
+        principioActivo: 'y',
+        orden: 1,
+        productos: [conReceta],
+      }).success,
+    ).toBe(false);
     expect(ProductoResumen.safeParse({ ...ok, formaCaja: 'esfera' }).success).toBe(false);
   });
 });

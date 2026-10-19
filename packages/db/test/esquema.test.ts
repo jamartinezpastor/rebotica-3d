@@ -34,15 +34,14 @@ describe('esquema de la base de datos', () => {
     });
   });
 
-  it('rechaza una regla de dosis para un medicamento con receta', async () => {
-    await expect(
-      db.insert(reglaDosis).values({
-        nregistro: 'CON-RECETA',
-        version: 1,
-        json: {},
-        hashSeccion: 'h',
-      }),
-    ).rejects.toThrow();
+  it('acepta una regla para receta si declara la condición de prescripción correcta', async () => {
+    await db.insert(reglaDosis).values({
+      nregistro: 'CON-RECETA',
+      receta: true,
+      version: 1,
+      json: {},
+      hashSeccion: 'h',
+    });
   });
 
   it('rechaza una regla que declare receta=false apuntando a un medicamento con receta', async () => {
@@ -57,14 +56,12 @@ describe('esquema de la base de datos', () => {
     ).rejects.toThrow();
   });
 
-  it('rechaza una foto en un medicamento con receta', async () => {
-    await expect(
-      db.insert(medicamento).values({
-        ...base,
-        nregistro: 'CON-FOTO',
-        receta: true,
-        fotoUrl: 'https://example.invalid/foto.jpg',
-      }),
-    ).rejects.toThrow();
+  it('permite foto en un medicamento con receta para su ficha y caja', async () => {
+    await db.insert(medicamento).values({
+      ...base,
+      nregistro: 'CON-FOTO',
+      receta: true,
+      fotoUrl: 'https://example.invalid/foto.jpg',
+    });
   });
 });

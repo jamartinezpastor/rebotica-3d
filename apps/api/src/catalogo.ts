@@ -46,8 +46,7 @@ function aspectoDe(
 }
 
 /**
- * Lectura del catálogo local. Solo expone medicamentos sin receta y comercializados: la tabla
- * `medicamento` puede contener filas con receta, pero ninguna consulta de aquí las devuelve.
+ * Catálogo local comercializado. Las baldas y la vitrina se consultan por separado.
  */
 export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalogo = {}) {
   const conexion = db as unknown as Db;
@@ -61,6 +60,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         nregistro: reglaDosis.nregistro,
         json: reglaDosis.json,
         version: reglaDosis.version,
+        hashSeccion: reglaDosis.hashSeccion,
       })
       .from(reglaDosis)
       .innerJoin(
@@ -75,7 +75,6 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       .where(
         and(
           eq(reglaDosis.estado, 'validada'),
-          eq(medicamento.receta, false),
           nregistro ? eq(reglaDosis.nregistro, nregistro) : undefined,
         ),
       )
@@ -84,7 +83,13 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
     for (const f of filas) {
       const analizada = ReglaDosis.safeParse(f.json);
       // Una regla que no cumple el esquema o cuyo JSON no está validado no activa la calculadora.
-      if (analizada.success && analizada.data.estado === 'validada') {
+      if (
+        analizada.success &&
+        analizada.data.estado === 'validada' &&
+        analizada.data.fuente.nregistro === f.nregistro &&
+        analizada.data.fuente.hashSeccion === f.hashSeccion &&
+        analizada.data.version === f.version
+      ) {
         reglas.set(f.nregistro, analizada.data);
       } else {
         reglas.delete(f.nregistro);
@@ -97,6 +102,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
     const filas = await conexion
       .select({
         nregistro: medicamento.nregistro,
+        receta: medicamento.receta,
         nombre: medicamento.nombre,
         pactivos: medicamento.pactivos,
         forma: medicamento.forma,
@@ -111,7 +117,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       })
       .from(medicamento)
       .leftJoin(assetCaja, eq(assetCaja.nregistro, medicamento.nregistro))
-      .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, false)))
+      .where(eq(medicamento.comerc, true))
       .orderBy(asc(medicamento.nombre), asc(medicamento.nregistro));
     const reglas = await reglasVigentes();
 
@@ -119,6 +125,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
     for (const f of filas) {
       const asset = aspectoDe(f.colorDominante, f.paleta, f.foto);
       const producto: ProductoResumen = {
+        receta: f.receta,
         nregistro: f.nregistro,
         nombre: f.nombre,
         principioActivo: f.pactivos,
@@ -179,10 +186,10 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
   }
 
   return {
-    /** Productos sin receta de un principio activo (o asociación), por orden alfabético. */
-    async productosDe(principioActivo: string): Promise<ProductoResumen[]> {
+    /** Productos de un principio activo (o asociación), separados por condición de prescripción. */
+    async productosDe(principioActivo: string, receta = false): Promise<ProductoResumen[]> {
       const { porClave } = await obtenerIndice();
-      return porClave.get(claveActivo(principioActivo)) ?? [];
+      return (porClave.get(claveActivo(principioActivo)) ?? []).filter((p) => p.receta === receta);
     },
 
     /** Formas farmacéuticas con receta de un principio activo, para la vitrina. */
@@ -190,13 +197,13 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       return (await obtenerFormas()).get(claveActivo(principioActivo)) ?? [];
     },
 
-    /** Ficha de un medicamento sin receta; `null` si no existe, no se comercializa o exige receta. */
+    /** Ficha de un medicamento comercializado, con su condición de prescripción. */
     async ficha(nregistro: string): Promise<ProductoResponse | null> {
       const [m] = await conexion
         .select()
         .from(medicamento)
         .where(eq(medicamento.nregistro, nregistro));
-      if (!m || m.receta || !m.comerc) return null;
+      if (!m || !m.comerc) return null;
 
       const [asset] = await conexion
         .select()
@@ -216,6 +223,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
 
       const id = encodeURIComponent(nregistro);
       return {
+        receta: m.receta,
         nregistro: m.nregistro,
         nombre: m.nombre,
         principioActivo: m.pactivos,

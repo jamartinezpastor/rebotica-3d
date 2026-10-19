@@ -36,6 +36,8 @@ export interface Informe {
   };
   vitrina: {
     medicamentosConReceta: number;
+    sincronizados: number;
+    retirados: number;
     grupos: number;
     conIndicacion: number;
     sinPrincipioActivo: number;
@@ -46,7 +48,7 @@ export interface Informe {
 }
 
 export interface OpcionesSync {
-  /** Máximo de medicamentos sin receta y de grupos con receta; para pruebas y ensayos. */
+  /** Máximo de medicamentos de cada catálogo y de grupos con receta; para pruebas y ensayos. */
   limite?: number;
   log?: (mensaje: string) => void;
 }
@@ -91,7 +93,14 @@ export async function sincronizar(
       retirados: 0,
       reglasARevisar: 0,
     },
-    vitrina: { medicamentosConReceta: 0, grupos: 0, conIndicacion: 0, sinPrincipioActivo: 0 },
+    vitrina: {
+      medicamentosConReceta: 0,
+      sincronizados: 0,
+      retirados: 0,
+      grupos: 0,
+      conIndicacion: 0,
+      sinPrincipioActivo: 0,
+    },
     errores: [],
     peticiones: 0,
     duracionMs: 0,
@@ -143,18 +152,8 @@ export async function sincronizar(
     }
   }
 
-  // Un catálogo completo y sin errores permite retirar lo que ya no se comercializa.
-  // Se marca como no comercializado, no se borra: una regla de dosis puede apuntar a él.
-  if (limite === Infinity && totalErrores === 0 && vistos.length > 0) {
-    const retirados = await conexion
-      .update(medicamento)
-      .set({ comerc: false, actualizadoEn: new Date() })
-      .where(and(eq(medicamento.comerc, true), notInArray(medicamento.nregistro, vistos)))
-      .returning({ nregistro: medicamento.nregistro });
-    informe.sinReceta.retirados = retirados.length;
-  }
-
-  // ---------- 2. Vitrina: grupos con receta por principio activo y forma, sin marcas ----------
+  // ---------- 2. Vitrina: fichas completas y grupos con receta ----------
+  let procesadosReceta = 0;
   const grupos = new Map<
     string,
     {
@@ -170,6 +169,22 @@ export async function sincronizar(
     for await (const pagina of paginas(cliente, true)) {
       for (const item of pagina) {
         informe.vitrina.medicamentosConReceta++;
+        if (procesadosReceta < limite) {
+          procesadosReceta++;
+          try {
+            const detalle = await cliente.obtener(urlMedicamento(item.nregistro), Detalle);
+            if (detalle?.comerc) {
+              const secciones =
+                (await cliente.obtener(urlFichaTecnica(item.nregistro), SeccionesFT)) ?? [];
+              const resultado = await guardarMedicamento(conexion, detalle, secciones);
+              vistos.push(detalle.nregistro);
+              informe.vitrina.sincronizados++;
+              informe.sinReceta.reglasARevisar += resultado.reglasARevisar;
+            }
+          } catch (err) {
+            registrarError(`medicamento ${item.nregistro}`, err);
+          }
+        }
         const pactivo = item.vtm?.nombre?.trim();
         if (!pactivo) {
           informe.vitrina.sinPrincipioActivo++;
@@ -239,13 +254,23 @@ export async function sincronizar(
   }
 
   informe.peticiones = cliente.peticiones;
+  // Solo una pasada completa y sin errores puede retirar productos ausentes de ambos listados.
+  if (limite === Infinity && totalErrores === 0 && vistos.length > 0) {
+    const retirados = await conexion
+      .update(medicamento)
+      .set({ comerc: false, actualizadoEn: new Date() })
+      .where(and(eq(medicamento.comerc, true), notInArray(medicamento.nregistro, vistos)))
+      .returning({ receta: medicamento.receta });
+    informe.sinReceta.retirados = retirados.filter((m) => !m.receta).length;
+    informe.vitrina.retirados = retirados.filter((m) => m.receta).length;
+  }
   informe.duracionMs = Date.now() - inicio;
   return informe;
 }
 
 /**
- * La vitrina no muestra marcas (principio 1): se sustituye por el principio activo el nombre
- * comercial de cada medicamento del grupo, que la sección 4.1 usa como sujeto de la frase.
+ * La descripción del grupo usa el principio activo. Las marcas se conservan en las fichas
+ * de los productos; no se usan como sujeto del texto genérico del grupo.
  */
 export function quitarMarcas(texto: string, nombres: Iterable<string>, pactivo: string): string {
   let resultado = texto;
@@ -305,8 +330,8 @@ export async function guardarMedicamento(
     nombre: detalle.nombre,
     pactivos,
     labtitular: detalle.labtitular ?? null,
-    receta: false,
-    comerc: true,
+    receta: detalle.receta,
+    comerc: detalle.comerc,
     conduc: detalle.conduc,
     triangulo: detalle.triangulo,
     psum: detalle.psum,
@@ -351,6 +376,10 @@ export async function guardarMedicamento(
   let reglasARevisar = 0;
   await db.transaction(async (tx) => {
     const { nregistro, ...cambios } = fila;
+    const [anterior] = await tx
+      .select({ receta: medicamento.receta })
+      .from(medicamento)
+      .where(eq(medicamento.nregistro, nregistro));
     await tx
       .insert(medicamento)
       .values(fila)
@@ -396,7 +425,11 @@ export async function guardarMedicamento(
         and(
           eq(reglaDosis.nregistro, nregistro),
           ne(reglaDosis.estado, 'revisar'),
-          hash42 ? ne(reglaDosis.hashSeccion, hash42) : undefined,
+          anterior && anterior.receta !== detalle.receta
+            ? undefined
+            : hash42
+              ? ne(reglaDosis.hashSeccion, hash42)
+              : undefined,
         ),
       )
       .returning({ id: reglaDosis.id });

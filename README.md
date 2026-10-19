@@ -1,8 +1,8 @@
 # Rebotica 3D
 
 Consejo farmacéutico visual para síntomas leves: cuentas qué te pasa, recorres un pasillo 3D con
-los productos sin receta adecuados y calculas la dosis según la ficha técnica oficial. Lo que
-necesita receta aparece en una vitrina cerrada que te invita a pedir cita con tu médico.
+los productos sin receta adecuados y consultas la ficha técnica oficial. Los medicamentos que
+necesitan receta aparecen en una vitrina diferenciada, con aviso de precaución y ficha completa.
 
 > Información orientativa. No sustituye la valoración de un médico o farmacéutico.
 
@@ -54,12 +54,13 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 | `--completo` | Fuerza la sincronización completa.                                       |
 | `--limite N` | Ensayo con N medicamentos; no avanza la marca de la última pasada.       |
 
-- Catálogo sin receta con presentaciones y secciones 4.1–4.7, más los grupos con receta (solo
-  principio activo) para la vitrina.
+- Catálogo sin receta y con receta con presentaciones, fotos y secciones 4.1–4.7. Los
+  medicamentos con receta se sirven en la vitrina y no se mezclan con las baldas sin receta.
 - Pasada diaria: relee los medicamentos con cambios en la ficha técnica, el estado, la
   comercialización o el suministro. Si cambia la sección 4.2, sus reglas de dosis pasan a `revisar`
   y la calculadora se oculta hasta que un farmacéutico las revise.
-- Lo que pasa a receta o deja de comercializarse sale de las baldas (`comerc = false`).
+- Lo que pasa a receta se mueve a la vitrina y sus reglas pasan a `revisar`; lo que deja de
+  comercializarse sale de ambas zonas (`comerc = false`).
 - La marca de la última pasada (`sync_estado`) solo avanza si no hubo errores.
 - Con `ASSETS_DIR` definido, genera tras la sincronización el aspecto de cada caja: descarga la
   miniatura del envase que publica CIMA (como máximo 200 px), extrae su paleta de colores y guarda
@@ -76,8 +77,8 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 pnpm demo
 ```
 
-Levanta la API con una base de datos en memoria (PGlite), descarga de CIMA unos 18 medicamentos
-sin receta con sus fichas y fotos, extrae la paleta de sus envases, monta un pasillo de ejemplo y
+Levanta la API con una base de datos en memoria (PGlite), descarga de CIMA hasta 18 medicamentos
+de cada catálogo con sus fichas y fotos, extrae la paleta de sus envases, monta un pasillo de ejemplo y
 arranca la web. Tarda un par de minutos la primera vez (las fotos se guardan en la carpeta
 temporal del sistema y se reutilizan). Cuando veas «API lista», abre:
 
@@ -122,6 +123,14 @@ La cámara viaja por un raíl, no es libre:
 
 Con `prefers-reduced-motion` la cámara salta al destino sin muelle.
 
+Con ratón, el cursor del lienzo es un modelo 3D de un guante, con palma, dedos articulados,
+perspectiva, iluminación y sombras propias. Se dibuja con Three.js sobre el mismo contexto WebGL
+del pasillo, sin SVG ni otro lienzo. Está abierta al recorrer el pasillo y se cierra al arrastrar,
+también al girar la caja en la ficha. Se inclina suavemente al cambiar de
+dirección y vuelve a reposo al detenerse. Con menos movimiento no se inclina; con entrada táctil
+o colores forzados se conserva el cursor nativo. Los botones y la vista lista mantienen sus
+cursores habituales.
+
 ### Vista lista y rendimiento
 
 - **Vista lista:** el mismo pasillo como lista de botones (baldas con sus productos, etiquetas de
@@ -147,17 +156,39 @@ y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la 
 «Volver al pasillo», Escape y el botón atrás del navegador reproducen el vuelo al revés. Un
 arrastre nunca selecciona: solo cuenta un toque que se mueve menos de 8 px.
 
+## Vitrina con receta
+
+Cambio de alcance del 19/10/2026 respecto al plan original: los medicamentos sujetos a
+prescripción permiten las mismas acciones que el resto (selección, ficha con pestañas y caja
+3D), conservando el diseño actual de las cajas Canvas. Se agrupan en una estructura propia,
+oscura y con frisos ámbar, cristal translúcido y letreros «Requiere receta». La vista lista y la
+ficha incluyen el aviso de precaución y de no iniciar ni cambiar tratamientos sin indicación
+médica. El motor de dosis está implementado en F3-02; la interfaz sigue pendiente de F3-03 para ambos catálogos y solo se habilitará
+con reglas validadas y vigentes. La derivación por alarmas sigue teniendo prioridad.
+
+- Vista ficticia: `/escena?vitrina=1` (o `&vista=lista`), sin descargar datos clínicos.
+- `pnpm demo` incluye también productos reales con receta de CIMA en la vitrina.
+- Al actualizar una instalación existente, ejecutar una sincronización `--completo` para cargar
+  las fichas y fotos con receta que antes no se almacenaban; la API aplica la nueva migración
+  al arrancar. El job debe ejecutarse después de que esas migraciones estén aplicadas.
+
 ## API de datos
 
-| Ruta                             | Qué devuelve                                                                      |
-| -------------------------------- | --------------------------------------------------------------------------------- |
-| `GET /api/pasillos/:id`          | Baldas con productos por principio activo y vitrina con receta (sin marcas)       |
-| `GET /api/productos/:nregistro`  | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente |
-| `GET /media/miniaturas/:archivo` | Miniatura del envase (solo productos sin receta), con caché inmutable             |
+El paquete [`@rebotica/dosis`](packages/dosis/README.md) implementa el cálculo puro con reglas
+validadas, cita literal y hash vigente de la sección 4.2. Incluye redondeo decimal hacia abajo,
+límites por toma y por día, bloqueos y confirmación de peso con referencias OMS locales. Las
+pruebas de dosis usan solo reglas ficticias; no hay reglas clínicas de producción incorporadas.
+
+| Ruta                             | Qué devuelve                                                                            |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| `GET /api/pasillos/:id`          | Baldas sin receta y vitrina con receta, ambas con productos y condición de prescripción |
+| `GET /api/productos/:nregistro`  | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente       |
+| `GET /media/miniaturas/:archivo` | Miniatura del envase, con caché inmutable                                               |
 
 - El pasillo acepta el perfil del triaje: `?grupo=nino&edadMeses=30&condiciones=asma,ulcera`.
 - `estado: "borrador"` en un pasillo obliga a la UI a mostrar la banda de demostración.
-- Un medicamento con receta o no comercializado no tiene ficha: `404`.
+- Un medicamento no comercializado no tiene ficha: `404`. Los que requieren receta devuelven
+  `receta: true`, también en los resúmenes del pasillo.
 - `reglaDosis` solo viaja si la regla está `validada` y su hash coincide con la 4.2 actual.
 - Los contratos (`PasilloResponse`, `ProductoResponse`…) están en `@rebotica/shared`.
 

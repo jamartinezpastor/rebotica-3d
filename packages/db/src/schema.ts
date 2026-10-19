@@ -23,7 +23,7 @@ import {
 const actualizadoEn = () =>
   timestamp('actualizado_en', { withTimezone: true }).notNull().defaultNow();
 
-/** Copia local de CIMA, sincronizada cada noche. Un medicamento con receta no lleva foto. */
+/** Copia local de CIMA, incluidos los medicamentos de la vitrina con receta. */
 export const medicamento = pgTable(
   'medicamento',
   {
@@ -50,7 +50,6 @@ export const medicamento = pgTable(
   (t) => [
     // Permite que regla_dosis referencie (nregistro, receta) y la base rechace recetas.
     unique('medicamento_nregistro_receta_uq').on(t.nregistro, t.receta),
-    check('medicamento_receta_sin_foto', sql`NOT ${t.receta} OR ${t.fotoUrl} IS NULL`),
     index('medicamento_pactivos_idx').on(t.pactivos),
   ],
 );
@@ -143,8 +142,8 @@ export const protocolo = pgTable(
 
 /**
  * Regla de dosis transcrita de la sección 4.2. `receta` repite el valor de `medicamento`
- * mediante una clave foránea compuesta, de modo que la base rechaza cualquier regla de un
- * medicamento con receta.
+ * mediante una clave foránea compuesta. Un cambio de prescripción actualiza esa condición;
+ * el sincronizador obliga a revisar la regla antes de volver a utilizarla.
  */
 export const reglaDosis = pgTable(
   'regla_dosis',
@@ -162,15 +161,14 @@ export const reglaDosis = pgTable(
       name: 'regla_dosis_medicamento_fk',
       columns: [t.nregistro, t.receta],
       foreignColumns: [medicamento.nregistro, medicamento.receta],
-    }),
+    }).onUpdate('cascade'),
     unique('regla_dosis_nregistro_version_uq').on(t.nregistro, t.version),
-    check('regla_dosis_sin_receta', sql`${t.receta} = false`),
     check('regla_dosis_estado_valido', sql`${t.estado} IN ('borrador', 'revisar', 'validada')`),
   ],
 );
 
 /**
- * Aspecto de la caja 3D de un producto sin receta. La caja se dibuja en el navegador a partir de
+ * Aspecto de la caja 3D de un producto. La caja se dibuja en el navegador a partir de
  * los datos del producto y de esta paleta, extraída de la foto del envase en CIMA (que solo se
  * publica en miniatura, ≤ 200 px). `foto` es la miniatura que sirve la propia API.
  */

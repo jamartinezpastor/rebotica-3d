@@ -6,4 +6,5 @@ export {
   puedeMostrarCalculadora,
 } from './regla';
 
-// calcularDosis() llega en el ticket F3-02 (algoritmo de siete pasos del plan).
+export { calcularDosis, EntradaDosis, type ResultadoDosis } from './calcular';
+export { comprobarPeso, type ComprobacionPeso } from './peso';

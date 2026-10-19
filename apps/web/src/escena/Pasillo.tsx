@@ -28,6 +28,8 @@ import { Sombra } from './Sombra';
 export interface BaldaEscena {
   titulo: string;
   productos: ProductoResumen[];
+  receta?: boolean;
+  descripcion?: string;
 }
 
 /** Baldas por estantería: el plan usa estanterías de tres baldas. */
@@ -36,6 +38,7 @@ export const BALDAS_POR_ESTANTERIA = 3;
 export const SEPARACION_ESTANTERIAS = 1.4;
 
 interface ModeloEstanteria {
+  receta: boolean;
   indice: number;
   posicion: [number, number, number];
   /** Desde dónde llega: alterna el fondo del pasillo y cada lateral. */
@@ -59,7 +62,17 @@ export function modeloPasillo(
   baldas: readonly BaldaEscena[],
   geometria: GeometriaEstanteria,
 ): ModeloEstanteria[] {
-  const grupos = trocear(baldas, BALDAS_POR_ESTANTERIA);
+  // La vitrina tiene su propia estructura: nunca compartir estantería con las baldas sin receta.
+  const grupos = [
+    ...trocear(
+      baldas.filter((b) => !b.receta),
+      BALDAS_POR_ESTANTERIA,
+    ),
+    ...trocear(
+      baldas.filter((b) => b.receta),
+      BALDAS_POR_ESTANTERIA,
+    ),
+  ];
   return grupos.map((grupo, indice) => {
     const x = (indice - (grupos.length - 1) / 2) * SEPARACION_ESTANTERIAS;
     // 0: del fondo; 1: del lateral izquierdo; 2: del fondo; 3: del lateral derecho…
@@ -75,6 +88,7 @@ export function modeloPasillo(
       );
     });
     return {
+      receta: grupo[0]?.receta === true,
       indice,
       posicion: [x, 0, 0],
       origen,
@@ -373,7 +387,17 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
             ]}
             visible={menosMovimiento}
           >
-            <Estanteria geometria={geometria} />
+            <Estanteria geometria={geometria} receta={est.receta} />
+            {est.receta && (
+              <Letrero
+                texto="⚠ VITRINA · REQUIERE RECETA"
+                receta
+                reloj={reloj}
+                inicio={0}
+                duracion={0.1}
+                posicion={[0, 1.34, 0.19]}
+              />
+            )}
             <Sombra ancho={ESTANTERIA_POR_DEFECTO.ancho} fondo={ESTANTERIA_POR_DEFECTO.fondo} />
 
             <group
@@ -399,6 +423,7 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
               if (!hueco || !tramo) return null;
               return (
                 <Letrero
+                  receta={est.receta}
                   key={b.hueco}
                   texto={b.titulo}
                   reloj={reloj}

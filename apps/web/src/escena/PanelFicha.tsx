@@ -2,6 +2,7 @@ import { AVISO_LEGAL, type ProductoResumen } from '@rebotica/shared';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { esEnlaceCima, pestanasDe, type IdPestana, type SeccionMostrada } from './fichaSecciones';
 import { useFicha } from './useFicha';
+import { AvisoReceta } from './AvisoReceta';
 
 export interface PanelFichaProps {
   producto: ProductoResumen;
@@ -107,6 +108,7 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
         }`}
       >
         <header className="px-4 pt-3">
+          {(producto.receta || ficha?.receta) && <AvisoReceta />}
           <div className="flex items-start gap-3">
             {ficha?.asset?.foto && (
               <img

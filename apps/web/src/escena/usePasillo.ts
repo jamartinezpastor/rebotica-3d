@@ -4,7 +4,7 @@ import type { BaldaEscena } from './Pasillo';
 
 export type EstadoPasillo =
   | { tipo: 'cargando' }
-  | { tipo: 'listo'; titulo: string; baldas: BaldaEscena[] }
+  | { tipo: 'listo'; titulo: string; estado: 'borrador' | 'validado'; baldas: BaldaEscena[] }
   | { tipo: 'error'; mensaje: string };
 
 /**
@@ -26,7 +26,16 @@ export function usePasillo(id: string | null): EstadoPasillo {
           valor: {
             tipo: 'listo',
             titulo: pasillo.titulo,
-            baldas: pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
+            estado: pasillo.estado,
+            baldas: [
+              ...pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
+              ...pasillo.vitrina.map((g) => ({
+                titulo: g.principioActivo,
+                productos: g.productos,
+                receta: true,
+                descripcion: [g.paraQueSeUsa, g.porQueNecesitaReceta, g.situacion].join(' '),
+              })),
+            ],
           },
         });
       })

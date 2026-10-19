@@ -102,7 +102,9 @@ function cimaSimulada(opciones: { fallaDetalle?: string } = {}) {
       const n = p.get('nregistro') ?? '';
       if (n === opciones.fallaDetalle) return new Response('{}', { status: 400 });
       if (n === '1003') return resp(detalle(n, { receta: true })); // inconsistencia: se omite
-      return resp(detalle(n));
+      return resp(
+        detalle(n, n.startsWith('2') ? { receta: true, pactivos: 'principio ficticio a' } : {}),
+      );
     }
     if (url.pathname.includes('docSegmentado')) {
       const s = secciones(p.get('nregistro') ?? '');
@@ -169,15 +171,18 @@ describe('sincronizar', () => {
     });
 
     const meds = await db.select().from(medicamento);
-    expect(meds.map((m) => m.nregistro).sort()).toEqual(['1001', '1002']);
-    expect(meds.every((m) => m.receta === false)).toBe(true);
+    expect(meds.map((m) => m.nregistro).sort()).toEqual(['1001', '1002', '2001', '2002', '2003']);
+    expect(meds.find((m) => m.nregistro === '2001')).toMatchObject({
+      receta: true,
+      fotoUrl: 'https://example.invalid/2001.jpg',
+    });
     expect(meds.find((m) => m.nregistro === '1001')).toMatchObject({
       pactivos: 'principio ficticio',
       fotoUrl: 'https://example.invalid/1001.jpg',
       atcs: ['N02B', 'N02BX99'],
     });
 
-    expect(await db.select().from(presentacion)).toHaveLength(4);
+    expect(await db.select().from(presentacion)).toHaveLength(10);
     const secs = await db.select().from(seccionFt).where(eq(seccionFt.nregistro, '1001'));
     expect(secs.map((s) => s.seccion).sort()).toEqual(['4.1', '4.2', '4.3']);
     expect(secs.find((s) => s.seccion === '4.2')).toMatchObject({
@@ -196,7 +201,7 @@ describe('sincronizar', () => {
       condicionesPrescripcion: 'Con receta médica; Con receta médica. Diagnóstico hospitalario',
     });
     expect(JSON.stringify(grupos)).not.toMatch(/MARCA/i);
-    expect(JSON.stringify(await db.select().from(medicamento))).not.toMatch(/RECETA/);
+    expect(await db.select().from(medicamento).where(eq(medicamento.receta, true))).toHaveLength(3);
   });
 
   it('es idempotente y no toca las reglas de dosis', async () => {
@@ -205,8 +210,8 @@ describe('sincronizar', () => {
       .values({ nregistro: '1001', version: 1, json: {}, hashSeccion: 'h' });
     const informe = await sincronizar(db, nuevoCliente(cimaSimulada()));
     expect(informe.errores).toEqual([]);
-    expect(await db.select().from(medicamento)).toHaveLength(2);
-    expect(await db.select().from(presentacion)).toHaveLength(4);
+    expect(await db.select().from(medicamento)).toHaveLength(5);
+    expect(await db.select().from(presentacion)).toHaveLength(10);
     expect(await db.select().from(grupoReceta)).toHaveLength(1);
     expect(await db.select().from(reglaDosis)).toHaveLength(1);
   });

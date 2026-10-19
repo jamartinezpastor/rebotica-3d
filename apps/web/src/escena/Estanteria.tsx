@@ -33,13 +33,14 @@ function useInstancias(piezas: readonly Pieza[]) {
 export interface EstanteriaProps {
   /** Resultado de `geometriaEstanteria()`; lo calcula el padre porque también coloca las cajas. */
   geometria: GeometriaEstanteria;
+  receta?: boolean;
 }
 
 /**
  * Estantería de tres baldas: toda la estructura es una sola malla instanciada (laterales,
  * tableros y panel trasero) y los frisos verdes otra. Dos llamadas de dibujo por estantería.
  */
-export function Estanteria({ geometria }: EstanteriaProps) {
+export function Estanteria({ geometria, receta = false }: EstanteriaProps) {
   const estructura = useInstancias(geometria.estructura);
   const frisos = useInstancias(geometria.frisos);
 
@@ -51,7 +52,11 @@ export function Estanteria({ geometria }: EstanteriaProps) {
         frustumCulled={false}
       >
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color={COLOR_MADERA} roughness={0.85} metalness={0} />
+        <meshStandardMaterial
+          color={receta ? '#263442' : COLOR_MADERA}
+          roughness={0.85}
+          metalness={receta ? 0.25 : 0}
+        />
       </instancedMesh>
       <instancedMesh
         ref={frisos}
@@ -59,8 +64,24 @@ export function Estanteria({ geometria }: EstanteriaProps) {
         frustumCulled={false}
       >
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color={COLOR_FRISO} roughness={0.6} metalness={0} />
+        <meshStandardMaterial
+          color={receta ? '#f2b544' : COLOR_FRISO}
+          roughness={0.6}
+          metalness={0}
+        />
       </instancedMesh>
+      {receta && (
+        <mesh position={[0, 0.68, 0.18]} raycast={() => null}>
+          <boxGeometry args={[1.13, 1.07, 0.008]} />
+          <meshStandardMaterial
+            color="#d7e4eb"
+            transparent
+            opacity={0.12}
+            roughness={0.45}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
     </group>
   );
 }

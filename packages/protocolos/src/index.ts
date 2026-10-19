@@ -34,8 +34,8 @@ export const Balda = z.strictObject({
 });
 
 /**
- * Un grupo de la vitrina con receta. Es estricto a propósito: no admite marca, foto,
- * dosis ni ningún otro campo. Solo explica y lleva a «Pedir cita».
+ * Definición curada de un grupo de la vitrina. Los productos y sus fichas se resuelven desde
+ * el catálogo local de CIMA, sin introducir marcas ni posología en el protocolo clínico.
  */
 export const GrupoVitrina = z.strictObject({
   principioActivo: z.string().min(1),

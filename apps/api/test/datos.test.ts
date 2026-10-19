@@ -145,6 +145,7 @@ beforeAll(async () => {
     },
     // Escrito al revés que en el protocolo.
     { ...base, nregistro: '2001', nombre: 'FICTICIO ACIDO', pactivos: 'FICTICIO ACIDO' },
+    { ...base, nregistro: '3001', nombre: 'MARCA VITRINA', pactivos: 'principio c', receta: true },
   ]);
   await db.insert(assetCaja).values({
     nregistro: '1001',
@@ -205,6 +206,29 @@ beforeAll(async () => {
     { pactivo: 'principio c', forma: 'comprimido' },
     { pactivo: 'Principio C', forma: 'solución inyectable' },
   ]);
+  await db.insert(assetCaja).values({
+    nregistro: '3001',
+    colorDominante: '#336699',
+    paleta: ['#336699'],
+    foto: '/media/miniaturas/3001.webp',
+    forma: 'caja-plana',
+  });
+  await db.insert(seccionFt).values({
+    nregistro: '3001',
+    seccion: '4.2',
+    titulo: 'Posología',
+    html: '<p>Ficticia</p>',
+    texto: 'Posología ficticia con receta.',
+    hash: HASH_VIGENTE,
+  });
+  await db.insert(reglaDosis).values({
+    nregistro: '3001',
+    receta: true,
+    version: 1,
+    json: { ...reglaFicticia(), fuente: { ...reglaFicticia().fuente, nregistro: '3001' } },
+    hashSeccion: HASH_VIGENTE,
+    estado: 'validada',
+  });
   await db.insert(protocolo).values([
     {
       id: 'dolor-ficticio',
@@ -308,10 +332,19 @@ describe('GET /api/pasillos/:id', () => {
     expect(adulto.baldas).toHaveLength(2);
   });
 
-  it('la vitrina solo lleva principio activo, formas y texto explicativo', async () => {
+  it('la vitrina incluye productos con receta y mantiene las baldas sin receta separadas', async () => {
     const pasillo = PasilloResponse.parse((await get('/api/pasillos/dolor-ficticio')).json());
     expect(pasillo.vitrina).toEqual([
       {
+        productos: [
+          expect.objectContaining({
+            nregistro: '3001',
+            receta: true,
+            nombre: 'MARCA VITRINA',
+            calculadora: true,
+            asset: expect.objectContaining({ foto: '/media/miniaturas/3001.webp' }),
+          }),
+        ],
         principioActivo: 'principio c',
         formas: ['comprimido', 'solución inyectable'],
         paraQueSeUsa: 'Para un dolor intenso.',
@@ -319,9 +352,7 @@ describe('GET /api/pasillos/:id', () => {
         situacion: 'Si el dolor no cede.',
       },
     ]);
-    // Principio 1: ni marcas, ni registros, ni imágenes en la vitrina.
-    const texto = JSON.stringify(pasillo.vitrina);
-    expect(texto).not.toMatch(/nregistro|nombre|asset|atlas|foto|dosis/i);
+    expect(pasillo.baldas.flatMap((b) => b.productos).every((p) => !p.receta)).toBe(true);
   });
 
   it('un protocolo sin versión validada se sirve como borrador', async () => {
@@ -396,8 +427,30 @@ describe('GET /api/productos/:nregistro', () => {
     await app3.close();
   });
 
-  it('los medicamentos con receta y los retirados no tienen ficha', async () => {
-    for (const id of ['1004', '1005', 'NOEXISTE']) {
+  it('los medicamentos con receta tienen ficha y solo reciben reglas validadas y vigentes', async () => {
+    const ficha = ProductoResponse.parse((await get('/api/productos/3001')).json());
+    expect(ficha.receta).toBe(true);
+    expect(ReglaDosis.parse(ficha.reglaDosis).fuente.nregistro).toBe('3001');
+    expect(ficha.asset?.foto).toBe('/media/miniaturas/3001.webp');
+    expect(ficha.secciones[0]?.texto).toBe('Posología ficticia con receta.');
+    for (const estado of ['borrador', 'revisar']) {
+      await db.update(reglaDosis).set({ estado }).where(eq(reglaDosis.nregistro, '3001'));
+      expect(
+        ProductoResponse.parse((await get('/api/productos/3001')).json()).reglaDosis,
+      ).toBeNull();
+    }
+    await db
+      .update(reglaDosis)
+      .set({ estado: 'validada', hashSeccion: 'obsoleto' })
+      .where(eq(reglaDosis.nregistro, '3001'));
+    expect(ProductoResponse.parse((await get('/api/productos/3001')).json()).reglaDosis).toBeNull();
+    const sinRegla = ProductoResponse.parse((await get('/api/productos/1004')).json());
+    expect(sinRegla.receta).toBe(true);
+    expect(sinRegla.reglaDosis).toBeNull();
+  });
+
+  it('los retirados y desconocidos no tienen ficha', async () => {
+    for (const id of ['1005', 'NOEXISTE']) {
       const res = await get(`/api/productos/${id}`);
       expect(res.statusCode).toBe(404);
       ErrorResponse.parse(res.json());

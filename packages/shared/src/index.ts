@@ -7,6 +7,9 @@ import { z } from 'zod';
 export const AVISO_LEGAL =
   'Información orientativa. No sustituye la valoración de un médico o farmacéutico; ante cualquier duda, consulta presencial.';
 
+export const AVISO_RECETA =
+  'Requiere receta médica. Consulta su información con precaución: no inicies ni cambies el tratamiento sin indicación de tu médico.';
+
 /** Teléfonos que la pantalla de derivación puede ofrecer. */
 export const TELEFONOS = {
   emergencias: '112',

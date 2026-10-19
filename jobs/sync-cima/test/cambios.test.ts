@@ -151,28 +151,30 @@ describe('sincronizarCambios', () => {
     expect(peticiones.filter((p) => p.includes('/medicamento?'))).toEqual([]);
   });
 
-  it('da de alta un medicamento nuevo sin receta y descarta uno nuevo con receta', async () => {
+  it('da de alta medicamentos nuevos sin receta y con receta', async () => {
     cambios = [
       { nregistro: '3001', tipoCambio: 1, cambio: [] },
       { nregistro: '3002', tipoCambio: 1, cambio: [] },
     ];
     detalles = { '3002': detalle('3002', { receta: true }) };
     const informe = await sincronizarCambios(db, cliente(), new Date('2026-10-10'));
-    expect(informe.nuevos).toBe(1);
+    expect(informe.nuevos).toBe(2);
     const nuevos = await db.select().from(medicamento).where(eq(medicamento.nregistro, '3001'));
     expect(nuevos).toHaveLength(1);
-    expect(await db.select().from(medicamento).where(eq(medicamento.nregistro, '3002'))).toEqual(
-      [],
-    );
+    expect(await db.select().from(medicamento).where(eq(medicamento.nregistro, '3002'))).toEqual([
+      expect.objectContaining({ receta: true, comerc: true }),
+    ]);
   });
 
-  it('retira de las baldas lo que pasa a receta o deja de comercializarse', async () => {
+  it('mueve a la vitrina lo que pasa a receta e invalida su regla aunque no cambie la 4.2', async () => {
     cambios = [{ nregistro: '1001', tipoCambio: 3, cambio: ['estado'] }];
     detalles = { '1001': detalle('1001', { receta: true }) };
     const informe = await sincronizarCambios(db, cliente(), new Date('2026-10-10'));
-    expect(informe).toMatchObject({ retirados: 1, ahoraConReceta: 1 });
+    expect(informe).toMatchObject({ retirados: 0, ahoraConReceta: 1, reglasARevisar: 1 });
     const [m] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '1001'));
-    expect(m?.comerc).toBe(false);
+    expect(m).toMatchObject({ comerc: true, receta: true });
+    expect(await estadoRegla()).toBe('revisar');
+    expect((await db.select().from(reglaDosis))[0]?.receta).toBe(true);
   });
 
   it('una baja sin detalle conserva la fila pero la saca de las baldas', async () => {

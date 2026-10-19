@@ -1,6 +1,7 @@
 import type { ProductoResumen } from '@rebotica/shared';
 import { COLOR_LADO_DEFECTO } from './colores';
 import type { BaldaEscena } from './Pasillo';
+import { AvisoReceta } from './AvisoReceta';
 
 export interface VistaListaProps {
   titulo: string;
@@ -59,10 +60,27 @@ export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
       {baldas.map((balda, i) => {
         const id = `balda-${i}`;
         return (
-          <section key={`${balda.titulo}-${i}`} aria-labelledby={id} className="mt-8">
-            <h2 id={id} className="text-lg font-semibold text-cruz">
-              {balda.titulo}
+          <section
+            key={`${balda.titulo}-${i}`}
+            aria-labelledby={id}
+            className={
+              balda.receta
+                ? 'mt-8 rounded-2xl border-2 border-amber-700 bg-slate-900 p-4 text-white'
+                : 'mt-8'
+            }
+          >
+            <h2
+              id={id}
+              className={`text-lg font-semibold ${balda.receta ? 'text-amber-200' : 'text-cruz'}`}
+            >
+              {balda.receta ? `Vitrina con receta · ${balda.titulo}` : balda.titulo}
             </h2>
+            {balda.receta && (
+              <div className="mt-3">
+                <AvisoReceta />
+              </div>
+            )}
+            {balda.descripcion && <p className="mt-3 text-base">{balda.descripcion}</p>}
             {balda.productos.length === 0 ? (
               <p className="mt-2 text-base text-tinta-suave">
                 No hay productos disponibles para este grupo.
@@ -74,11 +92,16 @@ export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
                     <button
                       type="button"
                       onClick={() => onSeleccionar(p)}
-                      className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+                      className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left text-tinta ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
                     >
                       <Miniatura producto={p} />
                       <span className="min-w-0 flex-1">
                         <span className="block text-base leading-snug font-medium">{p.nombre}</span>
+                        {p.receta && (
+                          <span className="block text-base font-semibold text-amber-900">
+                            ⚠ Requiere receta médica
+                          </span>
+                        )}
                         <span className="block text-sm text-tinta-suave">
                           {[p.principioActivo, p.forma].filter(Boolean).join(' · ')}
                         </span>

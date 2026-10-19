@@ -1,12 +1,22 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ProductoResumen } from '@rebotica/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { baldasDemo } from '../src/escena/demo';
+import { baldasDemo, vitrinaDemo } from '../src/escena/demo';
 import { VistaLista } from '../src/escena/VistaLista';
 
 afterEach(cleanup);
 
 describe('VistaLista', () => {
+  it('la vitrina muestra aviso y permite seleccionar sus productos como las demás baldas', () => {
+    const onSeleccionar = vi.fn();
+    const baldas = vitrinaDemo();
+    render(<VistaLista titulo="Pasillo" baldas={baldas} onSeleccionar={onSeleccionar} />);
+    expect(screen.getByRole('heading', { name: /Vitrina con receta/ })).toBeTruthy();
+    expect(screen.getByText(/no inicies ni cambies/)).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button')[0] as HTMLElement);
+    expect(onSeleccionar).toHaveBeenCalledWith(baldas[0]?.productos[0]);
+  });
+
   it('muestra una sección por balda con todos sus productos como botones', () => {
     const baldas = baldasDemo(12);
     render(<VistaLista titulo="Dolor" baldas={baldas} onSeleccionar={() => {}} />);

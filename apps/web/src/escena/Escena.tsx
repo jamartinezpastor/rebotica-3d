@@ -3,6 +3,7 @@ import type { ProductoResumen } from '@rebotica/shared';
 import type { EstadisticasFps } from './medidorFps';
 import { Pasillo, type BaldaEscena } from './Pasillo';
 import { Rendimiento } from './Rendimiento';
+import { Cursor3D } from './Cursor3D';
 
 /** Blanco del vacío: el suelo, la niebla y el fondo son del mismo color y no hay horizonte. */
 export const COLOR_VACIO = '#ffffff';
@@ -57,6 +58,7 @@ export default function Escena({
       <hemisphereLight args={['#ffffff', '#ece6da', 1.6]} />
       <directionalLight position={[2.5, 4, 3]} intensity={2.2} />
       <Rendimiento onFps={onFps} onLento={onLento} />
+      <Cursor3D />
       <Suelo />
       <Pasillo baldas={baldas} seleccionada={seleccionada} onSeleccionar={onSeleccionar} />
     </Canvas>

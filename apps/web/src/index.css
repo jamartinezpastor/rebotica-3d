@@ -23,6 +23,11 @@ body {
   font-size: 16px;
 }
 
+/* El cursor solo sustituye al nativo cuando hay un ratón sobre el lienzo 3D. */
+canvas.cursor-mano-3d-activo {
+  cursor: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

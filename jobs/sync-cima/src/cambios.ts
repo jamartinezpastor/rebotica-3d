@@ -102,8 +102,7 @@ export async function sincronizarCambios(
     if (pagina * datos.tamanioPagina >= datos.totalFilas) break;
   }
 
-  // 2. Cuáles son nuestros. El listado diario trae miles de medicamentos con receta que no
-  //    guardamos; solo se consulta el detalle de los que conocemos o de altas y cambios de estado.
+  // 2. Releer los conocidos y las altas o cambios de estado de ambos catálogos.
   const ids = [...cambios.keys()];
   const conocidos = new Set<string>();
   for (let i = 0; i < ids.length; i += 500) {
@@ -139,13 +138,18 @@ export async function sincronizarCambios(
         if (esConocido) await retirar(conexion, nregistro, informe);
         continue;
       }
-      if (detalle.receta || !detalle.comerc) {
-        // Principio 1: lo que pasa a receta o deja de comercializarse sale de las baldas.
+      if (!detalle.comerc) {
         if (esConocido) {
           await retirar(conexion, nregistro, informe);
-          if (detalle.receta) informe.ahoraConReceta++;
         }
         continue;
+      }
+      if (esConocido && detalle.receta) {
+        const [anterior] = await conexion
+          .select({ receta: medicamento.receta })
+          .from(medicamento)
+          .where(eq(medicamento.nregistro, nregistro));
+        if (anterior && !anterior.receta) informe.ahoraConReceta++;
       }
       const secciones = (await cliente.obtener(urlFichaTecnica(nregistro), SeccionesFT)) ?? [];
       const resultado = await guardarMedicamento(conexion, detalle, secciones);

@@ -220,6 +220,7 @@ describe('colores y contraste', () => {
 
 describe('datosEnvase y tamaños', () => {
   const producto = {
+    receta: false,
     nregistro: '1',
     nombre: 'PRODUCTO',
     principioActivo: 'ACETILCISTEINA',

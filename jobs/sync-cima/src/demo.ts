@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { medicamento, protocolo } from '@rebotica/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { buildApp } from '../../../apps/api/src/app';
@@ -56,13 +56,19 @@ log(`miniaturas: ${assets.conFoto} con foto de CIMA, ${assets.sinFoto} sin foto`
 const filas = await db
   .select({ pactivos: medicamento.pactivos })
   .from(medicamento)
-  .where(eq(medicamento.comerc, true));
+  .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, false)));
 const cuenta = new Map<string, number>();
 for (const f of filas) cuenta.set(f.pactivos, (cuenta.get(f.pactivos) ?? 0) + 1);
 const principios = [...cuenta.entries()]
   .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   .slice(0, 6)
   .map(([nombre]) => nombre);
+
+const conReceta = await db
+  .select({ pactivos: medicamento.pactivos })
+  .from(medicamento)
+  .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, true)));
+const principiosReceta = [...new Set(conReceta.map((p) => p.pactivos))].slice(0, 3);
 
 await db.insert(protocolo).values({
   id: 'demo',
@@ -89,7 +95,12 @@ await db.insert(protocolo).values({
       gruposExcluidos: [],
       condicionesExcluidas: [],
     })),
-    vitrina: [],
+    vitrina: principiosReceta.map((p) => ({
+      principioActivo: p,
+      paraQueSeUsa: 'Consulta las indicaciones oficiales en la ficha del producto.',
+      porQueNecesitaReceta: 'Requiere valoración y prescripción médica.',
+      situacion: 'No inicies ni cambies el tratamiento sin indicación de tu médico.',
+    })),
     consejos: [],
     parafarmacia: [],
     estado: 'borrador',

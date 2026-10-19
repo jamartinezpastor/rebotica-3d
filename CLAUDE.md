@@ -1,10 +1,10 @@
 # Rebotica 3D — instrucciones para el agente
 
 Web app mobile-first que convierte una consulta sobre un síntoma leve en un pasillo 3D de
-medicamentos sin receta y parafarmacia, con ficha 3D, calculadora de dosis y una vitrina cerrada
+medicamentos sin receta y parafarmacia, con ficha 3D, calculadora de dosis y una vitrina diferenciada
 con lo que solo puede recetar un médico.
 
-Plan completo (fuente de verdad de pantallas, datos, API y tickets):
+Plan base (pantallas, datos, API y tickets; con el cambio de vitrina indicado abajo):
 https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 
 ## Cómo trabajar
@@ -16,10 +16,13 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 
 ## Principios que no se negocian
 
-1. **Recomendar sin receta, enseñar lo que necesita médico.** Las baldas solo contienen
-   medicamentos no sujetos a prescripción, parafarmacia y productos sanitarios. Los medicamentos
-   con receta solo aparecen en la vitrina: por principio activo, sin marca, sin foto de envase,
-   sin dosis, sin ficha 3D y sin calculadora; su única acción es «Pedir cita».
+1. **Separar sin receta y con receta.** Las baldas principales contienen medicamentos sin receta,
+   parafarmacia y productos sanitarios. Los medicamentos sujetos a prescripción aparecen en una
+   vitrina visualmente diferenciada (estructura oscura, señalización ámbar y aviso explícito de
+   receta), con las mismas opciones de selección, caja 3D, fotos, ficha y pestañas. La ficha y la
+   vista lista mantienen el aviso de precaución. Las calculadoras, cuando estén implementadas,
+   requieren siempre una regla validada y vigente, también para medicamentos con receta.
+   Cambio de alcance solicitado por el usuario el 19/10/2026; sustituye la restricción original.
 2. **La IA entiende, no prescribe.** El modelo de lenguaje solo clasifica el texto del usuario en
    un protocolo del catálogo y detecta alarmas. Nunca elige medicamentos ni dosis.
 3. **La dosis la calcula código determinista** (`@rebotica/dosis`) a partir de reglas transcritas
@@ -41,15 +44,15 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 
 ## Estructura
 
-| Ruta                  | Qué es                                                          |
-| --------------------- | --------------------------------------------------------------- |
-| `apps/web`            | Vite + React + Tailwind (escena 3D con React Three Fiber en F2) |
-| `apps/api`            | Fastify; contratos validados con los esquemas de `shared`       |
-| `packages/shared`     | Esquemas Zod y constantes comunes (aviso legal, teléfonos)      |
-| `packages/db`         | Esquema Drizzle (PostgreSQL), migraciones y conexión            |
-| `packages/dosis`      | Esquema de reglas de dosis; el cálculo llega en F3-02           |
-| `packages/protocolos` | Esquema de protocolos; los JSON firmados van en `data/`         |
-| `jobs/sync-cima`      | Job nocturno de sincronización con CIMA                         |
+| Ruta                  | Qué es                                                     |
+| --------------------- | ---------------------------------------------------------- |
+| `apps/web`            | Vite + React + Tailwind (escena 3D con React Three Fiber)  |
+| `apps/api`            | Fastify; contratos validados con los esquemas de `shared`  |
+| `packages/shared`     | Esquemas Zod y constantes comunes (aviso legal, teléfonos) |
+| `packages/db`         | Esquema Drizzle (PostgreSQL), migraciones y conexión       |
+| `packages/dosis`      | Reglas y motor determinista de dosis (F3-02); UI en F3-03  |
+| `packages/protocolos` | Esquema de protocolos; los JSON firmados van en `data/`    |
+| `jobs/sync-cima`      | Job nocturno de sincronización con CIMA                    |
 
 Los paquetes internos exportan su código TypeScript directamente (`exports: ./src/index.ts`).
 Vite y Vitest los consumen tal cual; `apps/api` y `jobs/*` los empaquetan con tsup.

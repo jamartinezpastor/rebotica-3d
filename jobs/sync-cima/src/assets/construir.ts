@@ -55,8 +55,7 @@ async function escribirAtomico(ruta: string, datos: Uint8Array): Promise<void> {
 /**
  * Para cada medicamento comercializado: descarga la miniatura de CIMA (si existe), extrae la
  * paleta de colores del envase, guarda una miniatura servible y rellena `asset_caja`. La caja 3D
- * se dibuja en el navegador con esa paleta y los datos del producto. Los medicamentos con receta
- * nunca llegan aquí: la tabla `medicamento` solo contiene los de las baldas.
+ * se dibuja en el navegador con esa paleta y los datos del producto, también en la vitrina.
  */
 export async function construirAssets(
   db: BaseDatos,

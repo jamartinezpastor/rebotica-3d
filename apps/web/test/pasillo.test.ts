@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { baldasDemo, productosDemo } from '../src/escena/demo';
+import { baldasDemo, productosDemo, vitrinaDemo } from '../src/escena/demo';
 import { geometriaEstanteria } from '../src/escena/geometria';
 import { datosRiel, modeloPasillo, SEPARACION_ESTANTERIAS } from '../src/escena/Pasillo';
 import { alturaEnFila } from '../src/escena/RielCamara';
@@ -7,6 +7,14 @@ import { alturaEnFila } from '../src/escena/RielCamara';
 const geometria = geometriaEstanteria();
 
 describe('modeloPasillo', () => {
+  it('la vitrina usa una estantería propia al final y conserva las cajas seleccionables en el raíl', () => {
+    const modelo = modeloPasillo([...baldasDemo(6), ...vitrinaDemo()], geometria);
+    expect(modelo.map((m) => m.receta)).toEqual([false, true]);
+    expect(modelo[1]?.cajas.every((c) => c.item.receta)).toBe(true);
+    expect(modelo[0]?.cajas.every((c) => !c.item.receta)).toBe(true);
+    expect(datosRiel(modelo, geometria).puntos[0]).toHaveLength(11);
+  });
+
   it('agrupa las baldas de tres en tres y centra las estanterías', () => {
     const modelo = modeloPasillo(baldasDemo(), geometria);
     expect(modelo).toHaveLength(2);
