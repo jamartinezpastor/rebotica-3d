@@ -1,8 +1,9 @@
 import { AVISO_LEGAL, type ProductoResumen } from '@rebotica/shared';
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { esEnlaceCima, pestanasDe, type IdPestana, type SeccionMostrada } from './fichaSecciones';
 import { useFicha } from './useFicha';
 import { AvisoReceta } from './AvisoReceta';
+const CalculadoraDosis = lazy(() => import('./CalculadoraDosis'));
 
 export interface PanelFichaProps {
   producto: ProductoResumen;
@@ -57,7 +58,7 @@ function Seccion({ seccion, abierta }: { seccion: SeccionMostrada; abierta: bool
  * ficha técnica, enlace al prospecto oficial y aviso legal. En 3D la caja gira encima.
  *
  * La pestaña Dosis muestra siempre la posología oficial en texto: la calculadora solo aparece
- * con una regla validada y vigente (principio 3), y hoy no hay ninguna.
+ * con una regla validada y vigente (principio 3).
  */
 export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps) {
   const raiz = useRef<HTMLElement>(null);
@@ -192,12 +193,17 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
                 : 'No se pudo cargar la ficha de este producto. Inténtalo de nuevo en unos minutos.'}
             </p>
           )}
-          {ficha && activa === 'dosis' && (
+          {ficha && activa === 'dosis' && !ficha.reglaDosis && (
             <p className="rounded-lg bg-cruz-claro px-3 py-2 text-sm text-tinta">
               Esta es la posología oficial de la ficha técnica, no una pauta personalizada. La dosis
               depende de la edad, el peso y la situación de cada persona: consulta a tu médico o
               farmacéutico.
             </p>
+          )}
+          {ficha && activa === 'dosis' && ficha.reglaDosis !== null && (
+            <Suspense fallback={<p role="status">Preparando la calculadora…</p>}>
+              <CalculadoraDosis ficha={ficha} />
+            </Suspense>
           )}
           {ficha && pestanaActiva && pestanaActiva.secciones.length === 0 && (
             <p className="text-base text-tinta-suave">

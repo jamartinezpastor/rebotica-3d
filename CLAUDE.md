@@ -20,7 +20,7 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
    parafarmacia y productos sanitarios. Los medicamentos sujetos a prescripción aparecen en una
    vitrina visualmente diferenciada (estructura oscura, señalización ámbar y aviso explícito de
    receta), con las mismas opciones de selección, caja 3D, fotos, ficha y pestañas. La ficha y la
-   vista lista mantienen el aviso de precaución. Las calculadoras, cuando estén implementadas,
+   vista lista mantienen el aviso de precaución. Las calculadoras
    requieren siempre una regla validada y vigente, también para medicamentos con receta.
    Cambio de alcance solicitado por el usuario el 19/10/2026; sustituye la restricción original.
 2. **La IA entiende, no prescribe.** El modelo de lenguaje solo clasifica el texto del usuario en
@@ -50,7 +50,7 @@ https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 | `apps/api`            | Fastify; contratos validados con los esquemas de `shared`  |
 | `packages/shared`     | Esquemas Zod y constantes comunes (aviso legal, teléfonos) |
 | `packages/db`         | Esquema Drizzle (PostgreSQL), migraciones y conexión       |
-| `packages/dosis`      | Reglas y motor determinista de dosis (F3-02); UI en F3-03  |
+| `packages/dosis`      | Motor determinista (F3-02); interfaz en `apps/web` (F3-03) |
 | `packages/protocolos` | Esquema de protocolos; los JSON firmados van en `data/`    |
 | `jobs/sync-cima`      | Job nocturno de sincronización con CIMA                    |
 

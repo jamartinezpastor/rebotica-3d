@@ -79,4 +79,5 @@ de ellas.
 
 Este ticket implementa y verifica el algoritmo. No incorpora reglas de producción ni sustituye
 los casos dorados clínicos que deberá revisar y firmar un farmacéutico para cada regla real.
-La interfaz con sliders y dibujos corresponde a F3-03; las reglas semilla, a F3-04.
+La interfaz con sliders y dibujos está implementada en `apps/web` (F3-03); las reglas semilla
+corresponden a F3-04. La UI verifica el hash de la sección actual y la cita antes de mostrar controles.

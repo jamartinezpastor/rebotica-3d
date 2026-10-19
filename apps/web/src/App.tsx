@@ -13,6 +13,8 @@ import { usePasillo } from './escena/usePasillo';
 import { useSeleccion } from './escena/useSeleccion';
 import { VistaLista } from './escena/VistaLista';
 import { useEstadoApi } from './useEstadoApi';
+import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
+import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
@@ -48,7 +50,7 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
   return (
     <p
       role="status"
-      className="pointer-events-none absolute top-3 left-3 z-10 rounded-md bg-black/75 px-2 py-1 font-mono text-xs text-white"
+      className="pointer-events-none absolute top-64 left-3 z-10 rounded-md bg-black/75 px-2 py-1 font-mono text-xs text-white"
     >
       {e
         ? `${e.fps.toFixed(0)} fps · p95 ${e.p95Ms.toFixed(0)} ms · máx ${e.maxMs.toFixed(0)} ms`
@@ -75,6 +77,10 @@ function VistaEscena() {
   );
   const [lento, setLento] = useState(false);
   const [fps, setFps] = useState<EstadisticasFps | null>(null);
+  const [agrupacion, setAgrupacion] = useState<Agrupacion>(() => {
+    const valor = params.get('agrupar');
+    return esAgrupacion(valor) ? valor : 'original';
+  });
 
   const remoto = usePasillo(pasillo);
   const baldasDemoMemo = useMemo(
@@ -82,6 +88,11 @@ function VistaEscena() {
     [cajasDemo, mostrarVitrinaDemo],
   );
   const seleccion = useSeleccion();
+  const baldasOrigen = pasillo && remoto.tipo === 'listo' ? remoto.baldas : baldasDemoMemo;
+  const baldasAgrupadas = useMemo(
+    () => agruparBaldas(baldasOrigen, agrupacion),
+    [baldasOrigen, agrupacion],
+  );
 
   const cambiarVista = (siguiente: VistaElegida) => {
     setVista(siguiente);
@@ -90,12 +101,11 @@ function VistaEscena() {
   };
 
   let titulo = 'Pasillo de demostración';
-  let baldas = baldasDemoMemo;
+  const baldas = baldasAgrupadas;
   if (pasillo) {
     if (remoto.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
     if (remoto.tipo === 'error') return <Preparando texto={remoto.mensaje} />;
     titulo = remoto.titulo;
-    baldas = remoto.baldas;
   }
   const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const puede3d = capacidad.nivel !== 'sin3d';
@@ -121,6 +131,17 @@ function VistaEscena() {
       )}
 
       {midiendo && vista === '3d' && <ContadorFps e={fps} cajas={totalCajas} />}
+
+      {!seleccion.producto && <SelectorAgrupacion valor={agrupacion} onCambiar={setAgrupacion} />}
+
+      {!seleccion.producto && (
+        <a
+          href="/"
+          className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+        >
+          <span aria-hidden="true">←</span> Inicio
+        </a>
+      )}
 
       {!seleccion.producto && (
         <div
@@ -205,7 +226,7 @@ function EstadoServidor() {
 }
 
 export function App() {
-  // Vista de desarrollo de la escena (F2-01); el pasillo real llega con las rutas de F2-03.
+  // La portada enlaza a la demostración; los pasillos de la API se abren con ?pasillo=<id>.
   if (window.location.pathname === '/escena') return <VistaEscena />;
 
   return (
@@ -216,17 +237,43 @@ export function App() {
       </header>
 
       <main className="mt-12 flex-1">
-        <p className="text-3xl leading-tight font-semibold">Hola, soy tu farmacéutico.</p>
+        <p className="text-base font-semibold text-cruz">Demostración interactiva</p>
+        <h2 className="mt-3 text-4xl leading-tight font-semibold tracking-tight">
+          Explora las estanterías en 3D.
+        </h2>
         <p className="mt-3 text-lg text-tinta-suave">
-          Pronto podrás contarme qué te pasa y recorrer las estanterías en 3D.
+          Recorre el pasillo, gira las cajas y descubre la vitrina de medicamentos con receta.
         </p>
-        <div className="mt-8">
-          <EstadoServidor />
+        <div className="mt-8 flex flex-col gap-3">
+          <a
+            href="/escena?vitrina=1&vista=3d"
+            className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+          >
+            Explorar demostración 3D
+          </a>
+          <a
+            href="/escena?vitrina=1&vista=lista"
+            className="inline-flex min-h-12 items-center justify-center rounded-xl px-4 py-2 text-base font-semibold text-cruz ring-1 ring-cruz focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+          >
+            Explorar como lista
+          </a>
         </div>
+        <p className="mt-4 text-base text-tinta-suave">
+          Arrastra para recorrer el pasillo y toca una caja para verla de cerca.
+        </p>
+        <p
+          role="note"
+          className="mt-6 mb-8 rounded-xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-700"
+        >
+          Esta demostración utiliza productos ficticios y está pendiente de validación farmacéutica.
+        </p>
       </main>
 
       <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">
-        {AVISO_LEGAL}
+        <p>{AVISO_LEGAL}</p>
+        <div className="mt-3">
+          <EstadoServidor />
+        </div>
       </footer>
     </div>
   );

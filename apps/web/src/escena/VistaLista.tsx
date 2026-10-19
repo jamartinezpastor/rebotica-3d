@@ -52,7 +52,7 @@ function Etiqueta({ children }: { children: string }) {
  */
 export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
   return (
-    <main className="mx-auto max-w-2xl px-4 pt-20 pb-40" aria-labelledby="titulo-pasillo">
+    <main className="mx-auto max-w-2xl px-4 pt-64 pb-40" aria-labelledby="titulo-pasillo">
       <h1 id="titulo-pasillo" className="text-2xl font-semibold tracking-tight">
         {titulo}
       </h1>

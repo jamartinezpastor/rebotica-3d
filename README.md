@@ -21,6 +21,10 @@ pnpm dev
 - Web: http://localhost:5173
 - API: http://localhost:3000/api/health
 
+La portada ya permite entrar con «Explorar demostración 3D» o «Explorar como lista», sin
+necesitar catálogo sincronizado ni base de datos. Abre el pasillo ficticio con vitrina; «Inicio»
+permite volver a la portada. La entrada de síntomas y el triaje corresponden a F4-01–F4-03.
+
 ## Comprobaciones
 
 ```bash
@@ -149,7 +153,7 @@ cursores habituales.
 La ficha lleva tres pestañas (Uso, Precauciones, Dosis) con el texto oficial de la ficha técnica
 y enlaces al prospecto y a la ficha técnica en CIMA. La caja gira sola; se puede arrastrar para
 girarla y a los 3 s sin tocarla vuelve a girar. La pestaña Dosis muestra siempre la posología
-oficial en texto: la calculadora solo aparecerá con una regla validada y vigente.
+oficial en texto: la calculadora solo aparece con una regla validada y vigente.
 
 Selección: tocar una caja (o Enter sobre la que tiene delante la cámara) la hace salir de la balda
 y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la ficha gira despacio.
@@ -163,14 +167,54 @@ prescripción permiten las mismas acciones que el resto (selección, ficha con p
 3D), conservando el diseño actual de las cajas Canvas. Se agrupan en una estructura propia,
 oscura y con frisos ámbar, cristal translúcido y letreros «Requiere receta». La vista lista y la
 ficha incluyen el aviso de precaución y de no iniciar ni cambiar tratamientos sin indicación
-médica. El motor de dosis está implementado en F3-02; la interfaz sigue pendiente de F3-03 para ambos catálogos y solo se habilitará
-con reglas validadas y vigentes. La derivación por alarmas sigue teniendo prioridad.
+médica. El motor de dosis (F3-02) y su interfaz (F3-03) están implementados para ambos catálogos;
+solo se habilitan con reglas validadas y vigentes. La derivación por alarmas sigue teniendo prioridad.
 
 - Vista ficticia: `/escena?vitrina=1` (o `&vista=lista`), sin descargar datos clínicos.
 - `pnpm demo` incluye también productos reales con receta de CIMA en la vitrina.
 - Al actualizar una instalación existente, ejecutar una sincronización `--completo` para cargar
   las fichas y fotos con receta que antes no se almacenaban; la API aplica la nueva migración
   al arrancar. El job debe ejecutarse después de que esas migraciones estén aplicadas.
+
+## Agrupación del pasillo
+
+El selector «Agrupar por» reorganiza las mismas cajas en 3D y en lista: orden original,
+farmacéutica/laboratorio titular, tipo de fármaco (categoría terapéutica de CIMA), uso infantil,
+enfermedades y consultas comunes, principio activo, forma farmacéutica y genéricos (EFG).
+Conserva la elección al alternar entre vistas. Se puede abrir con `?agrupar=laboratorio`,
+`tipo`, `infantil`, `consultas`, `principio`, `forma` o `generico`.
+
+- Los productos con receta permanecen en una vitrina independiente en todos los modos.
+- Cada balda tiene como máximo seis cajas para evitar pérdidas al agrupar muchos productos.
+- No se añade ni se recomienda un producto por agruparlo; se reorganiza el pasillo ya servido.
+- Uso infantil: solo se indica una edad mínima si hay una regla validada y vigente con tramo
+  pediátrico. No equivale a indicación para cualquier niño; se mantienen las restricciones de
+  edad, peso y condiciones de la ficha. Sin esa regla aparece «Sin uso infantil verificado».
+- Consultas/enfermedades: asociaciones de los últimos protocolos firmados, por principio activo
+  y separando baldas y vitrina. No se deducen del nombre ni de palabras de la ficha técnica.
+  Sin protocolo firmado aparece «Sin protocolo clínico validado». Si hay varias consultas,
+  se muestran juntas para evitar duplicar una misma caja.
+- La demostración ficticia tiene varios laboratorios y tipos. No inventa clasificaciones
+  pediátricas o enfermedades: esas agrupaciones reflejarán los datos revisados cuando existan.
+
+## Calculadora en la ficha — F3-03
+
+La pestaña Dosis carga la calculadora en diferido cuando la API entrega una regla. Antes de
+mostrar controles se comprueba firma, estado, registro, hash de la sección 4.2 y cita literal.
+Si faltan, permanece la posología en texto. No hay reglas clínicas de producción incorporadas.
+
+Los sliders y campos numéricos permiten indicar edad (0–1200 meses, presentada en años a partir
+de dos años) y peso (3–150 kg). No se calcula con valores de paciente preseleccionados: hay que
+introducir ambos y elegir el motivo. Las condiciones y otros medicamentos aplican los bloqueos
+y avisos de la regla. El resultado muestra cantidad por toma, intervalo mínimo, máximos diarios,
+días antes de consultar, versión y fuente literal, más un esquema de jeringa o unidades reales.
+El esquema no reproduce la escala de un dispositivo dosificador concreto.
+
+Un bloqueo o una entrada fuera de tramo elimina la pauta. Un peso fuera de referencia requiere
+confirmación; esta se invalida al editar los datos. Al cambiar de producto se borra el formulario.
+Edad, peso y condiciones no se envían al servidor, no se guardan y no se añaden a la URL.
+Los tests de interfaz usan reglas ficticias; F3-04 y F6-01 siguen siendo los pasos de curación y
+validación de reglas reales, sin habilitar calculadoras con borradores.
 
 ## API de datos
 
@@ -190,6 +234,8 @@ pruebas de dosis usan solo reglas ficticias; no hay reglas clínicas de producci
 - Un medicamento no comercializado no tiene ficha: `404`. Los que requieren receta devuelven
   `receta: true`, también en los resúmenes del pasillo.
 - `reglaDosis` solo viaja si la regla está `validada` y su hash coincide con la 4.2 actual.
+- Los resúmenes incorporan `clasificacion` para las agrupaciones revisadas. Las secciones de la
+  ficha incluyen su `hash` actual para verificar la calculadora en el navegador.
 - Los contratos (`PasilloResponse`, `ProductoResponse`…) están en `@rebotica/shared`.
 
 ## Despliegue

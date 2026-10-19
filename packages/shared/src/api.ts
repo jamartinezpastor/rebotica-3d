@@ -23,6 +23,13 @@ export const AssetCajaPublico = z.strictObject({
 export type AssetCajaPublico = z.infer<typeof AssetCajaPublico>;
 
 export const ProductoResumen = z.strictObject({
+  /** Clasificación clínica revisada; nunca se deduce del nombre o de la forma del envase. */
+  clasificacion: z
+    .strictObject({
+      edadMinPediatricaMeses: z.number().int().min(0).max(215).nullable(),
+      consultas: z.array(z.strictObject({ id: z.string().min(1), titulo: z.string().min(1) })),
+    })
+    .optional(),
   receta: z.boolean(),
   nregistro: z.string().min(1),
   nombre: z.string().min(1),
@@ -106,6 +113,8 @@ export const PresentacionPublica = z.strictObject({
 });
 
 export const SeccionFichaPublica = z.strictObject({
+  /** Huella de la sección actual, necesaria para comprobar la vigencia de la calculadora. */
+  hash: z.string().min(1).optional(),
   seccion: z.string().regex(/^4\.[1-7]$/),
   titulo: z.string(),
   /** Texto plano de la ficha técnica, nunca HTML. */

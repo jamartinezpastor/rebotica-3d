@@ -4,6 +4,7 @@ import {
   grupoReceta,
   medicamento,
   presentacion,
+  protocolo as tablaProtocolo,
   reglaDosis,
   seccionFt,
   type Db,
@@ -18,6 +19,7 @@ import {
 import { and, asc, eq } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { claveActivo } from './activos';
+import { Protocolo } from '@rebotica/protocolos';
 
 /** Cualquier base PostgreSQL de Drizzle (node-postgres en producción, PGlite en los tests). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,10 +123,42 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       .orderBy(asc(medicamento.nombre), asc(medicamento.nregistro));
     const reglas = await reglasVigentes();
 
+    const filasProtocolos = await conexion
+      .select()
+      .from(tablaProtocolo)
+      .where(eq(tablaProtocolo.estado, 'validada'))
+      .orderBy(asc(tablaProtocolo.id), asc(tablaProtocolo.version));
+    const protocolos = new Map<string, Protocolo>();
+    for (const fila of filasProtocolos) {
+      const p = Protocolo.safeParse(fila.json);
+      if (
+        p.success &&
+        p.data.estado === 'validado' &&
+        fila.validadoPor &&
+        fila.validadoEn &&
+        p.data.id === fila.id &&
+        p.data.version === fila.version
+      ) {
+        protocolos.set(p.data.id, p.data);
+      }
+    }
+
     const porClave = new Map<string, ProductoResumen[]>();
     for (const f of filas) {
+      const regla = reglas.get(f.nregistro);
+      const edades = regla?.tramos.map((t) => t.edadMinMeses).filter((edad) => edad < 216) ?? [];
+      const clave = claveActivo(f.pactivos);
+      const consultas = [...protocolos.values()]
+        .filter((p) =>
+          (f.receta ? p.vitrina : p.baldas).some((b) => claveActivo(b.principioActivo) === clave),
+        )
+        .map((p) => ({ id: p.id, titulo: p.titulo }));
       const asset = aspectoDe(f.colorDominante, f.paleta, f.foto);
       const producto: ProductoResumen = {
+        clasificacion: {
+          edadMinPediatricaMeses: edades.length ? Math.min(...edades) : null,
+          consultas,
+        },
         receta: f.receta,
         nregistro: f.nregistro,
         nombre: f.nombre,
@@ -139,7 +173,6 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         asset,
         calculadora: reglas.has(f.nregistro),
       };
-      const clave = claveActivo(f.pactivos);
       const lista = porClave.get(clave) ?? [];
       lista.push(producto);
       porClave.set(clave, lista);
@@ -243,6 +276,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
           problemaSuministro: p.psum,
         })),
         secciones: secciones.map((s) => ({
+          hash: s.hash,
           seccion: s.seccion,
           titulo: s.titulo,
           texto: s.texto,

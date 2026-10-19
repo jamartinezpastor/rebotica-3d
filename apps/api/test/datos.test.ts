@@ -332,6 +332,23 @@ describe('GET /api/pasillos/:id', () => {
     expect(adulto.baldas).toHaveLength(2);
   });
 
+  it('clasifica uso infantil y consultas solo con reglas vigentes y protocolos firmados', async () => {
+    const pasillo = PasilloResponse.parse((await get('/api/pasillos/dolor-ficticio')).json());
+    const productos = pasillo.baldas.flatMap((b) => b.productos);
+    expect(productos.find((p) => p.nregistro === '1001')?.clasificacion).toEqual({
+      edadMinPediatricaMeses: 12,
+      consultas: [{ id: 'dolor-ficticio', titulo: 'Dolor ficticio v1' }],
+    });
+    expect(
+      productos.find((p) => p.nregistro === '1002')?.clasificacion?.edadMinPediatricaMeses,
+    ).toBeNull();
+    expect(pasillo.vitrina[0]?.productos[0]?.clasificacion?.consultas).toEqual([
+      { id: 'dolor-ficticio', titulo: 'Dolor ficticio v1' },
+    ]);
+    const ficha = ProductoResponse.parse((await get('/api/productos/1001')).json());
+    expect(ficha.secciones.find((s) => s.seccion === '4.2')?.hash).toBe(HASH_VIGENTE);
+  });
+
   it('la vitrina incluye productos con receta y mantiene las baldas sin receta separadas', async () => {
     const pasillo = PasilloResponse.parse((await get('/api/pasillos/dolor-ficticio')).json());
     expect(pasillo.vitrina).toEqual([
