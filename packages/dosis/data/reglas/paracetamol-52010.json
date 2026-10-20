@@ -1,0 +1,33 @@
+{
+  "id": "paracetamol-52010",
+  "version": 1,
+  "estado": "borrador",
+  "fuente": {
+    "nregistro": "52010",
+    "seccion": "4.2",
+    "hashSeccion": "3cfd4ddcd1dfa586f14248afebaba1cf729a219172afb9647ceb54f35a8015f2",
+    "validadoPor": null,
+    "fecha": null,
+    "cita": "Administrar 1 comprimido cada 4-6 horas, según necesidad. No se excederá de 3 g/24 horas."
+  },
+  "presentacion": {
+    "concentracion": 650,
+    "unidad": "mg/unidad",
+    "unidadToma": "comprimido",
+    "pasoDosificable": 1,
+    "fraccionable": false
+  },
+  "tramos": [
+    {
+      "modo": "fija",
+      "edadMinMeses": 216,
+      "pesoMinKg": 65,
+      "mgToma": 650,
+      "intervaloHoras": 4,
+      "maxMgDia": 3000
+    }
+  ],
+  "diasMaxSinConsultar": { "dolor": 5, "fiebre": 3, "dolor de garganta": 2 },
+  "bloqueos": ["hepatopatiaGrave", "insuficienciaRenal"],
+  "avisos": ["embarazo", "lactancia", "anticoagulantes"]
+}

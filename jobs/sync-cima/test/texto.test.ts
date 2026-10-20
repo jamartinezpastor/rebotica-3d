@@ -1,5 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { hashTexto, htmlATexto } from '../src/texto';
+import { hashTexto, htmlATexto, reunirSecciones } from '../src/texto';
+
+describe('reunirSecciones', () => {
+  it('incluye todos los subapartados en orden, incluso con padre vacío, y detecta sus cambios', () => {
+    const partes = [
+      { seccion: '4.2.2', titulo: 'Administración ficticia', contenido: '<p>Final ficticio.</p>' },
+      { seccion: '4.2', titulo: 'Posología ficticia' },
+      { seccion: '4.2.1', titulo: 'Dosis ficticia', contenido: '<p>Inicio ficticio.</p>' },
+      { seccion: '5.1', titulo: 'Fuera de alcance', contenido: '<p>Otro.</p>' },
+    ];
+    const [seccion] = reunirSecciones(partes);
+    expect(seccion?.seccion).toBe('4.2');
+    expect(seccion?.titulo).toBe('Posología ficticia');
+    const texto = htmlATexto(seccion?.contenido ?? '');
+    expect(texto).toBe('Inicio ficticio.\n\nFinal ficticio.');
+    partes[0]!.contenido += '<p>Cambio ficticio.</p>';
+    expect(hashTexto(htmlATexto(reunirSecciones(partes)[0]?.contenido ?? ''))).not.toBe(
+      hashTexto(texto),
+    );
+  });
+
+  it('conserva el contenido padre y no toma 4.20 como parte de 4.2', () => {
+    expect(
+      reunirSecciones([
+        { seccion: '4.2', titulo: 'Posología', contenido: '<p>Padre.</p>' },
+        { seccion: '4.2.1', titulo: 'Posología', contenido: '<p>Hijo.</p>' },
+        { seccion: '4.20', titulo: 'Otro', contenido: '<p>Ajeno.</p>' },
+      ])[0]?.contenido,
+    ).toBe('<p>Padre.</p>\n<p>Hijo.</p>');
+  });
+});
 
 describe('htmlATexto', () => {
   it('quita etiquetas, decodifica entidades numéricas y conserva los párrafos', () => {

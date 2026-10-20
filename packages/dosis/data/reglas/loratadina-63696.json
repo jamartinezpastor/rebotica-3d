@@ -1,0 +1,32 @@
+{
+  "id": "loratadina-63696",
+  "version": 1,
+  "estado": "borrador",
+  "fuente": {
+    "nregistro": "63696",
+    "seccion": "4.2",
+    "hashSeccion": "84eb30299b93d105962b031d874cca2b66913ea697ec014cbc6e33030f726384",
+    "validadoPor": null,
+    "fecha": null,
+    "cita": "10 mg una vez al día (un comprimido)."
+  },
+  "presentacion": {
+    "concentracion": 10,
+    "unidad": "mg/unidad",
+    "unidadToma": "comprimido",
+    "pasoDosificable": 1,
+    "fraccionable": false
+  },
+  "tramos": [
+    {
+      "modo": "fija",
+      "edadMinMeses": 216,
+      "mgToma": 10,
+      "intervaloHoras": 24,
+      "maxMgDia": 10
+    }
+  ],
+  "diasMaxSinConsultar": {},
+  "bloqueos": ["hepatopatiaGrave"],
+  "avisos": ["embarazo", "lactancia"]
+}

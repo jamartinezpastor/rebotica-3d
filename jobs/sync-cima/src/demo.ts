@@ -19,9 +19,12 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { buildApp } from '../../../apps/api/src/app';
+import { cargarReglasBorrador, leerReglasBorrador } from '../../../apps/api/src/reglas';
 import { construirAssets } from './assets/construir';
 import { crearClienteCima } from './cliente';
-import { sincronizar } from './sync';
+import { guardarMedicamento, sincronizar } from './sync';
+import { urlFichaTecnica, urlMedicamento } from './cima';
+import { Detalle, SeccionesFT } from './esquemas';
 
 const total = Math.min(Math.max(Number(process.env.DEMO_MEDICAMENTOS) || 18, 4), 120);
 const directorio = process.env.DEMO_DIR ?? join(tmpdir(), 'rebotica-demo');
@@ -48,27 +51,56 @@ log(
     (informe.errores.length > 0 ? `, ${informe.errores.length} errores` : ''),
 );
 
+// Añade los cinco productos semilla aunque no estén en la primera página del catálogo.
+const reglasDir = fileURLToPath(new URL('../../../packages/dosis/data/reglas/', import.meta.url));
+const semillas = await leerReglasBorrador(reglasDir, log);
+const registrosSemilla = new Set(semillas.map((r) => r.fuente.nregistro));
+for (const nregistro of registrosSemilla) {
+  const detalle = await cliente.obtener(urlMedicamento(nregistro), Detalle);
+  if (!detalle) continue;
+  const secciones = (await cliente.obtener(urlFichaTecnica(nregistro), SeccionesFT)) ?? [];
+  await guardarMedicamento(db, detalle, secciones);
+}
+log(`reglas borrador cargadas: ${await cargarReglasBorrador(db, reglasDir, log)}`);
+
 log('extrayendo la paleta de color y las miniaturas de los envases…');
 const assets = await construirAssets(db, { directorio, cliente, log });
 log(`miniaturas: ${assets.conFoto} con foto de CIMA, ${assets.sinFoto} sin foto`);
 
 // Baldas de ejemplo: los principios activos con más productos, hasta dos estanterías.
 const filas = await db
-  .select({ pactivos: medicamento.pactivos })
+  .select({ pactivos: medicamento.pactivos, nregistro: medicamento.nregistro })
   .from(medicamento)
   .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, false)));
 const cuenta = new Map<string, number>();
 for (const f of filas) cuenta.set(f.pactivos, (cuenta.get(f.pactivos) ?? 0) + 1);
+const activosSemilla = new Set(
+  filas.filter((f) => registrosSemilla.has(f.nregistro)).map((f) => f.pactivos),
+);
 const principios = [...cuenta.entries()]
-  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  .sort(
+    (a, b) =>
+      Number(activosSemilla.has(b[0])) - Number(activosSemilla.has(a[0])) ||
+      b[1] - a[1] ||
+      a[0].localeCompare(b[0]),
+  )
   .slice(0, 6)
   .map(([nombre]) => nombre);
 
 const conReceta = await db
-  .select({ pactivos: medicamento.pactivos })
+  .select({ pactivos: medicamento.pactivos, nregistro: medicamento.nregistro })
   .from(medicamento)
   .where(and(eq(medicamento.comerc, true), eq(medicamento.receta, true)));
-const principiosReceta = [...new Set(conReceta.map((p) => p.pactivos))].slice(0, 3);
+const activosSemillaReceta = new Set(
+  conReceta.filter((f) => registrosSemilla.has(f.nregistro)).map((f) => f.pactivos),
+);
+const principiosReceta = [...new Set(conReceta.map((p) => p.pactivos))]
+  .sort(
+    (a, b) =>
+      Number(activosSemillaReceta.has(b)) - Number(activosSemillaReceta.has(a)) ||
+      a.localeCompare(b),
+  )
+  .slice(0, 3);
 
 await db.insert(protocolo).values({
   id: 'demo',

@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useId, useRef, useState, type KeyboardEvent 
 import { esEnlaceCima, pestanasDe, type IdPestana, type SeccionMostrada } from './fichaSecciones';
 import { useFicha } from './useFicha';
 import { AvisoReceta } from './AvisoReceta';
+import { instalarCierreExterior } from './cierreExterior';
 const CalculadoraDosis = lazy(() => import('./CalculadoraDosis'));
 
 export interface PanelFichaProps {
@@ -62,6 +63,7 @@ function Seccion({ seccion, abierta }: { seccion: SeccionMostrada; abierta: bool
  */
 export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps) {
   const raiz = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const id = useId();
   const estado = useFicha(producto.nregistro);
   const [activa, setActiva] = useState<IdPestana>('uso');
@@ -70,6 +72,10 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
   useEffect(() => {
     raiz.current?.focus();
   }, [producto.nregistro]);
+
+  useEffect(() => {
+    if (panel.current) return instalarCierreExterior(panel.current, onVolver);
+  }, [onVolver]);
 
   const pestanas = estado.tipo === 'listo' ? pestanasDe(estado.ficha) : [];
   const orden: IdPestana[] = ['uso', 'precauciones', 'dosis'];
@@ -104,11 +110,20 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
       className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center outline-none"
     >
       <div
+        ref={panel}
         className={`pointer-events-auto flex w-full max-w-md flex-col rounded-t-2xl bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-black/10 ${
           modo === '3d' ? 'max-h-[52dvh]' : 'max-h-[88dvh]'
         }`}
       >
         <header className="px-4 pt-3">
+          {ficha?.borradorDosis && !ficha.reglaDosis && (
+            <p
+              role="status"
+              className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-base text-aviso ring-1 ring-amber-200"
+            >
+              Demostración: pendiente de validación farmacéutica
+            </p>
+          )}
           {(producto.receta || ficha?.receta) && <AvisoReceta />}
           <div className="flex items-start gap-3">
             {ficha?.asset?.foto && (

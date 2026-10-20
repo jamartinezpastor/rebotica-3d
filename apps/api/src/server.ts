@@ -1,6 +1,7 @@
 import { aplicarMigraciones, conectar } from '@rebotica/db';
 import { buildApp } from './app';
 import { cargarProtocolos } from './protocolos';
+import { cargarReglasBorrador } from './reglas';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -31,6 +32,12 @@ try {
       process.env.MIGRATIONS_DIR ?? '../../packages/db/migrations',
     );
     app.log.info('migraciones aplicadas');
+    if (process.env.REGLAS_DOSIS_DIR) {
+      const n = await cargarReglasBorrador(conexion.db, process.env.REGLAS_DOSIS_DIR, (m) =>
+        app.log.warn(m),
+      );
+      app.log.info(`reglas borrador cargadas: ${n}`);
+    }
     if (process.env.PROTOCOLOS_DIR) {
       const n = await cargarProtocolos(conexion.db, process.env.PROTOCOLOS_DIR, (m) =>
         app.log.warn(m),

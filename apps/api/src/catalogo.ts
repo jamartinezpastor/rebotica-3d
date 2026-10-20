@@ -16,7 +16,7 @@ import {
   type ProductoResponse,
   type ProductoResumen,
 } from '@rebotica/shared';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { claveActivo } from './activos';
 import { Protocolo } from '@rebotica/protocolos';
@@ -253,6 +253,27 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         .where(eq(seccionFt.nregistro, nregistro))
         .orderBy(asc(seccionFt.seccion));
       const regla = (await reglasVigentes(nregistro)).get(nregistro) ?? null;
+      let borradorDosis: ProductoResponse['borradorDosis'] = null;
+      if (!regla) {
+        const borradores = await conexion
+          .select()
+          .from(reglaDosis)
+          .where(and(eq(reglaDosis.nregistro, nregistro), eq(reglaDosis.estado, 'borrador')))
+          .orderBy(desc(reglaDosis.version));
+        for (const fila of borradores) {
+          const r = ReglaDosis.safeParse(fila.json);
+          if (
+            r.success &&
+            r.data.estado === 'borrador' &&
+            r.data.version === fila.version &&
+            r.data.fuente.nregistro === nregistro &&
+            r.data.fuente.hashSeccion === fila.hashSeccion
+          ) {
+            borradorDosis = { id: r.data.id, version: r.data.version };
+            break;
+          }
+        }
+      }
 
       const id = encodeURIComponent(nregistro);
       return {
@@ -287,6 +308,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
           fichaTecnica: `https://cima.aemps.es/cima/dochtml/ft/${id}/FT_${id}.html`,
         },
         reglaDosis: regla,
+        borradorDosis,
       };
     },
   };

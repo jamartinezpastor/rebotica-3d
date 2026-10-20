@@ -17,7 +17,7 @@ import {
   urlSeccionFichaTecnica,
 } from './cima';
 import { Detalle, Listado, SeccionesFT, type ItemListado } from './esquemas';
-import { categoriaLegible, hashTexto, htmlATexto } from './texto';
+import { categoriaLegible, hashTexto, htmlATexto, reunirSecciones } from './texto';
 
 /** Cualquier base PostgreSQL de Drizzle (node-postgres en producción, PGlite en los tests). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -317,10 +317,11 @@ export interface ResultadoGuardado {
 }
 
 export async function guardarMedicamento(
-  db: Db,
+  base: BaseDatos,
   detalle: Detalle,
   secciones: SeccionesFT,
 ): Promise<ResultadoGuardado> {
+  const db = base as unknown as Db;
   const pactivos =
     detalle.pactivos?.trim() || detalle.principiosActivos.map((p) => p.nombre).join(', ');
   const foto = detalle.fotos.find((f) => f.tipo === 'materialas')?.url ?? null;
@@ -343,7 +344,7 @@ export async function guardarMedicamento(
     actualizadoEn: ahora,
   };
 
-  const filasSeccion = secciones
+  const filasSeccion = reunirSecciones(secciones)
     .filter((s) => (SECCIONES_FT as readonly string[]).includes(s.seccion) && s.contenido)
     .map((s) => {
       const html = s.contenido ?? '';

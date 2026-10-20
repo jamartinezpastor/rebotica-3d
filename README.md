@@ -157,7 +157,8 @@ oficial en texto: la calculadora solo aparece con una regla validada y vigente.
 
 Selección: tocar una caja (o Enter sobre la que tiene delante la cámara) la hace salir de la balda
 y volar hasta la cámara, mientras el resto se apaga tras un velo blanco; en la ficha gira despacio.
-«Volver al pasillo», Escape y el botón atrás del navegador reproducen el vuelo al revés. Un
+«Volver al pasillo», pulsar fuera de la ficha, Escape y el botón atrás del navegador reproducen
+el vuelo al revés. Arrastrar para girar la caja no cierra la ficha. Un
 arrastre nunca selecciona: solo cuenta un toque que se mueve menos de 8 px.
 
 ## Vitrina con receta
@@ -213,15 +214,20 @@ El esquema no reproduce la escala de un dispositivo dosificador concreto.
 Un bloqueo o una entrada fuera de tramo elimina la pauta. Un peso fuera de referencia requiere
 confirmación; esta se invalida al editar los datos. Al cambiar de producto se borra el formulario.
 Edad, peso y condiciones no se envían al servidor, no se guardan y no se añaden a la URL.
-Los tests de interfaz usan reglas ficticias; F3-04 y F6-01 siguen siendo los pasos de curación y
-validación de reglas reales, sin habilitar calculadoras con borradores.
+Los tests de interfaz usan reglas ficticias. F3-04 incorpora
+[cinco semillas de curación](packages/dosis/data/reglas/README.md) en `borrador`, verificadas
+contra CIMA y sin firma. `pnpm demo` incluye sus productos y muestra la banda «Demostración:
+pendiente de validación farmacéutica» en sus fichas, sin calculadora. Con PostgreSQL se cargan
+opcionalmente al arrancar mediante `REGLAS_DOSIS_DIR` (en Docker, `/app/reglas-dosis`), después
+de sincronizar el catálogo. Nunca sobrescriben versiones existentes. F6-01 sigue pendiente.
 
 ## API de datos
 
 El paquete [`@rebotica/dosis`](packages/dosis/README.md) implementa el cálculo puro con reglas
 validadas, cita literal y hash vigente de la sección 4.2. Incluye redondeo decimal hacia abajo,
 límites por toma y por día, bloqueos y confirmación de peso con referencias OMS locales. Las
-pruebas de dosis usan solo reglas ficticias; no hay reglas clínicas de producción incorporadas.
+pruebas aritméticas de dosis usan solo reglas ficticias; las cinco semillas en borrador no son
+reglas clínicas de producción.
 
 | Ruta                             | Qué devuelve                                                                            |
 | -------------------------------- | --------------------------------------------------------------------------------------- |

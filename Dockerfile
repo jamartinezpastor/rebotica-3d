@@ -40,6 +40,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /out/api ./api
 COPY --from=build --chown=node:node /repo/apps/web/dist ./public
 COPY --from=build --chown=node:node /repo/packages/db/migrations ./migrations
+COPY --from=build --chown=node:node /repo/packages/dosis/data/reglas ./reglas-dosis
 COPY --from=build --chown=node:node /out/sync-cima ./jobs/sync-cima
 
 # Carpeta persistente (volumen) de la caché de fotos y las miniaturas de los envases.

@@ -1,0 +1,40 @@
+{
+  "id": "ibuprofeno-67968",
+  "version": 1,
+  "estado": "borrador",
+  "fuente": {
+    "nregistro": "67968",
+    "seccion": "4.2",
+    "hashSeccion": "90190ec84488f35ec5c97d32b209f3680adc9b80ac44547ee4942e8267495868",
+    "validadoPor": null,
+    "fecha": null,
+    "cita": "No se tomarán más de 1.200 mg al cabo de 24 horas."
+  },
+  "presentacion": {
+    "concentracion": 400,
+    "unidad": "mg/unidad",
+    "unidadToma": "comprimido",
+    "pasoDosificable": 1,
+    "fraccionable": false
+  },
+  "tramos": [
+    {
+      "modo": "fija",
+      "edadMinMeses": 216,
+      "edadMaxMeses": 780,
+      "mgToma": 400,
+      "intervaloHoras": 6,
+      "maxMgDia": 1200
+    }
+  ],
+  "diasMaxSinConsultar": { "dolor": 5, "fiebre": 3 },
+  "bloqueos": [
+    "embarazo",
+    "hepatopatiaGrave",
+    "insuficienciaRenal",
+    "anticoagulantes",
+    "alergiaAINE",
+    "ulceraPeptica"
+  ],
+  "avisos": ["lactancia"]
+}

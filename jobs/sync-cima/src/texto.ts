@@ -1,4 +1,25 @@
 import { createHash } from 'node:crypto';
+import { SECCIONES_FT } from './cima';
+import type { SeccionesFT } from './esquemas';
+
+/** CIMA puede repartir una sección entre el padre y sus apartados (4.2.1, 4.2.2…). */
+export function reunirSecciones(secciones: SeccionesFT): SeccionesFT {
+  return SECCIONES_FT.flatMap((raiz) => {
+    const partes = secciones
+      .filter(
+        (s) => (s.seccion === raiz || s.seccion.startsWith(`${raiz}.`)) && s.contenido?.trim(),
+      )
+      .sort((a, b) => a.seccion.localeCompare(b.seccion, 'en', { numeric: true }));
+    if (partes.length === 0) return [];
+    return [
+      {
+        seccion: raiz,
+        titulo: secciones.find((s) => s.seccion === raiz)?.titulo ?? partes[0]!.titulo,
+        contenido: partes.map((s) => s.contenido).join('\n'),
+      },
+    ];
+  });
+}
 
 const ENTIDADES: Record<string, string> = {
   amp: '&',

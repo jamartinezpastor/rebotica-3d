@@ -1,0 +1,32 @@
+{
+  "id": "acetilcisteina-67763",
+  "version": 1,
+  "estado": "borrador",
+  "fuente": {
+    "nregistro": "67763",
+    "seccion": "4.2",
+    "hashSeccion": "264fc57b23a36dcc7c9b52888dd08c39850c2e9142e742e619886e6366da8224",
+    "validadoPor": null,
+    "fecha": null,
+    "cita": "600 mg de acetilcisteína (1 comprimido efervescente) en una sola toma."
+  },
+  "presentacion": {
+    "concentracion": 600,
+    "unidad": "mg/unidad",
+    "unidadToma": "comprimido",
+    "pasoDosificable": 1,
+    "fraccionable": false
+  },
+  "tramos": [
+    {
+      "modo": "fija",
+      "edadMinMeses": 216,
+      "mgToma": 600,
+      "intervaloHoras": 24,
+      "maxMgDia": 600
+    }
+  ],
+  "diasMaxSinConsultar": { "mucosidad": 5 },
+  "bloqueos": [],
+  "avisos": ["embarazo", "lactancia", "ulceraPeptica"]
+}

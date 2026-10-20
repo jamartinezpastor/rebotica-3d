@@ -1,0 +1,32 @@
+{
+  "id": "cetirizina-66605",
+  "version": 1,
+  "estado": "borrador",
+  "fuente": {
+    "nregistro": "66605",
+    "seccion": "4.2",
+    "hashSeccion": "fa6fe03bbb5d8a434f9c02d552048fd3b34ab77de597913251b149f1ec2d8a88",
+    "validadoPor": null,
+    "fecha": null,
+    "cita": "10 mg una vez al día (1 comprimido)."
+  },
+  "presentacion": {
+    "concentracion": 10,
+    "unidad": "mg/unidad",
+    "unidadToma": "comprimido",
+    "pasoDosificable": 1,
+    "fraccionable": false
+  },
+  "tramos": [
+    {
+      "modo": "fija",
+      "edadMinMeses": 216,
+      "mgToma": 10,
+      "intervaloHoras": 24,
+      "maxMgDia": 10
+    }
+  ],
+  "diasMaxSinConsultar": {},
+  "bloqueos": ["insuficienciaRenal"],
+  "avisos": ["embarazo", "lactancia"]
+}

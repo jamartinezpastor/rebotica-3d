@@ -65,6 +65,25 @@ function responder(cuerpo: unknown, estado = 200) {
   );
 }
 
+function puntero(destino: HTMLElement, tipo: string, extra: Record<string, unknown> = {}) {
+  const evento = new Event(tipo, { bubbles: true });
+  Object.assign(evento, {
+    pointerId: 1,
+    isPrimary: true,
+    button: 0,
+    clientX: 100,
+    clientY: 100,
+    ...extra,
+  });
+  fireEvent(destino, evento);
+}
+
+function pulsar(destino: HTMLElement) {
+  puntero(destino, 'pointerdown');
+  puntero(destino, 'pointerup');
+  fireEvent.click(destino);
+}
+
 beforeEach(() => {
   vi.unstubAllGlobals();
 });
@@ -74,6 +93,93 @@ afterEach(() => {
 });
 
 describe('PanelFicha', () => {
+  it.each(['3d', 'lista'] as const)(
+    'un toque exterior vuelve al pasillo sin activar el fondo (%s)',
+    async (modo) => {
+      responder(ficha());
+      const onVolver = vi.fn();
+      const onFondo = vi.fn();
+      render(
+        <>
+          <button onClick={onFondo}>Producto del fondo</button>
+          <PanelFicha producto={resumen} onVolver={onVolver} modo={modo} />
+        </>,
+      );
+      await screen.findByText('Texto de uso ficticio.');
+      pulsar(screen.getByRole('button', { name: 'Producto del fondo' }));
+      expect(onVolver).toHaveBeenCalledTimes(1);
+      expect(onFondo).not.toHaveBeenCalled();
+    },
+  );
+
+  it('el clic de apertura y los controles interiores no cierran la ficha', async () => {
+    responder(ficha());
+    const onVolver = vi.fn();
+    render(<PanelFicha producto={resumen} onVolver={onVolver} />);
+    fireEvent.click(document.body);
+    await screen.findByText('Texto de uso ficticio.');
+    pulsar(screen.getByRole('tab', { name: 'Dosis' }));
+    expect(screen.getByText('Texto de posología ficticio.')).toBeTruthy();
+    expect(onVolver).not.toHaveBeenCalled();
+    pulsar(screen.getByRole('button', { name: 'Volver al pasillo' }));
+    expect(onVolver).toHaveBeenCalledTimes(1);
+  });
+
+  it('girar la caja o cancelar un gesto no cierra la ficha, aunque el puntero vuelva al inicio', () => {
+    responder(ficha());
+    const onVolver = vi.fn();
+    render(<PanelFicha producto={resumen} onVolver={onVolver} />);
+    puntero(document.body, 'pointerdown');
+    puntero(document.body, 'pointermove', { clientX: 130 });
+    puntero(document.body, 'pointermove');
+    puntero(document.body, 'pointerup');
+    fireEvent.click(document.body);
+    expect(onVolver).not.toHaveBeenCalled();
+    puntero(document.body, 'pointerdown');
+    puntero(document.body, 'pointercancel');
+    fireEvent.click(document.body);
+    expect(onVolver).not.toHaveBeenCalled();
+    pulsar(document.body);
+    expect(onVolver).toHaveBeenCalledTimes(1);
+  });
+
+  it('un gesto que empieza dentro y acaba fuera no cierra, ni lo hace el botón secundario', async () => {
+    responder(ficha());
+    const onVolver = vi.fn();
+    render(<PanelFicha producto={resumen} onVolver={onVolver} />);
+    const texto = await screen.findByText('Texto de uso ficticio.');
+    puntero(texto, 'pointerdown');
+    puntero(document.body, 'pointerup');
+    fireEvent.click(document.body);
+    puntero(document.body, 'pointerdown', { button: 2 });
+    puntero(document.body, 'pointerup', { button: 2 });
+    fireEvent.click(document.body, { button: 2 });
+    expect(onVolver).not.toHaveBeenCalled();
+  });
+
+  it('retira los listeners al desmontar la ficha', () => {
+    responder(ficha());
+    const onVolver = vi.fn();
+    const { unmount } = render(<PanelFicha producto={resumen} onVolver={onVolver} />);
+    unmount();
+    pulsar(document.body);
+    expect(onVolver).not.toHaveBeenCalled();
+  });
+  it.each([false, true])(
+    'mantiene la banda del borrador en todas las pestañas sin calculadora (receta=%s)',
+    async (receta) => {
+      responder(ficha({ receta, borradorDosis: { id: 'regla-ficticia', version: 1 } }));
+      render(<PanelFicha producto={{ ...resumen, receta }} onVolver={() => {}} modo="lista" />);
+      await screen.findByText('Demostración: pendiente de validación farmacéutica');
+      for (const nombre of ['Uso', 'Precauciones', 'Dosis']) {
+        fireEvent.click(screen.getByRole('tab', { name: nombre }));
+        expect(screen.getByText('Demostración: pendiente de validación farmacéutica')).toBeTruthy();
+        expect(screen.queryByRole('slider')).toBeNull();
+      }
+      expect(screen.getByText('Texto de posología ficticio.')).toBeTruthy();
+      if (receta) expect(screen.getByText(/no inicies ni cambies/)).toBeTruthy();
+    },
+  );
   it('la ficha con receta conserva las pestañas, la foto y el aviso durante toda la consulta', async () => {
     responder(
       ficha({

@@ -124,6 +124,11 @@ export const SeccionFichaPublica = z.strictObject({
 });
 
 export const ProductoResponse = z.strictObject({
+  /** Solo metadatos: un borrador nunca se envía como regla ejecutable. */
+  borradorDosis: z
+    .strictObject({ id: z.string().min(1), version: z.number().int().positive() })
+    .nullable()
+    .optional(),
   receta: z.boolean(),
   nregistro: z.string().min(1),
   nombre: z.string().min(1),

@@ -6,7 +6,8 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { crearClienteCima } from '../src/cliente';
-import { quitarMarcas, sincronizar } from '../src/sync';
+import { guardarMedicamento, quitarMarcas, sincronizar } from '../src/sync';
+import { Detalle } from '../src/esquemas';
 
 // Datos ficticios con la forma de las respuestas de CIMA.
 const SIN_RECETA = [
@@ -237,6 +238,29 @@ describe('sincronizar', () => {
     expect(informe.sinReceta.retirados).toBe(1);
     const [retirado] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '9999'));
     expect(retirado?.comerc).toBe(false);
+  });
+
+  it('guarda la 4.2 completa y exige revisar la regla si cambia un subapartado', async () => {
+    const d = Detalle.parse(detalle('FICTICIO-SUBAPARTADOS'));
+    const partes = [
+      { seccion: '4.2', titulo: 'Posología ficticia' },
+      { seccion: '4.2.1', titulo: 'Dosis ficticia', contenido: '<p>Posología ficticia.</p>' },
+      { seccion: '4.2.2', titulo: 'Administración ficticia', contenido: '<p>Forma ficticia.</p>' },
+    ];
+    await guardarMedicamento(db, d, partes);
+    const [actual] = await db.select().from(seccionFt).where(eq(seccionFt.nregistro, d.nregistro));
+    expect(actual?.texto).toBe('Posología ficticia.\n\nForma ficticia.');
+    await db.insert(reglaDosis).values({
+      nregistro: d.nregistro,
+      version: 1,
+      json: {},
+      hashSeccion: actual!.hash,
+      estado: 'validada',
+    });
+    partes[2]!.contenido = '<p>Administración modificada ficticia.</p>';
+    expect((await guardarMedicamento(db, d, partes)).reglasARevisar).toBe(1);
+    const [regla] = await db.select().from(reglaDosis).where(eq(reglaDosis.nregistro, d.nregistro));
+    expect(regla?.estado).toBe('revisar');
   });
 
   it('con límite solo procesa esa cantidad y no retira nada', async () => {
