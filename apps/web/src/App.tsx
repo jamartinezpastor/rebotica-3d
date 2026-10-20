@@ -110,7 +110,6 @@ function VistaEscena() {
   const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const puede3d = capacidad.nivel !== 'sin3d';
   const borrador = !pasillo || (remoto.tipo === 'listo' && remoto.estado === 'borrador');
-  const tieneVitrina = baldas.some((b) => b.receta);
 
   return (
     <div
@@ -153,15 +152,6 @@ function VistaEscena() {
               className="rounded-xl bg-amber-50 p-3 text-base text-amber-950 ring-1 ring-amber-700"
             >
               Demostración: pendiente de validación farmacéutica
-            </p>
-          )}
-          {tieneVitrina && vista === '3d' && (
-            <p
-              role="note"
-              className="rounded-xl border-2 border-amber-500 bg-slate-900 p-3 text-base text-white"
-            >
-              ⚠ Al final del pasillo: vitrina con receta. Estos medicamentos requieren indicación
-              médica.
             </p>
           )}
         </div>

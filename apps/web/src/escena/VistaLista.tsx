@@ -91,6 +91,7 @@ export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
                   <li key={p.nregistro}>
                     <button
                       type="button"
+                      data-cursor="medicamento"
                       onClick={() => onSeleccionar(p)}
                       className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left text-tinta ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
                     >

@@ -47,6 +47,11 @@ export function instalarCursor3D(
     puntero = null;
     anterior = null;
     lienzo.classList.remove('cursor-mano-3d-activo');
+    lienzo.classList.remove('cursor-mano-3d-arrastrando');
+    if (lienzo.dataset.cursor === 'medicamento') {
+      delete lienzo.dataset.cursor;
+      delete lienzo.dataset.cursorMedicamento;
+    }
     cancelar();
   };
   const permitido = () => precision.matches && !contraste.matches;
@@ -113,6 +118,7 @@ export function instalarCursor3D(
     if (e.pointerType !== 'mouse' || e.button !== 0 || !e.isPrimary || !permitido()) return;
     situar(e);
     pulsado = true;
+    lienzo.classList.add('cursor-mano-3d-arrastrando');
     puntero = e.pointerId;
     dibujar();
     solicitar();
@@ -120,6 +126,7 @@ export function instalarCursor3D(
   const soltar = (e: PointerEvent) => {
     if (e.pointerId !== puntero) return;
     pulsado = false;
+    lienzo.classList.remove('cursor-mano-3d-arrastrando');
     puntero = null;
     dibujar();
     if (document.elementFromPoint(x, y) !== lienzo) ocultar();

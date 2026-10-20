@@ -77,6 +77,8 @@ export function Cursor3D() {
     gl.render(scene, camera);
     const cursor = estado.current;
     if (!cursor?.visible) return;
+    // Sobre una caja seleccionable se muestra el ojo; al arrastrar manda la mano cerrada.
+    if (lienzo.dataset.cursor === 'medicamento' && !cursor.cerrada) return;
     const rect = lienzo.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const x = ((cursor.x - rect.left) * size.width) / rect.width;

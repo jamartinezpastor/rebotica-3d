@@ -23,12 +23,147 @@ body {
   font-size: 16px;
 }
 
-/* El cursor solo sustituye al nativo cuando hay un ratón sobre el lienzo 3D. */
+/* El punto acompaña al ratón fuera de la mano 3D y no intercepta clics ni gestos. */
+html.cursor-punto-activo,
+html.cursor-punto-activo * {
+  cursor: none !important;
+}
+
+.cursor-punto {
+  pointer-events: none;
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #0f8a4b;
+  box-shadow: 0 0 4px #0f8a4b66;
+  will-change: transform;
+}
+
+/* La mano conserva la prioridad, también al arrastrar con captura del puntero. */
+html:has(canvas.cursor-mano-3d-activo:not([data-cursor='medicamento'])) .cursor-punto,
+html:has(canvas.cursor-mano-3d-arrastrando) .cursor-punto {
+  visibility: hidden;
+}
+
+.cursor-punto-pulsable {
+  background: #22e58b;
+  box-shadow:
+    0 0 0 3px #0f8a4b26,
+    0 0 14px #13c975b3;
+}
+
+.cursor-punto-ojo-icono {
+  display: none;
+  pointer-events: none;
+}
+
+.cursor-punto-ojo {
+  background: transparent;
+  box-shadow: none;
+}
+
+.cursor-punto-ojo .cursor-punto-ojo-icono {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  stroke: #0f8a4b;
+  stroke-width: 1.8px;
+  fill: #22e58b26;
+  filter: drop-shadow(0 0 3px #22e58be6) drop-shadow(0 0 6px #13c97599);
+}
+
+.cursor-punto-ojo-icono circle {
+  fill: #22e58b;
+}
+
+.cursor-punto-ojo-icono .cursor-punto-ojo-reflejo {
+  fill: white;
+  stroke: none;
+}
+
+.cursor-punto-pulsable::before,
+.cursor-punto-pulsable::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  border-radius: 50%;
+}
+
+.cursor-punto-ojo::before {
+  inset: -9px -14px;
+}
+
+.cursor-punto-pulsable::before {
+  inset: -6px;
+  border: 1px solid #17bc73;
+  animation: halo-cursor 1.4s ease-out infinite;
+}
+
+.cursor-punto-pulsable::after {
+  top: 3px;
+  left: 3px;
+  width: 2px;
+  height: 2px;
+  box-shadow:
+    -10px 0 #18c97a,
+    10px 0 #18c97a,
+    0 -10px #18c97a,
+    0 10px #18c97a,
+    -7px -7px #18c97a,
+    7px -7px #18c97a,
+    -7px 7px #18c97a,
+    7px 7px #18c97a;
+  animation: destellos-cursor 1.4s ease-out infinite;
+}
+
+@keyframes halo-cursor {
+  from {
+    opacity: 0.65;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes destellos-cursor {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(0deg);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: scale(1.55) rotate(18deg);
+  }
+}
+
+/* El lienzo mantiene su mano aunque el punto todavía no haya recibido un evento. */
 canvas.cursor-mano-3d-activo {
   cursor: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cursor-punto-pulsable::before,
+  .cursor-punto-pulsable::after {
+    display: none;
+    animation: none !important;
+  }
+
   *,
   *::before,
   *::after {

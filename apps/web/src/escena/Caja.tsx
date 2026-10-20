@@ -1,6 +1,6 @@
 import { useThree } from '@react-three/fiber';
 import type { FormaCaja } from '@rebotica/shared';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { CanvasTexture, LinearFilter, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import {
   dibujarCara,
@@ -11,6 +11,7 @@ import {
 } from './arteEnvase';
 import { crearGeometriaCaja, medidasCara } from './geometriaCaja';
 import { UMBRAL_TOQUE } from './seleccion';
+import { marcarMedicamento } from './cursorMedicamento';
 
 /** Dibuja una cara en su propio lienzo y la convierte en textura. */
 function texturaDe(
@@ -72,6 +73,13 @@ export interface CajaProps {
  */
 export function Caja({ forma, datos, calidad = 'estanteria', posicion, onSeleccionar }: CajaProps) {
   const invalidar = useThree((s) => s.invalidate);
+  const lienzo = useThree((s) => s.gl.domElement);
+  const idCursor = useId();
+  const seleccionable = !!onSeleccionar;
+  useEffect(
+    () => () => marcarMedicamento(lienzo, idCursor, false),
+    [lienzo, idCursor, seleccionable],
+  );
   // Los datos cambian de identidad en cada render del padre: se comparan por valor.
   const clave = JSON.stringify(datos);
 
@@ -90,6 +98,24 @@ export function Caja({ forma, datos, calidad = 'estanteria', posicion, onSelecci
       position={posicion}
       geometry={caja.geometria}
       material={caja.materiales}
+      onPointerOver={
+        onSeleccionar
+          ? (e) => {
+              if (e.pointerType !== 'mouse') return;
+              e.stopPropagation();
+              marcarMedicamento(lienzo, idCursor, true);
+              invalidar();
+            }
+          : undefined
+      }
+      onPointerOut={
+        onSeleccionar
+          ? () => {
+              marcarMedicamento(lienzo, idCursor, false);
+              invalidar();
+            }
+          : undefined
+      }
       onClick={
         onSeleccionar
           ? (e) => {

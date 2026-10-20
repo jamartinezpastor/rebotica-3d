@@ -43,6 +43,7 @@ describe('exploración agrupada', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
     const escena = await screen.findByTestId('escena-3d');
+    expect(screen.queryByText(/Al final del pasillo: vitrina con receta/)).toBeNull();
     expect(within(escena).getAllByTestId('caja-3d')).toHaveLength(41);
     expect((screen.getByRole('combobox', { name: 'Agrupar por' }) as HTMLSelectElement).value).toBe(
       'laboratorio',

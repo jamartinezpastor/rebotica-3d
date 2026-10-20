@@ -24,6 +24,9 @@ describe('VistaLista', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Dolor' })).toBeTruthy();
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(baldas.length);
     expect(screen.getAllByRole('button')).toHaveLength(12);
+    expect(
+      screen.getAllByRole('button').every((b) => b.getAttribute('data-cursor') === 'medicamento'),
+    ).toBe(true);
     const seccion = screen.getByRole('region', { name: baldas[0]?.titulo ?? '' });
     expect(within(seccion).getAllByRole('button')).toHaveLength(baldas[0]?.productos.length ?? -1);
   });

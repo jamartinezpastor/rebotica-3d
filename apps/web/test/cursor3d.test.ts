@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instalarCursor3D, type EstadoCursorMano } from '../src/escena/cursorMano';
+import { marcarMedicamento } from '../src/escena/cursorMedicamento';
 
 let lienzo: HTMLCanvasElement;
 let quitar: (() => void) | undefined;
@@ -72,6 +73,31 @@ afterEach(() => {
 });
 
 describe('cursor de mano con profundidad', () => {
+  it('conserva el hover de la caja frontal cuando otra deja de estar bajo el puntero', () => {
+    marcarMedicamento(lienzo, 'primera', true);
+    marcarMedicamento(lienzo, 'frontal', true);
+    marcarMedicamento(lienzo, 'primera', false);
+    expect(lienzo.dataset.cursor).toBe('medicamento');
+    expect(lienzo.dataset.cursorMedicamento).toBe('frontal');
+    marcarMedicamento(lienzo, 'frontal', false);
+    expect(lienzo.dataset.cursor).toBeUndefined();
+    expect(lienzo.dataset.cursorMedicamento).toBeUndefined();
+  });
+
+  it('activa la prioridad de la mano cerrada sobre un medicamento y limpia el hover al perder el foco', () => {
+    quitar = instalarCursor3D(lienzo, actualizar);
+    puntero('pointerenter');
+    marcarMedicamento(lienzo, 'producto', true);
+    puntero('pointerdown');
+    expect(lienzo.classList.contains('cursor-mano-3d-arrastrando')).toBe(true);
+    expect(estado.cerrada).toBe(true);
+    puntero('pointerup');
+    expect(lienzo.classList.contains('cursor-mano-3d-arrastrando')).toBe(false);
+    expect(estado.cerrada).toBe(false);
+    window.dispatchEvent(new Event('blur'));
+    expect(lienzo.dataset.cursor).toBeUndefined();
+    expect(lienzo.dataset.cursorMedicamento).toBeUndefined();
+  });
   it('abre y cierra con el arrastre, sin interceptar los eventos, y restaura el cursor al salir', () => {
     quitar = instalarCursor3D(lienzo, actualizar);
     const gesto = vi.fn();

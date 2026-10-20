@@ -132,8 +132,12 @@ perspectiva, iluminación y sombras propias. Se dibuja con Three.js sobre el mis
 del pasillo, sin SVG ni otro lienzo. Está abierta al recorrer el pasillo y se cierra al arrastrar,
 también al girar la caja en la ficha. Se inclina suavemente al cambiar de
 dirección y vuelve a reposo al detenerse. Con menos movimiento no se inclina; con entrada táctil
-o colores forzados se conserva el cursor nativo. Los botones y la vista lista mantienen sus
-cursores habituales.
+o colores forzados se conserva el cursor nativo. Fuera de la mano 3D, el ratón se representa
+con un punto verde que se ilumina y emite un halo y destellos al pasar por botones, enlaces
+y otros controles pulsables. Con menos movimiento conserva el brillo, sin destellos.
+Al pasar por un medicamento seleccionable, en 3D o en lista, el punto cambia a un ojo verde
+con resplandor. Al arrastrar en el lienzo vuelve la mano cerrada; sobre el resto del pasillo,
+la mano abierta.
 
 ### Vista lista y rendimiento
 
