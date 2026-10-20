@@ -7,6 +7,25 @@ export type EstadoPasillo =
   | { tipo: 'listo'; titulo: string; estado: 'borrador' | 'validado'; baldas: BaldaEscena[] }
   | { tipo: 'error'; mensaje: string };
 
+export function pasilloAEscena(
+  pasillo: PasilloResponse,
+): Extract<EstadoPasillo, { tipo: 'listo' }> {
+  return {
+    tipo: 'listo',
+    titulo: pasillo.titulo,
+    estado: pasillo.estado,
+    baldas: [
+      ...pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
+      ...pasillo.vitrina.map((g) => ({
+        titulo: g.principioActivo,
+        productos: g.productos,
+        receta: true,
+        descripcion: [g.paraQueSeUsa, g.porQueNecesitaReceta, g.situacion].join(' '),
+      })),
+    ],
+  };
+}
+
 /**
  * Descarga un pasillo y lo valida con el contrato compartido. Las baldas conservan el orden del
  * protocolo, que es el orden en que la escena las coloca.
@@ -23,20 +42,7 @@ export function usePasillo(id: string | null): EstadoPasillo {
         const pasillo = PasilloResponse.parse(await res.json());
         setEstado({
           id,
-          valor: {
-            tipo: 'listo',
-            titulo: pasillo.titulo,
-            estado: pasillo.estado,
-            baldas: [
-              ...pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
-              ...pasillo.vitrina.map((g) => ({
-                titulo: g.principioActivo,
-                productos: g.productos,
-                receta: true,
-                descripcion: [g.paraQueSeUsa, g.porQueNecesitaReceta, g.situacion].join(' '),
-              })),
-            ],
-          },
+          valor: pasilloAEscena(pasillo),
         });
       })
       .catch((err: unknown) => {

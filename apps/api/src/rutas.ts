@@ -1,13 +1,8 @@
-import {
-  PasilloResponse,
-  PerfilPasillo,
-  ProductoResponse,
-  type BaldaPasillo,
-  type ErrorResponse,
-} from '@rebotica/shared';
+import { PerfilPasillo, ProductoResponse, type ErrorResponse } from '@rebotica/shared';
 import type { FastifyInstance } from 'fastify';
 import { crearCatalogo, type BaseDatos } from './catalogo';
 import { protocoloPublicado } from './protocolos';
+import { construirPasillo } from './pasillo';
 
 /** Los datos se renuevan cada noche: los navegadores pueden reutilizar la respuesta unos minutos. */
 const CACHE_DATOS = 'public, max-age=300, stale-while-revalidate=3600';
@@ -35,60 +30,12 @@ export function registrarRutas(app: FastifyInstance, db: BaseDatos | undefined):
       if (!SLUG.test(id)) return reply.code(400).send(error('Identificador de pasillo no válido'));
       const perfil = PerfilPasillo.safeParse(request.query);
       if (!perfil.success) return reply.code(400).send(error('Perfil no válido'));
-      const { grupo, edadMeses, condiciones = [] } = perfil.data;
 
       const publicado = await protocoloPublicado(db, id);
       if (!publicado) return reply.code(404).send(error('Pasillo no encontrado'));
       const { protocolo, estado } = publicado;
 
-      const visibles = protocolo.baldas
-        .filter((b) => {
-          if (grupo && b.gruposExcluidos.includes(grupo)) return false;
-          if (
-            edadMeses !== undefined &&
-            b.edadMinMeses !== undefined &&
-            edadMeses < b.edadMinMeses
-          ) {
-            return false;
-          }
-          return !b.condicionesExcluidas.some((c) => condiciones.includes(c));
-        })
-        .sort((a, b) => a.orden - b.orden);
-
-      const baldas: BaldaPasillo[] = [];
-      for (const b of visibles) {
-        baldas.push({
-          titulo: b.titulo,
-          principioActivo: b.principioActivo,
-          orden: b.orden,
-          productos: await catalogo.productosDe(b.principioActivo),
-        });
-      }
-
-      const vitrina = [];
-      for (const g of protocolo.vitrina) {
-        vitrina.push({
-          productos: await catalogo.productosDe(g.principioActivo, true),
-          principioActivo: g.principioActivo,
-          formas: await catalogo.formasConReceta(g.principioActivo),
-          paraQueSeUsa: g.paraQueSeUsa,
-          porQueNecesitaReceta: g.porQueNecesitaReceta,
-          situacion: g.situacion,
-        });
-      }
-
-      // Se valida la salida con el mismo contrato que usa la web: un fallo aquí es un bug nuestro.
-      const respuesta = PasilloResponse.parse({
-        id: protocolo.id,
-        version: protocolo.version,
-        titulo: protocolo.titulo,
-        estado,
-        baldas,
-        ocultasPorPerfil: protocolo.baldas.length - visibles.length,
-        vitrina,
-        consejos: protocolo.consejos,
-        parafarmacia: protocolo.parafarmacia,
-      });
+      const respuesta = await construirPasillo(catalogo, protocolo, estado, perfil.data);
       return reply.header('Cache-Control', CACHE_DATOS).send(respuesta);
     },
   );

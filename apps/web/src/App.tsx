@@ -1,5 +1,6 @@
-import { AVISO_LEGAL } from '@rebotica/shared';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { AVISO_LEGAL, type PasilloResponse } from '@rebotica/shared';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { baldasDemo, vitrinaDemo } from './escena/demo';
 import {
   detectarDispositivo,
@@ -9,13 +10,13 @@ import {
 } from './escena/capacidad';
 import type { EstadisticasFps } from './escena/medidorFps';
 import { PanelFicha } from './escena/PanelFicha';
-import { usePasillo } from './escena/usePasillo';
+import { usePasillo, pasilloAEscena } from './escena/usePasillo';
 import { useSeleccion } from './escena/useSeleccion';
 import { VistaLista } from './escena/VistaLista';
 import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
-import { Mostrador } from './mostrador/Mostrador';
+import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
@@ -65,9 +66,12 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
  * Vista de desarrollo del pasillo. `/escena` usa productos ficticios y `/escena?pasillo=<id>` los
  * de la API. Parámetros: `vista=3d|lista`, `cajas=N` (demo) y `fps=1` (contador).
  */
-function VistaEscena() {
+function VistaEscena({
+  precargado,
+  onNueva,
+}: { precargado?: PasilloResponse; onNueva?: () => void } = {}) {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const pasillo = params.get('pasillo');
+  const pasillo = precargado?.id ?? params.get('pasillo');
   const cajasDemo = Math.min(Math.max(Number(params.get('cajas')) || 36, 1), 200);
   const mostrarVitrinaDemo = params.get('vitrina') === '1';
   const midiendo = params.get('fps') === '1';
@@ -83,7 +87,9 @@ function VistaEscena() {
     return esAgrupacion(valor) ? valor : 'original';
   });
 
-  const remoto = usePasillo(pasillo);
+  const descargado = usePasillo(precargado ? null : pasillo);
+  const cargado = useMemo(() => (precargado ? pasilloAEscena(precargado) : null), [precargado]);
+  const remoto = cargado ?? descargado;
   const baldasDemoMemo = useMemo(
     () => [...baldasDemo(cajasDemo), ...(mostrarVitrinaDemo ? vitrinaDemo() : [])],
     [cajasDemo, mostrarVitrinaDemo],
@@ -134,14 +140,23 @@ function VistaEscena() {
 
       {!seleccion.producto && <SelectorAgrupacion valor={agrupacion} onCambiar={setAgrupacion} />}
 
-      {!seleccion.producto && (
-        <a
-          href="/"
-          className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-        >
-          <span aria-hidden="true">←</span> Inicio
-        </a>
-      )}
+      {!seleccion.producto &&
+        (onNueva ? (
+          <button
+            type="button"
+            onClick={onNueva}
+            className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15"
+          >
+            <span aria-hidden="true">←</span> Nueva consulta
+          </button>
+        ) : (
+          <a
+            href="/"
+            className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+          >
+            <span aria-hidden="true">←</span> Inicio
+          </a>
+        ))}
 
       {!seleccion.producto && (
         <div
@@ -217,8 +232,36 @@ function EstadoServidor() {
 }
 
 export function App() {
+  const [activa, setActiva] = useState(false);
+  const [pasilloConsulta, setPasilloConsulta] = useState<PasilloResponse | null>(null);
+  useEffect(() => {
+    const borrar = () =>
+      flushSync(() => {
+        setPasilloConsulta(null);
+        setActiva(false);
+      });
+    const restaurar = (e: PageTransitionEvent) => {
+      if (e.persisted) borrar();
+    };
+    window.addEventListener('pagehide', borrar);
+    window.addEventListener('pageshow', restaurar);
+    return () => {
+      window.removeEventListener('pagehide', borrar);
+      window.removeEventListener('pageshow', restaurar);
+    };
+  }, []);
   // La portada enlaza a la demostración; los pasillos de la API se abren con ?pasillo=<id>.
   if (window.location.pathname === '/escena') return <VistaEscena />;
+  if (pasilloConsulta)
+    return (
+      <VistaEscena
+        precargado={pasilloConsulta}
+        onNueva={() => {
+          setPasilloConsulta(null);
+          setActiva(false);
+        }}
+      />
+    );
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-32">
@@ -228,36 +271,41 @@ export function App() {
       </header>
 
       <main className="mt-8 flex-1">
-        <Mostrador />
-        <h2 className="mt-10 text-2xl leading-tight font-semibold tracking-tight">
-          Explora la demostración
-        </h2>
-        <p className="mt-3 text-lg text-tinta-suave">
-          Recorre el pasillo, gira las cajas y descubre la vitrina de medicamentos con receta.
-        </p>
-        <div className="mt-8 flex flex-col gap-3">
-          <a
-            href="/escena?vitrina=1&vista=3d"
-            className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-          >
-            Explorar demostración 3D
-          </a>
-          <a
-            href="/escena?vitrina=1&vista=lista"
-            className="inline-flex min-h-12 items-center justify-center rounded-xl px-4 py-2 text-base font-semibold text-cruz ring-1 ring-cruz focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-          >
-            Explorar como lista
-          </a>
-        </div>
-        <p className="mt-4 text-base text-tinta-suave">
-          Arrastra para recorrer el pasillo y toca una caja para verla de cerca.
-        </p>
-        <p
-          role="note"
-          className="mt-6 mb-8 rounded-xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-700"
-        >
-          Esta demostración utiliza productos ficticios y está pendiente de validación farmacéutica.
-        </p>
+        <ConsultaGuiada onActiva={setActiva} onPasillo={setPasilloConsulta} />
+        {!activa && (
+          <>
+            <h2 className="mt-10 text-2xl leading-tight font-semibold tracking-tight">
+              Explora la demostración
+            </h2>
+            <p className="mt-3 text-lg text-tinta-suave">
+              Recorre el pasillo, gira las cajas y descubre la vitrina de medicamentos con receta.
+            </p>
+            <div className="mt-8 flex flex-col gap-3">
+              <a
+                href="/escena?vitrina=1&vista=3d"
+                className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+              >
+                Explorar demostración 3D
+              </a>
+              <a
+                href="/escena?vitrina=1&vista=lista"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl px-4 py-2 text-base font-semibold text-cruz ring-1 ring-cruz focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+              >
+                Explorar como lista
+              </a>
+            </div>
+            <p className="mt-4 text-base text-tinta-suave">
+              Arrastra para recorrer el pasillo y toca una caja para verla de cerca.
+            </p>
+            <p
+              role="note"
+              className="mt-6 mb-8 rounded-xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-700"
+            >
+              Esta demostración utiliza productos ficticios y está pendiente de validación
+              farmacéutica.
+            </p>
+          </>
+        )}
       </main>
 
       <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">

@@ -2,6 +2,7 @@ import { aplicarMigraciones, conectar } from '@rebotica/db';
 import { buildApp } from './app';
 import { cargarProtocolos } from './protocolos';
 import { cargarReglasBorrador } from './reglas';
+import { clasificadorDesdeEntorno } from './interpretacion/claude';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -15,6 +16,7 @@ const app = buildApp({
   webDist: process.env.WEB_DIST || undefined,
   db: conexion?.db,
   assetsDir: process.env.ASSETS_DIR || undefined,
+  interpretacion: { clasificar: clasificadorDesdeEntorno(process.env) },
 });
 
 const cerrar = async () => {

@@ -6,6 +6,8 @@ import Fastify, { type FastifyServerOptions } from 'fastify';
 import pkg from '../package.json' with { type: 'json' };
 import type { BaseDatos } from './catalogo';
 import { registrarRutas } from './rutas';
+import { registrarInterpretacion, type OpcionesInterpretacion } from './interpretacion/ruta';
+import { registrarTriaje } from './triaje';
 
 export interface AppOptions {
   fastify?: FastifyServerOptions;
@@ -21,13 +23,20 @@ export interface AppOptions {
    * de fotos descargadas de CIMA queda fuera.
    */
   assetsDir?: string;
+  interpretacion?: OpcionesInterpretacion;
 }
 
 /** Los archivos con hash de Vite no cambian nunca; el resto se revalida en cada visita. */
 const CACHE_INMUTABLE = 'public, max-age=31536000, immutable';
 const CACHE_REVALIDAR = 'no-cache';
 
-export function buildApp({ fastify = {}, webDist, db, assetsDir }: AppOptions = {}) {
+export function buildApp({
+  fastify = {},
+  webDist,
+  db,
+  assetsDir,
+  interpretacion,
+}: AppOptions = {}) {
   const app = Fastify(fastify);
 
   app.addHook('onSend', async (_request, reply) => {
@@ -45,6 +54,8 @@ export function buildApp({ fastify = {}, webDist, db, assetsDir }: AppOptions = 
   );
 
   registrarRutas(app, db);
+  registrarInterpretacion(app, interpretacion);
+  registrarTriaje(app, db);
 
   if (assetsDir) {
     const miniaturas = join(assetsDir, 'miniaturas');

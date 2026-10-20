@@ -1,0 +1,322 @@
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import {
+  CONSULTAS_FRECUENTES,
+  InterpretarRespuesta,
+  ProtocoloTriajeRespuesta,
+  TriajeRespuesta,
+  type ConsultaMostrador,
+  type DerivacionConsulta,
+  type DerivacionTriaje,
+  type PasilloResponse,
+  type RespuestasTriaje,
+} from '@rebotica/shared';
+import { Mostrador } from './Mostrador';
+import { Derivacion } from './Derivacion';
+import { Pregunta } from './Pregunta';
+
+type Protocolo = ProtocoloTriajeRespuesta;
+type Estado =
+  | { tipo: 'entrada' }
+  | { tipo: 'cargando' }
+  | { tipo: 'aclaracion'; alternativas: string[] }
+  | {
+      tipo: 'preguntas';
+      protocolo: Protocolo;
+      respuestas: RespuestasTriaje;
+      pendientes: string[];
+      ocupada: boolean;
+    }
+  | { tipo: 'derivacion'; resultado: DerivacionConsulta | DerivacionTriaje }
+  | { tipo: 'listo'; pasillo: PasilloResponse }
+  | { tipo: 'error'; cambiado: boolean };
+
+async function solicitar(url: string, control: AbortController, body?: unknown) {
+  const r = await fetch(url, {
+    method: body === undefined ? 'GET' : 'POST',
+    signal: control.signal,
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
+    ...(body === undefined
+      ? {}
+      : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+  });
+  if (!r.ok) throw r.status === 409 ? new Error('cambiado') : new Error('no-disponible');
+  return r.json() as Promise<unknown>;
+}
+
+export function ConsultaGuiada({
+  onActiva,
+  onPasillo,
+}: {
+  onActiva: (activa: boolean) => void;
+  onPasillo: (pasillo: PasilloResponse) => void;
+}) {
+  const [estado, setEstado] = useState<Estado>({ tipo: 'entrada' });
+  const pendiente = useRef<AbortController | null>(null);
+  const cabecera = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const borrar = () => {
+      pendiente.current?.abort();
+      pendiente.current = null;
+      flushSync(() => {
+        setEstado({ tipo: 'entrada' });
+        onActiva(false);
+      });
+    };
+    window.addEventListener('pagehide', borrar);
+    const restaurar = (e: PageTransitionEvent) => {
+      if (e.persisted) borrar();
+    };
+    window.addEventListener('pageshow', restaurar);
+    return () => {
+      pendiente.current?.abort();
+      window.removeEventListener('pagehide', borrar);
+      window.removeEventListener('pageshow', restaurar);
+    };
+  }, [onActiva]);
+  useEffect(() => {
+    if (estado.tipo !== 'entrada' && estado.tipo !== 'preguntas' && estado.tipo !== 'derivacion')
+      cabecera.current?.focus();
+  }, [estado.tipo]);
+
+  const nueva = () => {
+    pendiente.current?.abort();
+    pendiente.current = null;
+    setEstado({ tipo: 'entrada' });
+    onActiva(false);
+  };
+  const ejecutar = async (accion: (c: AbortController) => Promise<void>) => {
+    if (pendiente.current) return;
+    const c = new AbortController();
+    pendiente.current = c;
+    const temporizador = setTimeout(() => {
+      c.abort();
+      if (pendiente.current === c) {
+        pendiente.current = null;
+        setEstado({ tipo: 'error', cambiado: false });
+      }
+    }, 30000);
+    const limpiarPlazo = () => clearTimeout(temporizador);
+    c.signal.addEventListener('abort', limpiarPlazo, { once: true });
+    try {
+      await accion(c);
+    } catch (e) {
+      if (!c.signal.aborted)
+        setEstado({ tipo: 'error', cambiado: e instanceof Error && e.message === 'cambiado' });
+    } finally {
+      limpiarPlazo();
+      c.signal.removeEventListener('abort', limpiarPlazo);
+      if (pendiente.current === c) pendiente.current = null;
+    }
+  };
+  const cargar = async (id: string, c: AbortController) => {
+    const p = ProtocoloTriajeRespuesta.parse(
+      await solicitar(`/api/protocolos/${encodeURIComponent(id)}`, c),
+    );
+    if (p.id !== id || new Set(p.preguntas.map((q) => q.id)).size !== p.preguntas.length)
+      throw new Error('contrato');
+    if (!c.signal.aborted)
+      setEstado({
+        tipo: 'preguntas',
+        protocolo: p,
+        respuestas: {},
+        pendientes: p.preguntas.map((q) => q.id),
+        ocupada: false,
+      });
+  };
+  const elegirProtocolo = (id: string) => {
+    if (pendiente.current) return;
+    setEstado({ tipo: 'cargando' });
+    void ejecutar((c) => cargar(id, c));
+  };
+  const continuar = (consulta: ConsultaMostrador) => {
+    if (pendiente.current) return;
+    onActiva(true);
+    setEstado({ tipo: 'cargando' });
+    void ejecutar(async (c) => {
+      if (consulta.origen === 'chip') {
+        await cargar(consulta.protocoloId, c);
+        return;
+      }
+      const r = InterpretarRespuesta.parse(
+        await solicitar('/api/interpretar', c, { texto: consulta.texto }),
+      );
+      if (c.signal.aborted) return;
+      if (r.tipo === 'derivacion') {
+        setEstado({ tipo: 'derivacion', resultado: r });
+        return;
+      }
+      if (r.tipo === 'aclaracion') {
+        setEstado({ tipo: 'aclaracion', alternativas: [...new Set(r.alternativas)] });
+        return;
+      }
+      // Los datos extraídos por la IA no se convierten en respuestas confirmadas.
+      await cargar(r.protocoloId, c);
+    });
+  };
+  const responder = (valor: string | number | boolean) => {
+    if (estado.tipo !== 'preguntas' || pendiente.current) return;
+    const { protocolo, pendientes } = estado;
+    const respuestas = { ...estado.respuestas, [pendientes[0]!]: valor };
+    setEstado({ ...estado, ocupada: true });
+    void ejecutar(async (c) => {
+      const r = TriajeRespuesta.parse(
+        await solicitar('/api/triaje', c, {
+          protocoloId: protocolo.id,
+          version: protocolo.version,
+          respuestas,
+        }),
+      );
+      if (c.signal.aborted) return;
+      if (r.tipo === 'derivar') {
+        setEstado({ tipo: 'derivacion', resultado: r });
+        return;
+      }
+      if (r.tipo === 'preguntas') {
+        if (
+          r.pendientes.some(
+            (id) => !protocolo.preguntas.some((q) => q.id === id) || Object.hasOwn(respuestas, id),
+          )
+        )
+          throw new Error('contrato');
+        setEstado({
+          tipo: 'preguntas',
+          protocolo,
+          respuestas,
+          pendientes: r.pendientes,
+          ocupada: false,
+        });
+        return;
+      }
+      if (
+        r.pasilloId !== protocolo.id ||
+        r.version !== protocolo.version ||
+        r.pasillo.id !== protocolo.id ||
+        r.pasillo.version !== protocolo.version ||
+        r.pasillo.estado !== 'validado'
+      )
+        throw new Error('contrato');
+      setEstado({ tipo: 'listo', pasillo: r.pasillo });
+    });
+  };
+
+  if (estado.tipo === 'entrada') return <Mostrador onContinuar={continuar} onRevision={onActiva} />;
+  const pregunta =
+    estado.tipo === 'preguntas'
+      ? estado.protocolo.preguntas.find((q) => q.id === estado.pendientes[0])
+      : undefined;
+  return (
+    <div ref={cabecera} tabIndex={-1} className="space-y-5 outline-none">
+      {estado.tipo === 'cargando' && (
+        <p role="status" className="text-lg">
+          Preparando tu consulta…
+        </p>
+      )}
+      {estado.tipo === 'derivacion' && <Derivacion resultado={estado.resultado} />}
+      {estado.tipo === 'aclaracion' && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">¿Te refieres a…?</h2>
+          {estado.alternativas.length === 0 ? (
+            <p>
+              No hemos identificado el motivo con suficiente claridad. Empieza una nueva consulta o
+              habla con tu farmacéutico.
+            </p>
+          ) : (
+            estado.alternativas.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => elegirProtocolo(id)}
+                className="min-h-12 w-full rounded-xl bg-white p-4 text-left font-semibold text-cruz ring-1 ring-cruz"
+              >
+                {CONSULTAS_FRECUENTES.find((q) => q.id === id)?.etiqueta}
+              </button>
+            ))
+          )}
+        </section>
+      )}
+      {estado.tipo === 'preguntas' && pregunta && (
+        <>
+          <p className="text-base text-tinta-suave">
+            {estado.protocolo.titulo} · Pregunta{' '}
+            {estado.protocolo.preguntas.length - estado.pendientes.length + 1} de{' '}
+            {estado.protocolo.preguntas.length}
+          </p>
+          <Pregunta
+            key={pregunta.id}
+            pregunta={pregunta}
+            ocupada={estado.ocupada}
+            onResponder={responder}
+          />
+          <button
+            type="button"
+            disabled={estado.ocupada}
+            onClick={() =>
+              setEstado({
+                tipo: 'derivacion',
+                resultado: {
+                  tipo: 'derivar',
+                  urgencia: 'farmaceutico',
+                  motivos: [
+                    {
+                      id: 'respuesta-desconocida',
+                      descripcion:
+                        'Falta una respuesta necesaria para completar la consulta con seguridad.',
+                      urgencia: 'farmaceutico',
+                    },
+                  ],
+                },
+              })
+            }
+            className="min-h-12 w-full rounded-xl bg-white p-3 font-semibold text-cruz ring-1 ring-cruz disabled:opacity-50"
+          >
+            No lo sé
+          </button>
+          {estado.ocupada && <p role="status">Comprobando la respuesta…</p>}
+        </>
+      )}
+      {estado.tipo === 'listo' && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">Has completado las preguntas</h2>
+          <p>
+            El pasillo mostrará los productos del protocolo según tus respuestas. Ante cualquier
+            duda, consulta con tu farmacéutico.
+          </p>
+          <button
+            type="button"
+            onClick={() => onPasillo(estado.pasillo)}
+            className="min-h-12 w-full rounded-xl bg-cruz p-4 font-semibold text-white"
+          >
+            Ver el pasillo
+          </button>
+        </section>
+      )}
+      {estado.tipo === 'error' && (
+        <section role="alert" className="space-y-3">
+          <h2 className="text-2xl font-semibold">No podemos completar esta consulta ahora</h2>
+          <p>
+            {estado.cambiado
+              ? 'Han cambiado las preguntas de seguridad. Empieza una nueva consulta.'
+              : 'No se ha autorizado ningún pasillo. Habla con tu farmacéutico o tu centro de salud para recibir orientación.'}
+          </p>
+          <a
+            href="tel:112"
+            className="inline-flex min-h-12 items-center font-semibold text-cruz underline"
+          >
+            Ante una emergencia, llamar al 112
+          </a>
+        </section>
+      )}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cruz/20 bg-papel p-4 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <button
+          type="button"
+          onClick={nueva}
+          className="mx-auto block min-h-12 w-full max-w-md rounded-xl bg-white p-3 font-semibold text-cruz ring-1 ring-cruz"
+        >
+          Nueva consulta
+        </button>
+      </div>
+    </div>
+  );
+}

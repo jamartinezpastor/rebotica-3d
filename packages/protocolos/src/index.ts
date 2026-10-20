@@ -1,4 +1,10 @@
-import { GrupoPaciente, Urgencia } from '@rebotica/shared';
+import {
+  GrupoPaciente,
+  Urgencia,
+  PreguntaTriaje,
+  CuandoTriaje,
+  respuestaValida,
+} from '@rebotica/shared';
 import { z } from 'zod';
 
 /**
@@ -8,12 +14,7 @@ import { z } from 'zod';
 
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id en minúsculas separado por guiones');
 
-export const PreguntaTriaje = z.strictObject({
-  id: slug,
-  texto: z.string().min(1),
-  tipo: z.enum(['grupo', 'edad', 'duracion', 'siNo', 'opciones']),
-  opciones: z.array(z.strictObject({ valor: z.string(), etiqueta: z.string() })).optional(),
-});
+export { PreguntaTriaje } from '@rebotica/shared';
 
 export const CriterioDerivacion = z.strictObject({
   id: slug,
@@ -21,6 +22,8 @@ export const CriterioDerivacion = z.strictObject({
   urgencia: Urgencia,
   /** Palabras que disparan el filtro de alarmas antes de llamar al modelo. */
   palabrasClave: z.array(z.string().min(1)),
+  /** Opcional para leer borradores anteriores; sin condición el triaje no autoriza pasillos. */
+  cuando: CuandoTriaje.optional(),
 });
 
 /** Una balda del pasillo: un principio activo sin receta y a quién no se muestra. */
@@ -50,8 +53,8 @@ export const Protocolo = z
     version: z.number().int().positive(),
     titulo: z.string().min(1),
     sinonimos: z.array(z.string().min(1)).min(1),
-    preguntasTriaje: z.array(PreguntaTriaje),
-    criteriosDerivacion: z.array(CriterioDerivacion).min(1),
+    preguntasTriaje: z.array(PreguntaTriaje).max(30),
+    criteriosDerivacion: z.array(CriterioDerivacion).min(1).max(60),
     baldas: z.array(Balda).min(1),
     vitrina: z.array(GrupoVitrina),
     consejos: z.array(z.string().min(1)),
@@ -61,6 +64,36 @@ export const Protocolo = z
     validadoEn: z.iso.date().nullable(),
   })
   .superRefine((p, ctx) => {
+    if (
+      new Set(p.preguntasTriaje.map((q) => q.id)).size !== p.preguntasTriaje.length ||
+      new Set(p.criteriosDerivacion.map((c) => c.id)).size !== p.criteriosDerivacion.length
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'identificadores de preguntas o criterios duplicados',
+      });
+    }
+    for (const tipo of ['grupo', 'edad', 'duracion']) {
+      if (p.preguntasTriaje.filter((q) => q.tipo === tipo).length > 1)
+        ctx.addIssue({ code: 'custom', message: `pregunta ${tipo} duplicada` });
+    }
+    for (const c of p.criteriosDerivacion) {
+      if (!c.cuando) continue;
+      for (const condicion of 'todas' in c.cuando ? c.cuando.todas : c.cuando.alguna) {
+        const pregunta = p.preguntasTriaje.find((q) => q.id === condicion.preguntaId);
+        if (
+          !pregunta ||
+          !respuestaValida(pregunta, condicion.valor) ||
+          (condicion.operador !== 'igual' && !['edad', 'duracion'].includes(pregunta.tipo))
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'condición con pregunta o valor incompatible',
+            path: ['criteriosDerivacion'],
+          });
+        }
+      }
+    }
     if (p.estado === 'validado' && (!p.validadoPor || !p.validadoEn)) {
       ctx.addIssue({
         code: 'custom',
@@ -70,3 +103,5 @@ export const Protocolo = z
     }
   });
 export type Protocolo = z.infer<typeof Protocolo>;
+
+export * from './triaje';

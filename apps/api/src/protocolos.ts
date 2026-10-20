@@ -30,8 +30,17 @@ export async function protocoloPublicado(
 
   const validas = filas.flatMap((f) => {
     const analizado = Protocolo.safeParse(f.json);
-    if (!analizado.success) return [];
-    return [{ protocolo: analizado.data, firmado: f.estado === 'validada' }];
+    if (!analizado.success || analizado.data.id !== f.id || analizado.data.version !== f.version)
+      return [];
+    const firmado =
+      f.estado === 'validada' &&
+      analizado.data.estado === 'validado' &&
+      !!f.validadoPor &&
+      !!f.validadoEn &&
+      f.validadoPor === analizado.data.validadoPor &&
+      f.validadoEn.toISOString().slice(0, 10) === analizado.data.validadoEn &&
+      analizado.data.validadoEn <= new Date().toISOString().slice(0, 10);
+    return [{ protocolo: analizado.data, firmado }];
   });
   const elegido = validas.find((v) => v.firmado) ?? validas[0];
   if (!elegido) return null;

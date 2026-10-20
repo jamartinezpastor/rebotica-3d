@@ -11,7 +11,8 @@
     "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:interpretacion": "tsx scripts/evaluar-interpretacion.ts"
   },
   "dependencies": {
     "@fastify/static": "^10.1.6",

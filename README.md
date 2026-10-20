@@ -257,6 +257,15 @@ de sincronizar el catálogo. Nunca sobrescriben versiones existentes. F6-01 sigu
 
 ## API de datos
 
+F4-02 incorpora `POST /api/interpretar`: filtro local de alarmas prioritario, clasificación
+cerrada opcional con Claude y validación de esquema. No abre pasillos ni decide tratamientos.
+El mostrador revisa localmente el texto y lo envía solo al pulsar Continuar. Configuración,
+privacidad, pruebas y evaluación real pendiente en [Interpretación](apps/api/INTERPRETACION.md).
+F4-03 incorpora las tarjetas y el [motor de triaje y derivación](apps/api/TRIAJE.md):
+solo un protocolo firmado y todas las respuestas confirmadas pueden autorizar el pasillo.
+Las alarmas y los errores bloquean la vista de productos. Todavía no hay protocolos clínicos
+validados instalados; los borradores de los 14 protocolos corresponden a F4-04.
+
 El paquete [`@rebotica/dosis`](packages/dosis/README.md) implementa el cálculo puro con reglas
 validadas, cita literal y hash vigente de la sección 4.2. Incluye redondeo decimal hacia abajo,
 límites por toma y por día, bloqueos y confirmación de peso con referencias OMS locales. Las

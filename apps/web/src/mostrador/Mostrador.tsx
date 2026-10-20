@@ -14,7 +14,13 @@ const BOTON =
   'min-h-12 rounded-xl px-4 py-3 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz disabled:cursor-not-allowed disabled:opacity-50';
 
 /** F4-01: entrada y revisión local. No interpreta síntomas ni abre un pasillo clínico. */
-export function Mostrador() {
+export function Mostrador({
+  onContinuar,
+  onRevision,
+}: {
+  onContinuar?: (consulta: ConsultaMostrador) => void;
+  onRevision?: (activa: boolean) => void;
+} = {}) {
   const id = useId();
   const entrada = useRef<HTMLTextAreaElement>(null);
   const revision = useRef<HTMLHeadingElement>(null);
@@ -47,6 +53,7 @@ export function Mostrador() {
         setBorrador(VACIO);
         setConsulta(null);
         setTodas(false);
+        onRevision?.(false);
       });
     const restaurar = (e: PageTransitionEvent) => {
       if (e.persisted) borrar();
@@ -57,7 +64,7 @@ export function Mostrador() {
       window.removeEventListener('pagehide', borrar);
       window.removeEventListener('pageshow', restaurar);
     };
-  }, []);
+  }, [onRevision]);
 
   useEffect(() => {
     if (borrador.bloqueado) cancelar();
@@ -78,6 +85,7 @@ export function Mostrador() {
     cancelar();
     setBorrador(VACIO);
     setConsulta(null);
+    onRevision?.(false);
     enfocar();
   };
   const revisar = (evento: FormEvent) => {
@@ -98,6 +106,7 @@ export function Mostrador() {
     }
     cancelar();
     setConsulta(analizada.data);
+    onRevision?.(true);
   };
   const elegir = (id: IdConsulta, etiqueta: string) => {
     cancelar();
@@ -129,9 +138,24 @@ export function Mostrador() {
             role="note"
             className="rounded-xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-700"
           >
-            Esta consulta no se ha evaluado. La orientación por síntomas no está disponible en esta
-            demostración. Para recibir consejo sobre tu salud, habla con tu farmacéutico.
+            Esta consulta no se ha evaluado. Antes de ver productos debes completar las preguntas de
+            seguridad. Para recibir consejo sobre tu salud, habla con tu farmacéutico.
           </p>
+          {onContinuar && (
+            <>
+              <p className="text-base text-tinta-suave">
+                Al pulsar Continuar se envía esta consulta al servidor. Si has escrito texto, Claude
+                identifica el motivo y las alarmas. No guardamos el texto ni las respuestas.
+              </p>
+              <button
+                type="button"
+                onClick={() => onContinuar(consulta)}
+                className={`${BOTON} w-full bg-cruz text-white`}
+              >
+                Continuar
+              </button>
+            </>
+          )}
           <p className="text-base text-tinta-suave">
             Al empezar una nueva consulta o salir de esta página se borra el texto.
           </p>
@@ -148,7 +172,7 @@ export function Mostrador() {
             role="note"
             className="mt-4 rounded-xl bg-amber-50 p-3 text-base text-amber-950 ring-1 ring-amber-700"
           >
-            Demostración: las consultas no se evalúan ni generan recomendaciones.
+            Para orientar tu consulta necesitas completar un triaje con un protocolo validado.
           </p>
           <form id={`${id}-form`} onSubmit={revisar} noValidate className="mt-5">
             <label htmlFor={`${id}-texto`} className="block text-base font-semibold">
@@ -176,8 +200,8 @@ export function Mostrador() {
               {borrador.texto.length}/{LIMITE_CONSULTA} caracteres
             </p>
             <p id={`${id}-privacidad`} className="mt-2 text-base text-tinta-suave">
-              No incluyas tu nombre ni datos de contacto. El texto permanece solo en esta página y
-              no se envía.
+              No incluyas tu nombre ni datos de contacto. El texto permanece en esta página hasta
+              que revises la consulta y pulses Continuar.
             </p>
             {borrador.mensaje && (
               <p id={`${id}-error`} role="alert" className="mt-3 text-base text-aviso">
@@ -263,6 +287,7 @@ export function Mostrador() {
               type="button"
               onClick={() => {
                 setConsulta(null);
+                onRevision?.(false);
                 enfocar();
               }}
               className={`${BOTON} flex-1 bg-cruz text-white`}
