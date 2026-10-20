@@ -15,6 +15,7 @@ import { VistaLista } from './escena/VistaLista';
 import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
+import { Mostrador } from './mostrador/Mostrador';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
@@ -220,16 +221,16 @@ export function App() {
   if (window.location.pathname === '/escena') return <VistaEscena />;
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-32">
       <header className="flex items-center gap-3">
         <Cruz />
         <h1 className="text-2xl font-semibold tracking-tight">Rebotica 3D</h1>
       </header>
 
-      <main className="mt-12 flex-1">
-        <p className="text-base font-semibold text-cruz">Demostración interactiva</p>
-        <h2 className="mt-3 text-4xl leading-tight font-semibold tracking-tight">
-          Explora las estanterías en 3D.
+      <main className="mt-8 flex-1">
+        <Mostrador />
+        <h2 className="mt-10 text-2xl leading-tight font-semibold tracking-tight">
+          Explora la demostración
         </h2>
         <p className="mt-3 text-lg text-tinta-suave">
           Recorre el pasillo, gira las cajas y descubre la vitrina de medicamentos con receta.

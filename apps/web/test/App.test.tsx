@@ -20,6 +20,7 @@ describe('App', () => {
     stubFetch(new Promise(() => {}));
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Rebotica 3D' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Describe tu consulta' })).toBeTruthy();
     expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Explorar demostración 3D' }).getAttribute('href'),

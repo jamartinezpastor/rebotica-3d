@@ -26,3 +26,4 @@ export type HealthResponse = z.infer<typeof HealthResponse>;
 
 export * from './dominio';
 export * from './api';
+export * from './consulta';
