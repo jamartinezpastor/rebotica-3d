@@ -69,7 +69,7 @@ caché compartida. `derivar` no incluye productos, vitrina ni pasillo.
 
 El mostrador conserva la revisión local. Solo `Continuar`, tras explicar el envío, inicia
 la consulta: texto libre pasa por F4-02; chips cerrados van directamente al protocolo sin
-Claude. Una clasificación no abre el pasillo. Los datos inferidos por el modelo no se
+Gemini. Una clasificación no abre el pasillo. Los datos inferidos por el modelo no se
 utilizan como respuestas confirmadas: el usuario responde las tarjetas, una por una.
 Una confianza baja ofrece alternativas antes del triaje.
 
@@ -96,5 +96,5 @@ privacidad, cancelación, resultados tardíos, foco y el flujo hasta la lista.
 
 Sin protocolos clínicos firmados instalados, el mostrador muestra la indisponibilidad y
 ofrece atención profesional. El código no convierte borradores en recomendaciones ni los
-firma automáticamente. La evaluación real de Claude y la revisión clínica del corpus de
-F4-02 siguen pendientes; este ticket no las da por realizadas.
+firma automáticamente. La prueba real de conectividad y clasificación con Gemini se registra
+en [Interpretación](INTERPRETACION.md). La revisión clínica del corpus de F4-02 sigue pendiente.

@@ -118,7 +118,7 @@ export function Mostrador({
           {onContinuar && (
             <>
               <p className="text-base text-tinta-suave">
-                Al pulsar Continuar se envía esta consulta al servidor. Si has escrito texto, Claude
+                Al pulsar Continuar se envía esta consulta al servidor. Si has escrito texto, Gemini
                 identifica el motivo y las alarmas. No guardamos el texto ni las respuestas.
               </p>
               <button

@@ -34,7 +34,7 @@ describe('F4-02 corpus de 100 frases: primer filtro determinista', () => {
   it.each(CASOS_CONSULTA)(
     '$id: deriva o deja pasar al clasificador según la expectativa',
     async (caso) => {
-      // No simula una evaluación de Claude: comprueba que las alarmas NO llegan al modelo,
+      // No simula una evaluación de Gemini: comprueba que las alarmas NO llegan al modelo,
       // y que el filtro no transforma las otras frases en una clasificación clínica.
       const clasificar = vi.fn().mockRejectedValue(new Error('Proveedor deliberadamente caído'));
       const app = crear({ interpretacion: { clasificar } });

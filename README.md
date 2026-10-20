@@ -241,9 +241,9 @@ de sincronizar el catálogo. Nunca sobrescriben versiones existentes. F6-01 sigu
 ## API de datos
 
 F4-02 incorpora `POST /api/interpretar`: filtro local de alarmas prioritario, clasificación
-cerrada opcional con Claude y validación de esquema. No abre pasillos ni decide tratamientos.
+cerrada opcional con Gemini y validación de esquema. No abre pasillos ni decide tratamientos.
 El mostrador revisa localmente el texto y lo envía solo al pulsar Continuar. Configuración,
-privacidad, pruebas y evaluación real pendiente en [Interpretación](apps/api/INTERPRETACION.md).
+privacidad, pruebas y resultado de la evaluación real en [Interpretación](apps/api/INTERPRETACION.md).
 F4-03 incorpora las tarjetas y el [motor de triaje y derivación](apps/api/TRIAJE.md):
 solo un protocolo firmado y todas las respuestas confirmadas pueden autorizar el pasillo.
 Las alarmas y los errores bloquean la vista de productos. Todavía no hay protocolos clínicos

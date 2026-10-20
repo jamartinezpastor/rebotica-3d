@@ -2,7 +2,7 @@ import { aplicarMigraciones, conectar } from '@rebotica/db';
 import { buildApp } from './app';
 import { cargarProtocolos } from './protocolos';
 import { cargarReglasBorrador } from './reglas';
-import { clasificadorDesdeEntorno } from './interpretacion/claude';
+import { clasificadorDesdeEntorno } from './interpretacion/gemini';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
