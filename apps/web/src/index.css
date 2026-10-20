@@ -15,6 +15,26 @@ html {
   background-color: var(--color-papel);
   color: var(--color-tinta);
   -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--color-cruz) var(--color-cruz-claro);
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Tirador verde ancho y con contraste, también en los paneles desplazables. */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cruz-claro);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cruz);
+  border: 2px solid var(--color-cruz-claro);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #096536;
 }
 
 body {

@@ -50,17 +50,21 @@ function mostrar() {
   return render(<ConsultaGuiada onActiva={vi.fn()} onPasillo={vi.fn()} />);
 }
 function revisarTexto(texto = 'Consulta sintética privada') {
-  fireEvent.change(screen.getByRole('textbox', { name: 'Describe tu consulta' }), {
-    target: { value: texto },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Revisar consulta' }));
+  fireEvent.change(
+    screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa o elige una consulta frecuente' }),
+    {
+      target: { value: texto },
+    },
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Realizar consulta' }));
 }
 function continuar() {
   fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 }
 async function iniciarChip() {
+  fireEvent.click(screen.getByRole('button', { name: 'Ver más consultas' }));
   fireEvent.click(screen.getByRole('button', { name: 'Tos' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Revisar consulta' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Realizar consulta' }));
   continuar();
   await screen.findByRole('heading', { name: '¿Hay una alarma ficticia?' });
 }
@@ -156,7 +160,7 @@ describe('mostrador, interpretación y triaje F4-03', () => {
         : Response.json(derivacion),
     );
     render(<App />);
-    expect(screen.getByRole('link', { name: 'Explorar demostración 3D' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Ver medicamentos' })).toBeTruthy();
     revisarTexto('No puedo respirar. Caso sintético.');
     expect(screen.queryByRole('link', { name: /Explorar/ })).toBeNull();
     continuar();

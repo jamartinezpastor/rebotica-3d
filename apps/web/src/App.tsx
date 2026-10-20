@@ -277,33 +277,14 @@ export function App() {
             <h2 className="mt-10 text-2xl leading-tight font-semibold tracking-tight">
               Explora la demostración
             </h2>
-            <p className="mt-3 text-lg text-tinta-suave">
-              Recorre el pasillo, gira las cajas y descubre la vitrina de medicamentos con receta.
-            </p>
             <div className="mt-8 flex flex-col gap-3">
               <a
                 href="/escena?vitrina=1&vista=3d"
                 className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
               >
-                Explorar demostración 3D
-              </a>
-              <a
-                href="/escena?vitrina=1&vista=lista"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl px-4 py-2 text-base font-semibold text-cruz ring-1 ring-cruz focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-              >
-                Explorar como lista
+                Ver medicamentos
               </a>
             </div>
-            <p className="mt-4 text-base text-tinta-suave">
-              Arrastra para recorrer el pasillo y toca una caja para verla de cerca.
-            </p>
-            <p
-              role="note"
-              className="mt-6 mb-8 rounded-xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-700"
-            >
-              Esta demostración utiliza productos ficticios y está pendiente de validación
-              farmacéutica.
-            </p>
           </>
         )}
       </main>

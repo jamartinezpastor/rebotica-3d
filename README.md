@@ -21,39 +21,22 @@ pnpm dev
 - Web: http://localhost:5173
 - API: http://localhost:3000/api/health
 
-La portada incluye el mostrador de F4-01: campo de texto, diez consultas frecuentes iniciales
-(catorce al desplegar), dictado local cuando está disponible y revisión de la consulta.
-También permite entrar con «Explorar demostración 3D» o «Explorar como lista», sin necesitar
-catálogo sincronizado ni base de datos. Abre el pasillo ficticio con vitrina; «Inicio» permite
-volver al mostrador.
+La portada incluye el mostrador: campo de texto, cuatro consultas frecuentes iniciales
+(catorce al pulsar «Ver más consultas») y un único botón inferior «Realizar consulta».
+«Ver medicamentos» abre el pasillo ficticio con vitrina, sin necesitar catálogo sincronizado
+ni base de datos. Dentro se puede cambiar a la vista lista. El dictado está retirado de la interfaz.
 
-### Mostrador y privacidad — F4-01
+### Mostrador y privacidad
 
-Los chips rellenan el campo; cualquier edición manual o dictado elimina la selección anterior.
-«Revisar consulta» valida hasta 2000 caracteres con Zod y permite comprobar lo escrito, editarlo
-o borrarlo con «Nueva consulta» (barra inferior fija). La revisión todavía no clasifica síntomas,
-no evalúa alarmas y no genera recomendaciones ni abre un pasillo clínico: esos pasos corresponden
-a F4-02 y F4-03. Los catorce chips son etiquetas de entrada, no protocolos clínicos validados.
+Los chips rellenan el campo; editarlo elimina la selección anterior. «Realizar consulta»
+valida hasta 2000 caracteres con Zod y abre la revisión local, donde se puede editar o
+borrar la consulta. Solo «Continuar», después de explicar el envío, conecta con la
+interpretación y el triaje de F4-02/F4-03. Los catorce chips son etiquetas de entrada,
+no protocolos clínicos validados.
 
-Texto y selección viven solo en memoria de la página. No se envían, guardan, añaden a la URL ni
-registran; la comprobación de salud de la API solo hace `GET /api/health`. La revisión advierte
-explícitamente de que la consulta no se ha evaluado. Los accesos a la demostración no utilizan
-el texto del mostrador.
-
-El dictado usa Web Speech solo con `processLocally: true` y con el idioma `es-ES` ya disponible
-en el dispositivo, en un contexto seguro (HTTPS o localhost). Se detectan `SpeechRecognition`
-y su variante prefijada, pero una implementación que solo ofrece reconocimiento remoto no
-habilita el micrófono. No hay descarga automática de idiomas ni fallback remoto.
-Referencia: [Web Speech API, procesamiento local y métodos de reconocimiento](https://webaudio.github.io/web-speech-api/#speechreco-section).
-
-El micrófono requiere pulsar «Dictar consulta». Hay controles de detener y estados de permiso,
-escucha, finalización y error, sin reinicios automáticos. Solo se incorporan resultados finales,
-sin duplicarlos. Al editar, elegir un chip, borrar, ocultar la pestaña, perder el foco o desmontar,
-se aborta la sesión y se ignoran callbacks tardíos. Si el texto combinado excede el límite,
-no se recorta silenciosamente: se avisa, se detiene y se exige editar o borrar antes de revisar.
-Si falla o falta el dictado local, la escritura y los chips siguen disponibles. Las pruebas
-simulan la API del navegador; el micrófono real necesita comprobarse en un navegador compatible
-con el idioma instalado.
+Texto y selección viven en memoria y no se guardan, registran ni añaden a la URL. La
+revisión advierte de que la consulta todavía no se ha evaluado. Los accesos a medicamentos
+no utilizan el texto del mostrador y se ocultan al iniciar la revisión.
 
 ## Comprobaciones
 

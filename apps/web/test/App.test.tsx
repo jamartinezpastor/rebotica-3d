@@ -20,15 +20,16 @@ describe('App', () => {
     stubFetch(new Promise(() => {}));
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Rebotica 3D' })).toBeTruthy();
-    expect(screen.getByRole('textbox', { name: 'Describe tu consulta' })).toBeTruthy();
-    expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Explorar demostración 3D' }).getAttribute('href'),
-    ).toBe('/escena?vitrina=1&vista=3d');
-    expect(screen.getByRole('link', { name: 'Explorar como lista' }).getAttribute('href')).toBe(
-      '/escena?vitrina=1&vista=lista',
+      screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa o elige una consulta frecuente' }),
+    ).toBeTruthy();
+    expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Ver medicamentos' }).getAttribute('href')).toBe(
+      '/escena?vitrina=1&vista=3d',
     );
-    expect(screen.getByText(/utiliza productos ficticios/)).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Explorar como lista' })).toBeNull();
+    expect(screen.queryByText(/utiliza productos ficticios/)).toBeNull();
+    expect(screen.queryByText('Hola, ¿qué te pasa?')).toBeNull();
     expect(screen.queryByText(/Pronto podrás|en construcción/i)).toBeNull();
   });
 
