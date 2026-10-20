@@ -15,9 +15,11 @@ const BOTON =
 export function Mostrador({
   onContinuar,
   onRevision,
+  directo = false,
 }: {
   onContinuar?: (consulta: ConsultaMostrador) => void;
   onRevision?: (activa: boolean) => void;
+  directo?: boolean;
 } = {}) {
   const id = useId();
   const entrada = useRef<HTMLTextAreaElement>(null);
@@ -80,10 +82,18 @@ export function Mostrador({
       entrada.current?.focus();
       return;
     }
+    if (directo && onContinuar) {
+      onContinuar(analizada.data);
+      return;
+    }
     setConsulta(analizada.data);
     onRevision?.(true);
   };
   const elegir = (id: IdConsulta, etiqueta: string) => {
+    if (directo && onContinuar) {
+      onContinuar({ origen: 'chip', protocoloId: id });
+      return;
+    }
     setBorrador({ texto: etiqueta, chip: id, mensaje: null });
   };
   const textoRevision =
@@ -148,7 +158,7 @@ export function Mostrador({
               ref={entrada}
               id={`${id}-texto`}
               value={borrador.texto}
-              rows={4}
+              rows={3}
               maxLength={LIMITE_CONSULTA}
               autoComplete="off"
               spellCheck={false}
@@ -164,6 +174,11 @@ export function Mostrador({
             <p id={`${id}-limite`} className="mt-1 text-right text-base text-tinta-suave">
               {borrador.texto.length}/{LIMITE_CONSULTA} caracteres
             </p>
+            {puedeRevisar && (
+              <button type="submit" className={`${BOTON} mt-3 w-full bg-cruz text-white`}>
+                Realizar consulta
+              </button>
+            )}
             {borrador.mensaje && (
               <p id={`${id}-error`} role="alert" className="mt-3 text-base text-aviso">
                 {borrador.mensaje}
@@ -197,9 +212,9 @@ export function Mostrador({
           </fieldset>
         </>
       )}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cruz/20 bg-papel px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-        <div className="mx-auto flex max-w-md gap-3">
-          {consulta && (
+      {consulta && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cruz/20 bg-papel px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+          <div className="mx-auto flex max-w-md gap-3">
             <button
               type="button"
               onClick={nueva}
@@ -207,8 +222,6 @@ export function Mostrador({
             >
               Nueva consulta
             </button>
-          )}
-          {consulta ? (
             <button
               type="button"
               onClick={() => {
@@ -220,18 +233,9 @@ export function Mostrador({
             >
               Editar consulta
             </button>
-          ) : (
-            <button
-              type="submit"
-              form={`${id}-form`}
-              disabled={!puedeRevisar}
-              className={`${BOTON} flex-1 bg-cruz text-white`}
-            >
-              Realizar consulta
-            </button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

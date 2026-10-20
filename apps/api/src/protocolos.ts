@@ -50,7 +50,7 @@ export async function protocoloPublicado(
   };
 }
 
-/** Carga los JSON de una carpeta en la tabla `protocolo` (los de F4-04 vivirán en `data/`). */
+/** Carga JSON versionados sin sustituir ninguna versión existente, incluida una firmada. */
 export async function cargarProtocolos(
   db: BaseDatos,
   directorio: string,
@@ -80,14 +80,12 @@ export async function cargarProtocolos(
       validadoPor: p.validadoPor,
       validadoEn: p.validadoEn ? new Date(p.validadoEn) : null,
     };
-    await conexion
+    const insertados = await conexion
       .insert(tablaProtocolo)
       .values(valores)
-      .onConflictDoUpdate({
-        target: [tablaProtocolo.id, tablaProtocolo.version],
-        set: valores,
-      });
-    cargados++;
+      .onConflictDoNothing({ target: [tablaProtocolo.id, tablaProtocolo.version] })
+      .returning({ id: tablaProtocolo.id });
+    cargados += insertados.length;
   }
   return cargados;
 }

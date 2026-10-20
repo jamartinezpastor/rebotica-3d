@@ -4,7 +4,7 @@ import type { BaldaEscena } from './Pasillo';
 
 export type EstadoPasillo =
   | { tipo: 'cargando' }
-  | { tipo: 'listo'; titulo: string; estado: 'borrador' | 'validado'; baldas: BaldaEscena[] }
+  | { tipo: 'listo'; titulo: string; estado: PasilloResponse['estado']; baldas: BaldaEscena[] }
   | { tipo: 'error'; mensaje: string };
 
 export function pasilloAEscena(

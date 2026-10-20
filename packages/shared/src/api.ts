@@ -96,7 +96,7 @@ export const PasilloResponse = z.strictObject({
   version: z.number().int().positive(),
   titulo: z.string().min(1),
   /** `borrador`: la UI debe mostrar «Demostración: pendiente de validación farmacéutica». */
-  estado: z.enum(['borrador', 'validado']),
+  estado: z.enum(['borrador', 'validado', 'informativo']),
   baldas: z.array(BaldaPasillo),
   /** Baldas que el perfil del paciente deja fuera (no se detallan). */
   ocultasPorPerfil: z.number().int().min(0),

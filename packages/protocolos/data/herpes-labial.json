@@ -1,0 +1,206 @@
+{
+  "id": "herpes-labial",
+  "version": 1,
+  "titulo": "Herpes labial",
+  "sinonimos": ["calentura en el labio", "herpes en el labio"],
+  "preguntasTriaje": [
+    {
+      "id": "emergencia-general",
+      "tipo": "siNo",
+      "texto": "¿Hay dificultad intensa para respirar, pérdida de conocimiento o dolor fuerte en el pecho?"
+    },
+    {
+      "id": "afectacion-ocular",
+      "tipo": "siNo",
+      "texto": "¿La lesión está cerca del ojo, tienes dolor ocular o cambia la visión?"
+    },
+    {
+      "id": "herpes-riesgo",
+      "tipo": "siNo",
+      "texto": "¿Es el primer episodio, la lesión es extensa, muy dolorosa, aparece dentro de la boca o tienes las defensas bajas?"
+    },
+    {
+      "id": "grupo",
+      "tipo": "grupo",
+      "texto": "¿Para quién es la consulta?"
+    },
+    {
+      "id": "edad",
+      "tipo": "edad",
+      "texto": "¿Qué edad tiene la persona?"
+    },
+    {
+      "id": "duracion",
+      "tipo": "duracion",
+      "texto": "¿Desde hace cuántas horas tienes estos síntomas?"
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "tipo": "siNo",
+      "texto": "¿Los síntomas empeoran o no mejoran con las medidas que has probado?"
+    },
+    {
+      "id": "situacion-compleja",
+      "tipo": "siNo",
+      "texto": "¿Tienes alguna enfermedad crónica, alergia a medicamentos o tomas o aplicas otro medicamento, incluido uno para estos síntomas?"
+    }
+  ],
+  "criteriosDerivacion": [
+    {
+      "id": "emergencia-general",
+      "descripcion": "Los síntomas necesitan atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "emergencia-general",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "herpes-ocular",
+      "descripcion": "La posible afectación ocular necesita valoración urgente.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "afectacion-ocular",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "herpes-valoracion",
+      "descripcion": "La lesión necesita diagnóstico o revisión médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "herpes-riesgo",
+            "operador": "igual",
+            "valor": true
+          },
+          {
+            "preguntaId": "duracion",
+            "operador": "mayorIgual",
+            "valor": 240
+          }
+        ]
+      }
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "descripcion": "La evolución de los síntomas necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "evolucion-desfavorable",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fuera-alcance",
+      "descripcion": "Este borrador no cubre esta situación; consulta de forma presencial.",
+      "urgencia": "farmaceutico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "bebe"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "nino"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "embarazo"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "lactancia"
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 216
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "mayorIgual",
+            "valor": 780
+          },
+          {
+            "preguntaId": "situacion-compleja",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    }
+  ],
+  "baldas": [
+    {
+      "titulo": "Aciclovir cutáneo para herpes labial",
+      "principioActivo": "aciclovir",
+      "orden": 1,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    }
+  ],
+  "vitrina": [
+    {
+      "principioActivo": "aciclovir",
+      "paraQueSeUsa": "Tratamiento antiviral sistémico de determinados episodios de herpes.",
+      "porQueNecesitaReceta": "Requiere diagnóstico, revisión de contraindicaciones e indicación médica. No inicies ni cambies tratamientos por tu cuenta.",
+      "situacion": "Solo si el médico confirma la indicación; las formas cutáneas y sistémicas no son intercambiables."
+    }
+  ],
+  "consejos": [
+    "Lávate las manos al tocar la lesión y evita besar, especialmente a bebés, hasta que cure.",
+    "Evita tocar los ojos y no compartas productos que contacten con los labios."
+  ],
+  "parafarmacia": ["Parche protector para herpes labial", "Protector labial solar"],
+  "estado": "borrador",
+  "validadoPor": null,
+  "validadoEn": null,
+  "revision": {
+    "consultadoEn": "2026-10-20",
+    "alcance": "Borrador editorial inicial para adultos de 18 a 64 años sin embarazo, lactancia, comorbilidad ni medicación concomitante. Estos límites delimitan el trabajo pendiente; no son edades de autorización de los medicamentos. No apto para uso clínico.",
+    "fuentes": [
+      {
+        "titulo": "NHS · Cold sores",
+        "url": "https://www.nhs.uk/conditions/cold-sores/"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 68296 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/68296/FT_68296.html"
+      }
+    ],
+    "pendienteDe": [
+      "Revisión y firma de un farmacéutico colegiado; contrastar criterios y urgencias con guías españolas de indicación farmacéutica.",
+      "Completar poblaciones, interacciones, alergias y contraindicaciones por presentación, vía y forma farmacéutica. El filtrado actual solo distingue principio activo y receta.",
+      "Revisar lenguaje y número de preguntas, documentar umbrales y preparar casos clínicos dorados y adversarios.",
+      "Restringir la balda a crema labial; separar formas sistémicas, recurrencias y otros diagnósticos."
+    ]
+  }
+}

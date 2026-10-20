@@ -64,4 +64,39 @@ describe('Protocolo', () => {
       false,
     );
   });
+
+  it('permite autocuidados sin imponer una balda de medicamentos', () => {
+    expect(Protocolo.safeParse({ ...protocoloFicticio, baldas: [] }).success).toBe(true);
+    expect(
+      Protocolo.safeParse({ ...protocoloFicticio, baldas: [], consejos: [], parafarmacia: [] })
+        .success,
+    ).toBe(false);
+  });
+
+  it('valida las fuentes y mantiene la revisión pendiente separada de la firma', () => {
+    const revision = {
+      consultadoEn: '2020-01-01',
+      alcance: 'Alcance ficticio de prueba',
+      fuentes: [{ titulo: 'Fuente ficticia', url: 'https://example.com/fuente' }],
+      pendienteDe: ['Revisión ficticia'],
+    };
+    expect(Protocolo.safeParse({ ...protocoloFicticio, revision }).success).toBe(true);
+    const firmado = {
+      ...protocoloFicticio,
+      estado: 'validado',
+      validadoPor: 'Firma ficticia',
+      validadoEn: '2020-01-01',
+      revision,
+    };
+    expect(Protocolo.safeParse(firmado).success).toBe(false);
+    expect(
+      Protocolo.safeParse({ ...firmado, revision: { ...revision, pendienteDe: [] } }).success,
+    ).toBe(true);
+    expect(
+      Protocolo.safeParse({
+        ...protocoloFicticio,
+        revision: { ...revision, fuentes: [{ titulo: 'Prueba', url: 'javascript:alert(1)' }] },
+      }).success,
+    ).toBe(false);
+  });
 });

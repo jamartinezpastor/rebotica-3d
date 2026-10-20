@@ -19,12 +19,13 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { buildApp } from '../../../apps/api/src/app';
+import { clasificadorDesdeEntorno } from '../../../apps/api/src/interpretacion/gemini';
 import { cargarReglasBorrador, leerReglasBorrador } from '../../../apps/api/src/reglas';
 import { construirAssets } from './assets/construir';
 import { crearClienteCima } from './cliente';
 import { guardarMedicamento, sincronizar } from './sync';
-import { urlFichaTecnica, urlMedicamento } from './cima';
-import { Detalle, SeccionesFT } from './esquemas';
+import { urlFichaTecnica, urlMedicamento, urlMedicamentos } from './cima';
+import { Detalle, Listado, SeccionesFT } from './esquemas';
 
 const total = Math.min(Math.max(Number(process.env.DEMO_MEDICAMENTOS) || 18, 4), 120);
 const directorio = process.env.DEMO_DIR ?? join(tmpdir(), 'rebotica-demo');
@@ -51,11 +52,36 @@ log(
     (informe.errores.length > 0 ? `, ${informe.errores.length} errores` : ''),
 );
 
-// Añade los cinco productos semilla aunque no estén en la primera página del catálogo.
+// Muestra de registros oficiales para explorar indicaciones, no una selección de tratamientos.
 const reglasDir = fileURLToPath(new URL('../../../packages/dosis/data/reglas/', import.meta.url));
 const semillas = await leerReglasBorrador(reglasDir, log);
 const registrosSemilla = new Set(semillas.map((r) => r.fuente.nregistro));
-for (const nregistro of registrosSemilla) {
+const registrosMuestra = new Set([
+  ...registrosSemilla,
+  '85630',
+  '88777',
+  '90775',
+  '60891',
+  '68296',
+  '66453',
+  '76859',
+  '81995',
+  '87838',
+]);
+// Resuelve presentaciones comercializadas en cada arranque: un registro fijo puede retirarse.
+for (const nombre of ['FLURBIPROFENO', 'LOPERAMIDA', 'OXIMETAZOLINA', 'ACICLOVIR']) {
+  const receta = nombre === 'ACICLOVIR';
+  const listado = await cliente.obtener(
+    urlMedicamentos({ nombre, receta, comercializados: true, autorizados: true }),
+    Listado,
+  );
+  for (const item of (listado?.resultados ?? [])
+    .filter((m) => !receta || m.formaFarmaceutica?.nombre === 'CREMA')
+    .slice(0, 2)) {
+    registrosMuestra.add(item.nregistro);
+  }
+}
+for (const nregistro of registrosMuestra) {
   const detalle = await cliente.obtener(urlMedicamento(nregistro), Detalle);
   if (!detalle) continue;
   const secciones = (await cliente.obtener(urlFichaTecnica(nregistro), SeccionesFT)) ?? [];
@@ -141,10 +167,16 @@ await db.insert(protocolo).values({
   },
 });
 
-const app = buildApp({ db, assetsDir: directorio });
+const app = buildApp({
+  db,
+  assetsDir: directorio,
+  interpretacion: { clasificar: clasificadorDesdeEntorno(process.env) },
+});
 await app.listen({ port: puerto, host: '127.0.0.1' });
 log(`API lista en http://127.0.0.1:${puerto}`);
-log('Abre http://localhost:5173/escena?pasillo=demo  (Ctrl+C para parar)');
+log(
+  'Abre http://localhost:5173: elige una dolencia para explorar el catálogo (Ctrl+C para parar).',
+);
 
 const cerrar = async () => {
   await app.close();

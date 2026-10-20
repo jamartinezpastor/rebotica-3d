@@ -29,3 +29,4 @@ export * from './api';
 export * from './consulta';
 export * from './interpretacion';
 export * from './triaje';
+export * from './exploracion';

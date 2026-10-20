@@ -170,6 +170,15 @@ function VistaEscena({
               Demostración: pendiente de validación farmacéutica
             </p>
           )}
+          {remoto.tipo === 'listo' && remoto.estado === 'informativo' && (
+            <p
+              role="note"
+              className="rounded-xl bg-white/95 p-3 text-base text-tinta ring-1 ring-cruz/30"
+            >
+              Catálogo informativo: las indicaciones de CIMA mencionan esta dolencia. No es una
+              selección de tratamiento para ti. Consulta la ficha completa.
+            </p>
+          )}
         </div>
       )}
 
@@ -271,18 +280,15 @@ export function App() {
       </header>
 
       <main className="mt-8 flex-1">
-        <ConsultaGuiada onActiva={setActiva} onPasillo={setPasilloConsulta} />
+        <ConsultaGuiada modo="informativo" onActiva={setActiva} onPasillo={setPasilloConsulta} />
         {!activa && (
           <>
-            <h2 className="mt-10 text-2xl leading-tight font-semibold tracking-tight">
-              Explora la demostración
-            </h2>
             <div className="mt-8 flex flex-col gap-3">
               <a
                 href="/escena?vitrina=1&vista=3d"
                 className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
               >
-                Ver medicamentos
+                Explorar medicamentos
               </a>
             </div>
           </>

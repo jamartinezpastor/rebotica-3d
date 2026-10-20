@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "demo": "tsx src/demo.ts"
+    "demo": "tsx --env-file-if-exists=../../.env src/demo.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",

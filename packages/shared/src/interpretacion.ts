@@ -53,7 +53,7 @@ export const DerivacionConsulta = z.strictObject({
 });
 export type DerivacionConsulta = z.infer<typeof DerivacionConsulta>;
 
-/** Clasificar no autoriza un pasillo: todavía debe pasar el triaje determinista. */
+/** Clasificar no autoriza tratamientos. Permite navegar al catálogo informativo por tema. */
 export const InterpretarRespuesta = z.discriminatedUnion('tipo', [
   DerivacionConsulta,
   z.strictObject({

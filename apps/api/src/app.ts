@@ -8,6 +8,7 @@ import type { BaseDatos } from './catalogo';
 import { registrarRutas } from './rutas';
 import { registrarInterpretacion, type OpcionesInterpretacion } from './interpretacion/ruta';
 import { registrarTriaje } from './triaje';
+import { registrarExploracion } from './exploracion';
 
 export interface AppOptions {
   fastify?: FastifyServerOptions;
@@ -56,6 +57,7 @@ export function buildApp({
   registrarRutas(app, db);
   registrarInterpretacion(app, interpretacion);
   registrarTriaje(app, db);
+  registrarExploracion(app, db);
 
   if (assetsDir) {
     const miniaturas = join(assetsDir, 'miniaturas');

@@ -100,6 +100,45 @@ afterEach(() => {
 });
 
 describe('mostrador, interpretación y triaje F4-03', () => {
+  it.each([
+    ['CATALOGO_NO_CONFIGURADO', 'El catálogo de consulta aún no está disponible'],
+    ['PROTOCOLO_NO_VALIDADO', 'Esta consulta está pendiente de revisión farmacéutica'],
+  ])('explica %s y ofrece la demostración sin abrirla automáticamente', async (codigo, titulo) => {
+    fetchSimulado.mockResolvedValueOnce(
+      Response.json({ error: 'Texto interno que no se muestra', codigo }, { status: 503 }),
+    );
+    const onPasillo = vi.fn();
+    render(<ConsultaGuiada onActiva={vi.fn()} onPasillo={onPasillo} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Realizar consulta' }));
+    continuar();
+    await screen.findByRole('heading', { name: titulo });
+    expect(screen.queryByText('Texto interno que no se muestra')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Ver demostración' }).getAttribute('href')).toBe(
+      '/escena?vitrina=1&vista=3d',
+    );
+    expect(screen.getByText(/productos ficticios/)).toBeTruthy();
+    expect(onPasillo).not.toHaveBeenCalled();
+    expect(fetchSimulado).toHaveBeenCalledTimes(1);
+  });
+
+  it('distingue interpretación no disponible y errores de conexión', async () => {
+    mostrar();
+    fetchSimulado.mockResolvedValueOnce(
+      Response.json({ error: 'Error interno', codigo: 'NO_DISPONIBLE' }, { status: 503 }),
+    );
+    revisarTexto();
+    continuar();
+    await screen.findByRole('heading', { name: 'No hemos podido interpretar el texto ahora' });
+    expect(screen.queryByRole('link', { name: 'Ver demostración' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva consulta' }));
+    fetchSimulado.mockRejectedValueOnce(new Error('Contenido privado del transporte'));
+    revisarTexto();
+    continuar();
+    await screen.findByRole('heading', { name: 'No hemos podido conectar con el servidor' });
+    expect(screen.queryByText(/Contenido privado del transporte/)).toBeNull();
+  });
+
   it('un servidor que no responde no mantiene la consulta esperando indefinidamente', () => {
     vi.useFakeTimers();
     fetchSimulado.mockImplementationOnce(() => new Promise(() => {}));
@@ -160,16 +199,16 @@ describe('mostrador, interpretación y triaje F4-03', () => {
         : Response.json(derivacion),
     );
     render(<App />);
-    expect(screen.getByRole('link', { name: 'Ver medicamentos' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Explorar medicamentos' })).toBeTruthy();
     revisarTexto('No puedo respirar. Caso sintético.');
     expect(screen.queryByRole('link', { name: /Explorar/ })).toBeNull();
-    continuar();
     const titulo = await screen.findByRole('heading', { name: 'Necesitas atención urgente' });
     expect(document.activeElement).toBe(titulo);
     expect(screen.getByRole('link', { name: 'Llamar al 112' }).getAttribute('href')).toBe(
       'tel:112',
     );
     expect(screen.queryByText('Explora la demostración')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ver demostración' })).toBeNull();
     expect(fetchSimulado.mock.calls.some(([url]) => String(url).includes('pasillos'))).toBe(false);
   });
   it('muestra apoyo específico y emergencias para conducta suicida, también si hay otra alarma', () => {
@@ -215,7 +254,8 @@ describe('mostrador, interpretación y triaje F4-03', () => {
   });
   it('valida números vacíos y negativos y solo abre el pasillo filtrado entregado por POST', async () => {
     const guardar = vi.spyOn(Storage.prototype, 'setItem');
-    render(<App />);
+    const onPasillo = vi.fn();
+    render(<ConsultaGuiada onActiva={vi.fn()} onPasillo={onPasillo} />);
     await iniciarChip();
     fireEvent.click(screen.getByRole('button', { name: 'No' }));
     await screen.findByRole('spinbutton');
@@ -227,7 +267,7 @@ describe('mostrador, interpretación y triaje F4-03', () => {
     fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar respuesta' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Ver el pasillo' }));
-    await screen.findByRole('heading', { name: 'Pasillo ficticio' });
+    expect(onPasillo).toHaveBeenCalledWith(pasillo);
     expect(
       fetchSimulado.mock.calls.every(
         ([url]) => !String(url).includes('?') && !String(url).includes('/pasillos/'),

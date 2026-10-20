@@ -1,0 +1,219 @@
+{
+  "id": "dolor-garganta",
+  "version": 1,
+  "titulo": "Dolor de garganta",
+  "sinonimos": ["me duele al tragar", "garganta irritada"],
+  "preguntasTriaje": [
+    {
+      "id": "emergencia-general",
+      "tipo": "siNo",
+      "texto": "¿Hay dificultad intensa para respirar, pérdida de conocimiento o dolor fuerte en el pecho?"
+    },
+    {
+      "id": "deglucion-alarma",
+      "tipo": "siNo",
+      "texto": "¿No puedes tragar saliva, babeas o haces un ruido agudo al respirar?"
+    },
+    {
+      "id": "deshidratacion",
+      "tipo": "siNo",
+      "texto": "¿Orinas mucho menos, tienes fiebre importante o las defensas bajas?"
+    },
+    {
+      "id": "analgesicos-continuados",
+      "tipo": "siNo",
+      "texto": "¿Llevas dos días seguidos usando analgésicos para este dolor de garganta?"
+    },
+    {
+      "id": "grupo",
+      "tipo": "grupo",
+      "texto": "¿Para quién es la consulta?"
+    },
+    {
+      "id": "edad",
+      "tipo": "edad",
+      "texto": "¿Qué edad tiene la persona?"
+    },
+    {
+      "id": "duracion",
+      "tipo": "duracion",
+      "texto": "¿Desde hace cuántas horas tienes estos síntomas?"
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "tipo": "siNo",
+      "texto": "¿Los síntomas empeoran o no mejoran con las medidas que has probado?"
+    },
+    {
+      "id": "situacion-compleja",
+      "tipo": "siNo",
+      "texto": "¿Tienes alguna enfermedad crónica, alergia a medicamentos o tomas o aplicas otro medicamento, incluido uno para estos síntomas?"
+    }
+  ],
+  "criteriosDerivacion": [
+    {
+      "id": "emergencia-general",
+      "descripcion": "Los síntomas necesitan atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "emergencia-general",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "deglucion-alarma",
+      "descripcion": "La dificultad para tragar saliva o respirar necesita atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "deglucion-alarma",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "garganta-valoracion",
+      "descripcion": "Los síntomas asociados necesitan valoración presencial.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "deshidratacion",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "garganta-persistente",
+      "descripcion": "El dolor de garganta necesita reevaluación médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "duracion",
+            "operador": "mayor",
+            "valor": 168
+          },
+          {
+            "preguntaId": "analgesicos-continuados",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "descripcion": "La evolución de los síntomas necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "evolucion-desfavorable",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fuera-alcance",
+      "descripcion": "Este borrador no cubre esta situación; consulta de forma presencial.",
+      "urgencia": "farmaceutico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "bebe"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "nino"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "embarazo"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "lactancia"
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 216
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "mayorIgual",
+            "valor": 780
+          },
+          {
+            "preguntaId": "situacion-compleja",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    }
+  ],
+  "baldas": [
+    {
+      "titulo": "Paracetamol",
+      "principioActivo": "paracetamol",
+      "orden": 1,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    }
+  ],
+  "vitrina": [],
+  "consejos": [
+    "Bebe agua y elige alimentos suaves o frescos.",
+    "Evita el humo. No uses antibióticos sin diagnóstico e indicación médica."
+  ],
+  "parafarmacia": [],
+  "estado": "borrador",
+  "validadoPor": null,
+  "validadoEn": null,
+  "revision": {
+    "consultadoEn": "2026-10-20",
+    "alcance": "Borrador editorial inicial para adultos de 18 a 64 años sin embarazo, lactancia, comorbilidad ni medicación concomitante. Estos límites delimitan el trabajo pendiente; no son edades de autorización de los medicamentos. No apto para uso clínico.",
+    "fuentes": [
+      {
+        "titulo": "NHS · Sore throat",
+        "url": "https://www.nhs.uk/symptoms/sore-throat/"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 52010 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/52010/FT_52010.html"
+      }
+    ],
+    "pendienteDe": [
+      "Revisión y firma de un farmacéutico colegiado; contrastar criterios y urgencias con guías españolas de indicación farmacéutica.",
+      "Completar poblaciones, interacciones, alergias y contraindicaciones por presentación, vía y forma farmacéutica. El filtrado actual solo distingue principio activo y receta.",
+      "Revisar lenguaje y número de preguntas, documentar umbrales y preparar casos clínicos dorados y adversarios.",
+      "Completar criterios de infección, recurrencia y elección de tratamientos locales."
+    ]
+  }
+}

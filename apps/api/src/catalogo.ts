@@ -219,6 +219,19 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
   }
 
   return {
+    /** Búsqueda documental local: solo sección 4.1 de productos comercializados. */
+    async buscarIndicaciones(coincide: (texto: string) => boolean): Promise<ProductoResumen[]> {
+      const [indice, secciones] = await Promise.all([
+        obtenerIndice(),
+        conexion
+          .select({ nregistro: seccionFt.nregistro, texto: seccionFt.texto })
+          .from(seccionFt)
+          .where(eq(seccionFt.seccion, '4.1')),
+      ]);
+      const registros = new Set(secciones.filter((s) => coincide(s.texto)).map((s) => s.nregistro));
+      return [...indice.porClave.values()].flat().filter((p) => registros.has(p.nregistro));
+    },
+
     /** Productos de un principio activo (o asociación), separados por condición de prescripción. */
     async productosDe(principioActivo: string, receta = false): Promise<ProductoResumen[]> {
       const { porClave } = await obtenerIndice();

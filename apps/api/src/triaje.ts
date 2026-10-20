@@ -21,10 +21,17 @@ export function registrarTriaje(app: FastifyInstance, db?: BaseDatos) {
       const id = ProtocoloConsulta.safeParse(req.params.id);
       if (!id.success || Object.keys(req.query as object).length)
         return reply.code(400).send({ error: 'Protocolo no válido' });
-      if (!db) return reply.code(503).send({ error: 'Triaje no disponible' });
+      if (!db)
+        return reply.code(503).send({
+          error: 'Catálogo de consulta no disponible',
+          codigo: 'CATALOGO_NO_CONFIGURADO',
+        });
       const publicado = await protocoloPublicado(db, id.data);
       if (!publicado || publicado.estado !== 'validado' || !protocoloEvaluable(publicado.protocolo))
-        return reply.code(503).send({ error: 'No hay un protocolo de triaje validado' });
+        return reply.code(503).send({
+          error: 'No hay un protocolo de triaje validado',
+          codigo: 'PROTOCOLO_NO_VALIDADO',
+        });
       return ProtocoloTriajeRespuesta.parse({
         id: publicado.protocolo.id,
         version: publicado.protocolo.version,
@@ -32,7 +39,8 @@ export function registrarTriaje(app: FastifyInstance, db?: BaseDatos) {
         preguntas: publicado.protocolo.preguntasTriaje,
       });
     },
-    errorHandler: (_error, _req, reply) => reply.code(503).send({ error: 'Triaje no disponible' }),
+    errorHandler: (_error, _req, reply) =>
+      reply.code(503).send({ error: 'Triaje no disponible', codigo: 'TRIAJE_NO_DISPONIBLE' }),
   });
   app.route({
     method: ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'TRACE'],
@@ -59,10 +67,17 @@ export function registrarTriaje(app: FastifyInstance, db?: BaseDatos) {
       const entrada = TriajeEntrada.safeParse(req.body);
       if (!entrada.success || Object.keys(req.query as object).length)
         return reply.code(400).send({ error: 'Respuestas no válidas' });
-      if (!db || !catalogo) return reply.code(503).send({ error: 'Triaje no disponible' });
+      if (!db || !catalogo)
+        return reply.code(503).send({
+          error: 'Catálogo de consulta no disponible',
+          codigo: 'CATALOGO_NO_CONFIGURADO',
+        });
       const publicado = await protocoloPublicado(db, entrada.data.protocoloId);
       if (!publicado || publicado.estado !== 'validado')
-        return reply.code(503).send({ error: 'No hay un protocolo de triaje validado' });
+        return reply.code(503).send({
+          error: 'No hay un protocolo de triaje validado',
+          codigo: 'PROTOCOLO_NO_VALIDADO',
+        });
       if (publicado.protocolo.version !== entrada.data.version)
         return reply
           .code(409)

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
   CONSULTAS_FRECUENTES,
+  ErrorTriaje,
+  ExplorarRespuesta,
   InterpretarRespuesta,
   ProtocoloTriajeRespuesta,
   TriajeRespuesta,
@@ -29,7 +31,46 @@ type Estado =
     }
   | { tipo: 'derivacion'; resultado: DerivacionConsulta | DerivacionTriaje }
   | { tipo: 'listo'; pasillo: PasilloResponse }
-  | { tipo: 'error'; cambiado: boolean };
+  | { tipo: 'vacio' }
+  | { tipo: 'error'; motivo: MotivoError };
+
+type MotivoError =
+  'cambiado' | 'catalogo' | 'protocolo' | 'interpretacion' | 'conexion' | 'servicio';
+class ErrorConsulta extends Error {
+  constructor(readonly motivo: MotivoError) {
+    super(motivo);
+  }
+}
+const MENSAJES_ERROR: Record<MotivoError, { titulo: string; texto: string }> = {
+  cambiado: {
+    titulo: 'Las preguntas de esta consulta han cambiado',
+    texto: 'Empieza una nueva consulta para usar la versión actual.',
+  },
+  catalogo: {
+    titulo: 'El catálogo de consulta aún no está disponible',
+    texto:
+      'Todavía no podemos mostrar medicamentos a partir de tu consulta. Puedes explorar la demostración con productos ficticios.',
+  },
+  protocolo: {
+    titulo: 'Esta consulta está pendiente de revisión farmacéutica',
+    texto:
+      'Sus preguntas y asociaciones con medicamentos aún no están validadas. Puedes explorar la demostración con productos ficticios.',
+  },
+  interpretacion: {
+    titulo: 'No hemos podido interpretar el texto ahora',
+    texto:
+      'Puedes empezar de nuevo y elegir una consulta frecuente o volver a intentarlo más tarde.',
+  },
+  conexion: {
+    titulo: 'No hemos podido conectar con el servidor',
+    texto: 'Comprueba la conexión y vuelve a intentarlo. La consulta no se ha completado.',
+  },
+  servicio: {
+    titulo: 'No podemos completar esta consulta ahora',
+    texto:
+      'El servicio no está disponible o no ha devuelto una respuesta válida. Vuelve a intentarlo más tarde.',
+  },
+};
 
 async function solicitar(url: string, control: AbortController, body?: unknown) {
   const r = await fetch(url, {
@@ -40,17 +81,31 @@ async function solicitar(url: string, control: AbortController, body?: unknown) 
     ...(body === undefined
       ? {}
       : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+  }).catch(() => {
+    throw new ErrorConsulta('conexion');
   });
-  if (!r.ok) throw r.status === 409 ? new Error('cambiado') : new Error('no-disponible');
+  if (!r.ok) {
+    if (r.status === 409) throw new ErrorConsulta('cambiado');
+    if (url.startsWith('/api/protocolos/') || url === '/api/triaje' || url === '/api/explorar') {
+      const fallo = ErrorTriaje.safeParse(await r.json().catch(() => null));
+      if (fallo.success && fallo.data.codigo === 'CATALOGO_NO_CONFIGURADO')
+        throw new ErrorConsulta('catalogo');
+      if (fallo.success && fallo.data.codigo === 'PROTOCOLO_NO_VALIDADO')
+        throw new ErrorConsulta('protocolo');
+    }
+    throw new ErrorConsulta(url === '/api/interpretar' ? 'interpretacion' : 'servicio');
+  }
   return r.json() as Promise<unknown>;
 }
 
 export function ConsultaGuiada({
   onActiva,
   onPasillo,
+  modo = 'triaje',
 }: {
   onActiva: (activa: boolean) => void;
   onPasillo: (pasillo: PasilloResponse) => void;
+  modo?: 'triaje' | 'informativo';
 }) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'entrada' });
   const pendiente = useRef<AbortController | null>(null);
@@ -94,7 +149,7 @@ export function ConsultaGuiada({
       c.abort();
       if (pendiente.current === c) {
         pendiente.current = null;
-        setEstado({ tipo: 'error', cambiado: false });
+        setEstado({ tipo: 'error', motivo: 'conexion' });
       }
     }, 30000);
     const limpiarPlazo = () => clearTimeout(temporizador);
@@ -103,7 +158,7 @@ export function ConsultaGuiada({
       await accion(c);
     } catch (e) {
       if (!c.signal.aborted)
-        setEstado({ tipo: 'error', cambiado: e instanceof Error && e.message === 'cambiado' });
+        setEstado({ tipo: 'error', motivo: e instanceof ErrorConsulta ? e.motivo : 'servicio' });
     } finally {
       limpiarPlazo();
       c.signal.removeEventListener('abort', limpiarPlazo);
@@ -111,6 +166,17 @@ export function ConsultaGuiada({
     }
   };
   const cargar = async (id: string, c: AbortController) => {
+    if (modo === 'informativo') {
+      const pasillo = ExplorarRespuesta.parse(
+        await solicitar('/api/explorar', c, { consultaId: id }),
+      );
+      if (pasillo.id !== id) throw new Error('contrato');
+      if (c.signal.aborted) return;
+      if (![...pasillo.baldas, ...pasillo.vitrina].some((g) => g.productos.length))
+        setEstado({ tipo: 'vacio' });
+      else onPasillo(pasillo);
+      return;
+    }
     const p = ProtocoloTriajeRespuesta.parse(
       await solicitar(`/api/protocolos/${encodeURIComponent(id)}`, c),
     );
@@ -201,7 +267,10 @@ export function ConsultaGuiada({
     });
   };
 
-  if (estado.tipo === 'entrada') return <Mostrador onContinuar={continuar} onRevision={onActiva} />;
+  if (estado.tipo === 'entrada')
+    return (
+      <Mostrador directo={modo === 'informativo'} onContinuar={continuar} onRevision={onActiva} />
+    );
   const pregunta =
     estado.tipo === 'preguntas'
       ? estado.protocolo.preguntas.find((q) => q.id === estado.pendientes[0])
@@ -212,6 +281,17 @@ export function ConsultaGuiada({
         <p role="status" className="text-lg">
           Preparando tu consulta…
         </p>
+      )}
+      {estado.tipo === 'vacio' && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold">
+            No hay medicamentos relacionados en este catálogo
+          </h2>
+          <p>
+            La copia local de las indicaciones oficiales no contiene coincidencias para esta
+            dolencia. Puedes elegir otra consulta.
+          </p>
+        </section>
       )}
       {estado.tipo === 'derivacion' && <Derivacion resultado={estado.resultado} />}
       {estado.tipo === 'aclaracion' && (
@@ -294,12 +374,16 @@ export function ConsultaGuiada({
       )}
       {estado.tipo === 'error' && (
         <section role="alert" className="space-y-3">
-          <h2 className="text-2xl font-semibold">No podemos completar esta consulta ahora</h2>
-          <p>
-            {estado.cambiado
-              ? 'Han cambiado las preguntas de seguridad. Empieza una nueva consulta.'
-              : 'No se ha autorizado ningún pasillo. Habla con tu farmacéutico o tu centro de salud para recibir orientación.'}
-          </p>
+          <h2 className="text-2xl font-semibold">{MENSAJES_ERROR[estado.motivo].titulo}</h2>
+          <p>{MENSAJES_ERROR[estado.motivo].texto}</p>
+          {(estado.motivo === 'catalogo' || estado.motivo === 'protocolo') && (
+            <a
+              href="/escena?vitrina=1&vista=3d"
+              className="inline-flex min-h-12 items-center rounded-xl bg-cruz px-4 font-semibold text-white"
+            >
+              Ver demostración
+            </a>
+          )}
           <a
             href="tel:112"
             className="inline-flex min-h-12 items-center font-semibold text-cruz underline"

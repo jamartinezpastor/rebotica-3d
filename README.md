@@ -1,7 +1,7 @@
 # Rebotica 3D
 
-Consejo farmacéutico visual para síntomas leves: cuentas qué te pasa, recorres un pasillo 3D con
-los productos sin receta adecuados y consultas la ficha técnica oficial. Los medicamentos que
+Catálogo informativo por dolencia: escribes qué te pasa o pulsas una consulta frecuente y recorres
+un pasillo 3D con los medicamentos cuyas indicaciones oficiales mencionan ese tema. Los medicamentos que
 necesitan receta aparecen en una vitrina diferenciada, con aviso de precaución y ficha completa.
 
 > Información orientativa. No sustituye la valoración de un médico o farmacéutico.
@@ -21,22 +21,31 @@ pnpm dev
 - Web: http://localhost:5173
 - API: http://localhost:3000/api/health
 
-La portada incluye el mostrador: campo de texto, cuatro consultas frecuentes iniciales
-(catorce al pulsar «Ver más consultas») y un único botón inferior «Realizar consulta».
-«Ver medicamentos» abre el pasillo ficticio con vitrina, sin necesitar catálogo sincronizado
+La portada incluye un campo de texto de tres líneas y cuatro consultas frecuentes iniciales
+(catorce al pulsar «Ver más consultas»). «Realizar consulta» aparece debajo del campo únicamente
+cuando contiene texto. «Explorar medicamentos» abre el pasillo ficticio con vitrina, sin necesitar catálogo sincronizado
 ni base de datos. Dentro se puede cambiar a la vista lista. El dictado está retirado de la interfaz.
 
 ### Mostrador y privacidad
 
-Los chips rellenan el campo; editarlo elimina la selección anterior. «Realizar consulta»
-valida hasta 2000 caracteres con Zod y abre la revisión local, donde se puede editar o
-borrar la consulta. Solo «Continuar», después de explicar el envío, conecta con la
-interpretación y el triaje de F4-02/F4-03. Los catorce chips son etiquetas de entrada,
-no protocolos clínicos validados.
+Cambio de alcance del 20/10/2026: un clic en un chip abre el catálogo relacionado. Al escribir,
+«Realizar consulta» valida hasta 2000 caracteres y envía el texto al filtro de alarmas y Gemini.
+Si se identifica una dolencia, se abre directamente el catálogo;
+si hay dudas se pide elegir una alternativa. Las alarmas sustituyen los productos por derivación.
+No hay revisión intermedia ni cuestionario obligatorio en este recorrido informativo.
 
-Texto y selección viven en memoria y no se guardan, registran ni añaden a la URL. La
-revisión advierte de que la consulta todavía no se ha evaluado. Los accesos a medicamentos
-no utilizan el texto del mostrador y se ocultan al iniciar la revisión.
+`POST /api/explorar` recibe únicamente el id cerrado del tema y busca términos en la sección
+**4.1 (indicaciones)** de la copia local de CIMA. No busca en la posología ni elige medicamentos
+por su nombre o por un protocolo en borrador. Solo incluye medicamentos comercializados, agrupa
+alfabéticamente por principio activo y separa los de receta en la vitrina. Una coincidencia
+documental no determina si un medicamento está indicado para una persona concreta. Se advierte
+en el pasillo; los resultados vacíos se explican sin inventar productos.
+
+El estado `informativo` se distingue de un protocolo `validado` o un `borrador`: no autoriza
+tratamientos. Al pulsar un producto se conserva la ficha completa, fotos, caja 3D, pestañas Uso,
+Precauciones y Dosis y enlaces a CIMA. La calculadora conserva sus requisitos de validación.
+Texto y selección viven en memoria, sin almacenamiento, registros ni URL; nueva consulta y salida
+cancelan las peticiones. Un error no abre automáticamente una demostración.
 
 ## Comprobaciones
 
@@ -54,13 +63,13 @@ docker build -t rebotica-3d .
 docker run --rm -p 3000:3000 rebotica-3d
 ```
 
-| Variable         | Por defecto    | Para qué                                                      |
-| ---------------- | -------------- | ------------------------------------------------------------- |
-| `PORT`           | `3000`         | Puerto HTTP                                                   |
-| `WEB_DIST`       | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve        |
-| `DATABASE_URL`   | —              | PostgreSQL; la API aplica las migraciones al arrancar         |
-| `ASSETS_DIR`     | `/data/assets` | Carpeta persistente de fotos y miniaturas (montar un volumen) |
-| `PROTOCOLOS_DIR` | —              | Carpeta con los JSON de protocolos que se cargan al arrancar  |
+| Variable         | Por defecto    | Para qué                                                                      |
+| ---------------- | -------------- | ----------------------------------------------------------------------------- |
+| `PORT`           | `3000`         | Puerto HTTP                                                                   |
+| `WEB_DIST`       | `/app/public`  | Carpeta de la web compilada; vacía, la API no la sirve                        |
+| `DATABASE_URL`   | —              | PostgreSQL; la API aplica las migraciones al arrancar                         |
+| `ASSETS_DIR`     | `/data/assets` | Carpeta persistente de fotos y miniaturas (montar un volumen)                 |
+| `PROTOCOLOS_DIR` | —              | Carpeta con JSON de protocolos; en Docker, `/app/protocolos` (carga opcional) |
 
 El job se lanza dentro del contenedor con `node jobs/sync-cima/dist/index.js` (tarea programada
 diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
@@ -95,8 +104,12 @@ pnpm demo
 ```
 
 Levanta la API con una base de datos en memoria (PGlite), descarga de CIMA hasta 18 medicamentos
-de cada catálogo con sus fichas y fotos, extrae la paleta de sus envases, monta un pasillo de ejemplo y
-arranca la web. Tarda un par de minutos la primera vez (las fotos se guardan en la carpeta
+de cada catálogo, más una muestra de registros para explorar distintas indicaciones, con sus
+fichas y fotos, extrae la paleta de sus envases y arranca la web. No requiere configurar PostgreSQL.
+La API de demostración carga también la configuración de Gemini desde `.env` de la raíz. Los
+chips funcionan sin Gemini; para texto libre se requiere su clave y activación. Abre la portada
+para probar **dolencia → medicamentos → ficha completa**, o el pasillo general siguiente.
+Tarda un par de minutos al arrancar (las fotos se guardan en la carpeta
 temporal del sistema y se reutilizan). Cuando veas «API lista», abre:
 
 - <http://localhost:5173/escena?pasillo=demo>: pasillo con cajas reales y ficha con el texto
@@ -241,13 +254,17 @@ de sincronizar el catálogo. Nunca sobrescriben versiones existentes. F6-01 sigu
 ## API de datos
 
 F4-02 incorpora `POST /api/interpretar`: filtro local de alarmas prioritario, clasificación
-cerrada opcional con Gemini y validación de esquema. No abre pasillos ni decide tratamientos.
-El mostrador revisa localmente el texto y lo envía solo al pulsar Continuar. Configuración,
+cerrada opcional con Gemini y validación de esquema. No decide tratamientos. La portada envía
+el texto solo al pulsar Realizar consulta y navega al catálogo informativo. Configuración,
 privacidad, pruebas y resultado de la evaluación real en [Interpretación](apps/api/INTERPRETACION.md).
-F4-03 incorpora las tarjetas y el [motor de triaje y derivación](apps/api/TRIAJE.md):
-solo un protocolo firmado y todas las respuestas confirmadas pueden autorizar el pasillo.
-Las alarmas y los errores bloquean la vista de productos. Todavía no hay protocolos clínicos
-validados instalados; los borradores de los 14 protocolos corresponden a F4-04.
+F4-03 conserva las tarjetas y el [motor de triaje y derivación](apps/api/TRIAJE.md) para un futuro
+recorrido clínico: solo un protocolo firmado y todas las respuestas confirmadas pueden autorizar
+una recomendación mediante ese motor. El catálogo informativo no utiliza esa autorización.
+Las alarmas y los errores bloquean la vista de productos. F4-04 incorpora los
+[14 borradores de protocolos](packages/protocolos/data/README.md), con fuentes oficiales,
+preguntas, criterios, baldas y grupos de vitrina. Se importan opcionalmente mediante
+`PROTOCOLOS_DIR`, sin sustituir versiones existentes. Todos siguen sin firma, con revisión
+pendiente: todavía no hay protocolos clínicos validados que autoricen recomendaciones clínicas.
 
 El paquete [`@rebotica/dosis`](packages/dosis/README.md) implementa el cálculo puro con reglas
 validadas, cita literal y hash vigente de la sección 4.2. Incluye redondeo decimal hacia abajo,
@@ -257,6 +274,7 @@ reglas clínicas de producción.
 
 | Ruta                             | Qué devuelve                                                                            |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
+| `POST /api/explorar`             | Catálogo informativo por `consultaId`, desde las indicaciones 4.1 de CIMA local         |
 | `GET /api/pasillos/:id`          | Baldas sin receta y vitrina con receta, ambas con productos y condición de prescripción |
 | `GET /api/productos/:nregistro`  | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente       |
 | `GET /media/miniaturas/:archivo` | Miniatura del envase, con caché inmutable                                               |

@@ -23,7 +23,14 @@ describe('Mostrador F4-01', () => {
     render(<Mostrador />);
     expect(screen.queryByRole('button', { name: 'Dictar consulta' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nueva consulta' })).toBeNull();
-    expect(revisar().disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
+    expect(entrada().rows).toBe(3);
+    fireEvent.change(entrada(), { target: { value: '  ' } });
+    expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
+    fireEvent.change(entrada(), { target: { value: 'Consulta ficticia' } });
+    expect(revisar().closest('form')).toBe(entrada().closest('form'));
+    fireEvent.change(entrada(), { target: { value: '' } });
+    expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
     const grupo = screen.getByRole('group', { name: 'Consultas frecuentes' });
     expect(within(grupo).getAllByRole('button', { pressed: false })).toHaveLength(4);
     fireEvent.click(screen.getByRole('button', { name: 'Ver más consultas' }));
@@ -63,7 +70,7 @@ describe('Mostrador F4-01', () => {
     fireEvent.click(revisar());
     fireEvent.click(screen.getByRole('button', { name: 'Nueva consulta' }));
     expect(entrada().value).toBe('');
-    expect(revisar().disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
     expect(guardar).not.toHaveBeenCalled();
     expect(historial).not.toHaveBeenCalled();

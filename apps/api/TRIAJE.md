@@ -1,9 +1,16 @@
 # Triaje — F4-03
 
+**Cambio de alcance del 20/10/2026:** la portada usa ahora el catálogo informativo por dolencia
+de `POST /api/explorar`, sin cuestionario ni autorización clínica. Se conservan este motor y sus
+pruebas para un futuro recorrido clínico. Las secciones siguientes describen ese recorrido,
+no el funcionamiento actual de la portada. La búsqueda informativa consulta exclusivamente 4.1
+de CIMA local; no reutiliza los medicamentos seleccionados en protocolos sin validar.
+
 El motor vive en `@rebotica/protocolos`. Evalúa únicamente condiciones estructuradas del
 JSON firmado: nunca interpreta descripciones con un modelo, ejecuta código del JSON ni
 incorpora umbrales clínicos de memoria. Las pruebas usan protocolos y umbrales ficticios
-fuera de `data/`. Los 14 borradores clínicos corresponden a F4-04 y su validación a F6-01.
+fuera de `data/`. F4-04 incorpora los [14 borradores clínicos](../../packages/protocolos/data/README.md)
+con fuentes y revisión pendiente; su validación corresponde a F6-01.
 
 ## Protocolo ejecutable
 
@@ -60,6 +67,14 @@ interfaz solicita empezar de nuevo. Tipos, claves o respuestas no válidos respo
 Los errores no exponen excepciones ni contenido de la petición. Las rutas silencian el
 logger y devuelven `Cache-Control: no-store`, también en errores.
 
+La indisponibilidad incluye un código público: `CATALOGO_NO_CONFIGURADO` cuando falta la
+conexión al catálogo, `PROTOCOLO_NO_VALIDADO` si no hay protocolo publicable y
+`TRIAJE_NO_DISPONIBLE` ante un fallo del servicio. La interfaz distingue estos casos de
+un fallo de interpretación o conexión, sin mostrar mensajes internos del servidor. Para
+catálogo o protocolo pendientes ofrece «Ver demostración», un acceso explícito a productos
+ficticios que no utiliza el texto de la consulta; nunca abre un pasillo como alternativa
+automática a un error. Las señales de alarma no ofrecen este acceso.
+
 `recomendar` incluye `pasilloId`, versión y el pasillo **ya filtrado** por las respuestas.
 Se reutiliza la construcción del catálogo existente: sin receta en baldas y con receta en
 vitrina, con las mismas fichas. Esto evita enviar el perfil a un GET, al historial o a una
@@ -96,5 +111,7 @@ privacidad, cancelación, resultados tardíos, foco y el flujo hasta la lista.
 
 Sin protocolos clínicos firmados instalados, el mostrador muestra la indisponibilidad y
 ofrece atención profesional. El código no convierte borradores en recomendaciones ni los
-firma automáticamente. La prueba real de conectividad y clasificación con Gemini se registra
+firma automáticamente. El cargador no sustituye versiones existentes; los borradores con
+tareas en `revision.pendienteDe` tampoco admiten promoción a `validado` en el esquema.
+La prueba real de conectividad y clasificación con Gemini se registra
 en [Interpretación](INTERPRETACION.md). La revisión clínica del corpus de F4-02 sigue pendiente.

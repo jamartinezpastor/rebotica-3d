@@ -15,8 +15,9 @@ Los esquemas están en `packages/shared/src/interpretacion.ts`.
   emergencia; la pantalla debe ofrecer también el apoyo específico y explicar que ante
   peligro inmediato se contacta con emergencias.
 - `tipo: "clasificacion"`: protocolo del catálogo cerrado, confianza y datos explícitos
-  (para quién, grupo, edad y duración). **No permite abrir un pasillo**: falta el triaje
-  determinista F4-03. Una confianza de 0,8 es un umbral de interacción, no una medida
+  (para quién, grupo, edad y duración). Permite navegar al **catálogo informativo por tema**;
+  no autoriza un tratamiento ni convierte los datos extraídos en un perfil confirmado.
+  Una confianza de 0,8 es un umbral de interacción, no una medida
   clínicamente calibrada de seguridad.
 - `tipo: "aclaracion"`: hasta tres alternativas distintas del catálogo. Sin coincidencias
   puede devolver cero alternativas para solicitar reformulación, en lugar de inventarlas.
@@ -120,6 +121,8 @@ Flash-Lite completó una clasificación sintética con JSON válido en aproximad
 La primera tanda sin pausas tuvo errores de disponibilidad; la ejecución completa con pausas
 terminó sin errores. No se conservan claves ni respuestas del modelo en este documento.
 
-F4-03 conecta el
-mostrador únicamente tras revisión y envío explícito con `Continuar`, y aplica después el
-[triaje determinista](TRIAJE.md). La clasificación por sí sola nunca abre un pasillo.
+Cambio de alcance del usuario el 20/10/2026: la portada envía el texto con `Realizar consulta`
+y abre `POST /api/explorar` con el identificador del tema.
+Los chips cerrados omiten el modelo. No se exige revisión intermedia ni cuestionario para
+navegar por indicaciones oficiales; una alarma sigue sustituyendo el catálogo por derivación.
+El [triaje determinista](TRIAJE.md) se conserva para un futuro recorrido clínico independiente.

@@ -1,0 +1,240 @@
+{
+  "id": "fiebre",
+  "version": 1,
+  "titulo": "Fiebre",
+  "sinonimos": ["tengo fiebre", "temperatura elevada"],
+  "preguntasTriaje": [
+    {
+      "id": "emergencia-general",
+      "tipo": "siNo",
+      "texto": "¿Hay dificultad intensa para respirar, pérdida de conocimiento o dolor fuerte en el pecho?"
+    },
+    {
+      "id": "fiebre-alarma",
+      "tipo": "siNo",
+      "texto": "¿Hay rigidez de nuca, convulsiones, manchas que no desaparecen al presionarlas o confusión?"
+    },
+    {
+      "id": "inmunodepresion",
+      "tipo": "siNo",
+      "texto": "¿Tienes las defensas bajas por una enfermedad o tratamiento?"
+    },
+    {
+      "id": "grupo",
+      "tipo": "grupo",
+      "texto": "¿Para quién es la consulta?"
+    },
+    {
+      "id": "edad",
+      "tipo": "edad",
+      "texto": "¿Qué edad tiene la persona?"
+    },
+    {
+      "id": "duracion",
+      "tipo": "duracion",
+      "texto": "¿Desde hace cuántas horas tienes estos síntomas?"
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "tipo": "siNo",
+      "texto": "¿Los síntomas empeoran o no mejoran con las medidas que has probado?"
+    },
+    {
+      "id": "situacion-compleja",
+      "tipo": "siNo",
+      "texto": "¿Tienes alguna enfermedad crónica, alergia a medicamentos o tomas o aplicas otro medicamento, incluido uno para estos síntomas?"
+    }
+  ],
+  "criteriosDerivacion": [
+    {
+      "id": "emergencia-general",
+      "descripcion": "Los síntomas necesitan atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "emergencia-general",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fiebre-alarma",
+      "descripcion": "La fiebre se acompaña de señales de alarma.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "fiebre-alarma",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "lactante-pequeno",
+      "descripcion": "La fiebre en un bebé tan pequeño necesita valoración urgente.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "inmunodepresion",
+      "descripcion": "La fiebre con defensas bajas necesita valoración presencial.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "inmunodepresion",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fiebre-persistente",
+      "descripcion": "La fiebre persiste y necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "duracion",
+            "operador": "mayor",
+            "valor": 72
+          }
+        ]
+      }
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "descripcion": "La evolución de los síntomas necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "evolucion-desfavorable",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fuera-alcance",
+      "descripcion": "Este borrador no cubre esta situación; consulta de forma presencial.",
+      "urgencia": "farmaceutico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "bebe"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "nino"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "embarazo"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "lactancia"
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 216
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "mayorIgual",
+            "valor": 780
+          },
+          {
+            "preguntaId": "situacion-compleja",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    }
+  ],
+  "baldas": [
+    {
+      "titulo": "Paracetamol",
+      "principioActivo": "paracetamol",
+      "orden": 1,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    },
+    {
+      "titulo": "Ibuprofeno",
+      "principioActivo": "ibuprofeno",
+      "orden": 2,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    }
+  ],
+  "vitrina": [],
+  "consejos": [
+    "Descansa y bebe líquidos para evitar la deshidratación.",
+    "Los antibióticos no se eligen por tener fiebre: hay que conocer la causa."
+  ],
+  "parafarmacia": ["Termómetro digital"],
+  "estado": "borrador",
+  "validadoPor": null,
+  "validadoEn": null,
+  "revision": {
+    "consultadoEn": "2026-10-20",
+    "alcance": "Borrador editorial inicial para adultos de 18 a 64 años sin embarazo, lactancia, comorbilidad ni medicación concomitante. Estos límites delimitan el trabajo pendiente; no son edades de autorización de los medicamentos. No apto para uso clínico.",
+    "fuentes": [
+      {
+        "titulo": "NHS · Fever in adults",
+        "url": "https://www.nhs.uk/symptoms/fever-in-adults/"
+      },
+      {
+        "titulo": "NHS · Fever in children",
+        "url": "https://www.nhs.uk/symptoms/fever-in-children/"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 52010 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/52010/FT_52010.html"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 67968 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/67968/FT_67968.html"
+      }
+    ],
+    "pendienteDe": [
+      "Revisión y firma de un farmacéutico colegiado; contrastar criterios y urgencias con guías españolas de indicación farmacéutica.",
+      "Completar poblaciones, interacciones, alergias y contraindicaciones por presentación, vía y forma farmacéutica. El filtrado actual solo distingue principio activo y receta.",
+      "Revisar lenguaje y número de preguntas, documentar umbrales y preparar casos clínicos dorados y adversarios.",
+      "Completar el triaje pediátrico, la temperatura medida y los factores de riesgo de infección."
+    ]
+  }
+}

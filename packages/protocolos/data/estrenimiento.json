@@ -1,0 +1,194 @@
+{
+  "id": "estrenimiento",
+  "version": 1,
+  "titulo": "Estreñimiento",
+  "sinonimos": ["me cuesta defecar", "heces duras", "no puedo hacer de vientre"],
+  "preguntasTriaje": [
+    {
+      "id": "emergencia-general",
+      "tipo": "siNo",
+      "texto": "¿Hay dificultad intensa para respirar, pérdida de conocimiento o dolor fuerte en el pecho?"
+    },
+    {
+      "id": "obstruccion",
+      "tipo": "siNo",
+      "texto": "¿Tienes dolor abdominal intenso, vómitos o no puedes expulsar gases?"
+    },
+    {
+      "id": "cambio-intestinal",
+      "tipo": "siNo",
+      "texto": "¿Hay sangre, pérdida de peso, cambio repentino del ritmo intestinal o estreñimiento que se repite?"
+    },
+    {
+      "id": "grupo",
+      "tipo": "grupo",
+      "texto": "¿Para quién es la consulta?"
+    },
+    {
+      "id": "edad",
+      "tipo": "edad",
+      "texto": "¿Qué edad tiene la persona?"
+    },
+    {
+      "id": "duracion",
+      "tipo": "duracion",
+      "texto": "¿Desde hace cuántas horas tienes estos síntomas?"
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "tipo": "siNo",
+      "texto": "¿Los síntomas empeoran o no mejoran con las medidas que has probado?"
+    },
+    {
+      "id": "situacion-compleja",
+      "tipo": "siNo",
+      "texto": "¿Tienes alguna enfermedad crónica, alergia a medicamentos o tomas o aplicas otro medicamento, incluido uno para estos síntomas?"
+    }
+  ],
+  "criteriosDerivacion": [
+    {
+      "id": "emergencia-general",
+      "descripcion": "Los síntomas necesitan atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "emergencia-general",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "obstruccion",
+      "descripcion": "Los síntomas abdominales necesitan valoración urgente.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "obstruccion",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "cambio-intestinal",
+      "descripcion": "El cambio intestinal o los síntomas asociados necesitan valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "cambio-intestinal",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "descripcion": "La evolución de los síntomas necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "evolucion-desfavorable",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fuera-alcance",
+      "descripcion": "Este borrador no cubre esta situación; consulta de forma presencial.",
+      "urgencia": "farmaceutico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "bebe"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "nino"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "embarazo"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "lactancia"
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 216
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "mayorIgual",
+            "valor": 780
+          },
+          {
+            "preguntaId": "situacion-compleja",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    }
+  ],
+  "baldas": [
+    {
+      "titulo": "Laxantes osmóticos: lactulosa",
+      "principioActivo": "lactulosa",
+      "orden": 1,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    }
+  ],
+  "vitrina": [],
+  "consejos": [
+    "Aumenta la fibra gradualmente, bebe agua y mantén actividad física adaptada.",
+    "No retrases las ganas de ir al baño ni suspendas medicación prescrita por tu cuenta."
+  ],
+  "parafarmacia": ["Apoyo para los pies al sentarse en el inodoro"],
+  "estado": "borrador",
+  "validadoPor": null,
+  "validadoEn": null,
+  "revision": {
+    "consultadoEn": "2026-10-20",
+    "alcance": "Borrador editorial inicial para adultos de 18 a 64 años sin embarazo, lactancia, comorbilidad ni medicación concomitante. Estos límites delimitan el trabajo pendiente; no son edades de autorización de los medicamentos. No apto para uso clínico.",
+    "fuentes": [
+      {
+        "titulo": "NHS · Constipation",
+        "url": "https://www.nhs.uk/conditions/constipation/"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 90775 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/90775/FT_90775.html"
+      }
+    ],
+    "pendienteDe": [
+      "Revisión y firma de un farmacéutico colegiado; contrastar criterios y urgencias con guías españolas de indicación farmacéutica.",
+      "Completar poblaciones, interacciones, alergias y contraindicaciones por presentación, vía y forma farmacéutica. El filtrado actual solo distingue principio activo y receta.",
+      "Revisar lenguaje y número de preguntas, documentar umbrales y preparar casos clínicos dorados y adversarios.",
+      "Descartar causa orgánica antes de elegir laxante; completar duración, intolerancias e interacciones."
+    ]
+  }
+}

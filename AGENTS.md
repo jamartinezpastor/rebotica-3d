@@ -9,6 +9,14 @@ https://Codex.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 
 ## Cómo trabajar
 
+Cambio de alcance del usuario el 20/10/2026: el recorrido principal es un **catálogo informativo
+por dolencia**, sin cuestionario obligatorio. Un chip abre los productos directamente; el texto
+pasa por el filtro de alarmas y Gemini antes de explorar. Las asociaciones son búsquedas textuales
+en la sección 4.1 de la copia local de CIMA, no recomendaciones personalizadas ni selección de
+principios activos por IA. Se mantiene toda la ficha al pulsar un producto, la separación con
+receta y el requisito de reglas de dosis validadas. Los protocolos y el motor de triaje quedan
+disponibles para un futuro flujo clínico, pero no bloquean la navegación informativa.
+
 - Se trabaja por tickets del plan (`F0-01`, `F1-02`…). Implementa solo el ticket pedido y cumple
   su criterio de «hecho».
 - Antes de dar un ticket por terminado: `pnpm check` en verde (formato, lint, tipos, tests, build).

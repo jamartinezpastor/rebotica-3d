@@ -1,0 +1,221 @@
+{
+  "id": "alergia-estacional",
+  "version": 1,
+  "titulo": "Alergia estacional",
+  "sinonimos": ["alergia al polen", "rinitis alérgica", "estornudos y picor nasal"],
+  "preguntasTriaje": [
+    {
+      "id": "emergencia-general",
+      "tipo": "siNo",
+      "texto": "¿Hay dificultad intensa para respirar, pérdida de conocimiento o dolor fuerte en el pecho?"
+    },
+    {
+      "id": "alergia-alarma",
+      "tipo": "siNo",
+      "texto": "¿Se hinchan de repente los labios, la lengua o la garganta, o tienes dificultad para respirar?"
+    },
+    {
+      "id": "asma-ocular",
+      "tipo": "siNo",
+      "texto": "¿Tienes silbidos al respirar, empeoramiento del asma, dolor ocular o cambios de visión?"
+    },
+    {
+      "id": "grupo",
+      "tipo": "grupo",
+      "texto": "¿Para quién es la consulta?"
+    },
+    {
+      "id": "edad",
+      "tipo": "edad",
+      "texto": "¿Qué edad tiene la persona?"
+    },
+    {
+      "id": "duracion",
+      "tipo": "duracion",
+      "texto": "¿Desde hace cuántas horas tienes estos síntomas?"
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "tipo": "siNo",
+      "texto": "¿Los síntomas empeoran o no mejoran con las medidas que has probado?"
+    },
+    {
+      "id": "situacion-compleja",
+      "tipo": "siNo",
+      "texto": "¿Tienes alguna enfermedad crónica, alergia a medicamentos o tomas o aplicas otro medicamento, incluido uno para estos síntomas?"
+    }
+  ],
+  "criteriosDerivacion": [
+    {
+      "id": "emergencia-general",
+      "descripcion": "Los síntomas necesitan atención inmediata.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "emergencia-general",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "alergia-grave",
+      "descripcion": "Los síntomas pueden corresponder a una reacción alérgica grave.",
+      "urgencia": "112",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "alergia-alarma",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "asma-ocular",
+      "descripcion": "Los síntomas respiratorios u oculares necesitan valoración presencial.",
+      "urgencia": "urgencias",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "asma-ocular",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "evolucion-desfavorable",
+      "descripcion": "La evolución de los síntomas necesita valoración médica.",
+      "urgencia": "medico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "evolucion-desfavorable",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fuera-alcance",
+      "descripcion": "Este borrador no cubre esta situación; consulta de forma presencial.",
+      "urgencia": "farmaceutico",
+      "palabrasClave": [],
+      "cuando": {
+        "alguna": [
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "bebe"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "nino"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "embarazo"
+          },
+          {
+            "preguntaId": "grupo",
+            "operador": "igual",
+            "valor": "lactancia"
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "menor",
+            "valor": 216
+          },
+          {
+            "preguntaId": "edad",
+            "operador": "mayorIgual",
+            "valor": 780
+          },
+          {
+            "preguntaId": "situacion-compleja",
+            "operador": "igual",
+            "valor": true
+          }
+        ]
+      }
+    }
+  ],
+  "baldas": [
+    {
+      "titulo": "Antihistamínicos: loratadina",
+      "principioActivo": "loratadina",
+      "orden": 1,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    },
+    {
+      "titulo": "Antihistamínicos: cetirizina",
+      "principioActivo": "cetirizina",
+      "orden": 2,
+      "edadMinMeses": 216,
+      "gruposExcluidos": ["nino", "bebe", "embarazo", "lactancia"],
+      "condicionesExcluidas": ["situacion-compleja"]
+    }
+  ],
+  "vitrina": [
+    {
+      "principioActivo": "mometasona",
+      "paraQueSeUsa": "Tratamiento nasal de determinadas rinitis alérgicas.",
+      "porQueNecesitaReceta": "Requiere diagnóstico, revisión de contraindicaciones e indicación médica. No inicies ni cambies tratamientos por tu cuenta.",
+      "situacion": "Solo presentaciones nasales con receta y según diagnóstico e indicación médica."
+    }
+  ],
+  "consejos": [
+    "Reduce la exposición al polen y cambia de ropa al volver del exterior.",
+    "Algunos antihistamínicos producen somnolencia; revisa el prospecto antes de conducir."
+  ],
+  "parafarmacia": ["Solución salina para higiene nasal"],
+  "estado": "borrador",
+  "validadoPor": null,
+  "validadoEn": null,
+  "revision": {
+    "consultadoEn": "2026-10-20",
+    "alcance": "Borrador editorial inicial para adultos de 18 a 64 años sin embarazo, lactancia, comorbilidad ni medicación concomitante. Estos límites delimitan el trabajo pendiente; no son edades de autorización de los medicamentos. No apto para uso clínico.",
+    "fuentes": [
+      {
+        "titulo": "NHS · Hay fever",
+        "url": "https://www.nhs.uk/conditions/hay-fever/"
+      },
+      {
+        "titulo": "NHS · Insect bites and stings · reacción alérgica grave",
+        "url": "https://www.nhs.uk/conditions/insect-bites-and-stings/"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 63696 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/63696/FT_63696.html"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 66605 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/66605/FT_66605.html"
+      },
+      {
+        "titulo": "AEMPS · ficha técnica 76859 · secciones 4.1–4.6",
+        "url": "https://cima.aemps.es/cima/dochtml/ft/76859/FT_76859.html"
+      }
+    ],
+    "pendienteDe": [
+      "Revisión y firma de un farmacéutico colegiado; contrastar criterios y urgencias con guías españolas de indicación farmacéutica.",
+      "Completar poblaciones, interacciones, alergias y contraindicaciones por presentación, vía y forma farmacéutica. El filtrado actual solo distingue principio activo y receta.",
+      "Revisar lenguaje y número de preguntas, documentar umbrales y preparar casos clínicos dorados y adversarios.",
+      "Delimitar rinitis conocida frente a primer episodio y revisar formas nasales, somnolencia y función renal/hepática."
+    ]
+  }
+}

@@ -24,12 +24,14 @@ describe('App', () => {
       screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa o elige una consulta frecuente' }),
     ).toBeTruthy();
     expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Ver medicamentos' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
       '/escena?vitrina=1&vista=3d',
     );
     expect(screen.queryByRole('link', { name: 'Explorar como lista' })).toBeNull();
     expect(screen.queryByText(/utiliza productos ficticios/)).toBeNull();
     expect(screen.queryByText('Hola, ¿qué te pasa?')).toBeNull();
+    expect(screen.queryByText('Explora la demostración')).toBeNull();
+    expect(screen.queryByText(/Al realizar la consulta, el texto se envía a Gemini/)).toBeNull();
     expect(screen.queryByText(/Pronto podrás|en construcción/i)).toBeNull();
   });
 
