@@ -1,5 +1,5 @@
 import type { ProductoResumen } from '@rebotica/shared';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface Seleccion {
   producto: ProductoResumen | null;
@@ -13,8 +13,19 @@ export interface Seleccion {
  */
 export function useSeleccion(): Seleccion {
   const [producto, setProducto] = useState<ProductoResumen | null>(null);
+  const origen = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    // Tras retirar `inert` del fondo, vuelve al producto que abrió la ficha.
+    if (!producto) {
+      if (origen.current?.isConnected) origen.current.focus();
+      origen.current = null;
+    }
+  }, [producto]);
 
   const seleccionar = useCallback((p: ProductoResumen) => {
+    if (!origen.current && document.activeElement instanceof HTMLElement)
+      origen.current = document.activeElement;
     setProducto((actual) => {
       if (actual) return actual;
       window.history.pushState({ ficha: p.nregistro }, '');

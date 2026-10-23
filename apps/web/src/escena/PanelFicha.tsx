@@ -70,7 +70,11 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
 
   // Al abrir la ficha el foco pasa a ella: el lector de pantalla anuncia su título.
   useEffect(() => {
+    const anterior = document.activeElement;
     raiz.current?.focus();
+    return () => {
+      if (anterior instanceof HTMLElement && anterior.isConnected) anterior.focus();
+    };
   }, [producto.nregistro]);
 
   useEffect(() => {
@@ -101,12 +105,48 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
   const ficha = estado.tipo === 'listo' ? estado.ficha : null;
   const pestanaActiva = pestanas.find((p) => p.id === activa);
 
+  const tecladoDialogo = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      onVolver();
+    }
+    // En lista el fondo queda inerte. En 3D se conserva el acceso al giro de la caja.
+    if (modo !== 'lista' || e.key !== 'Tab') return;
+    const controles = Array.from(
+      raiz.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], summary, input:not(:disabled), select:not(:disabled), [tabindex="0"]',
+      ) ?? [],
+    ).filter(
+      (el) =>
+        el.tabIndex >= 0 &&
+        Array.from(raiz.current?.querySelectorAll('details:not([open])') ?? []).every(
+          (detalle) =>
+            !detalle.contains(el) || detalle.querySelector(':scope > summary')?.contains(el),
+        ),
+    );
+    const primero = controles[0];
+    const ultimo = controles.at(-1);
+    if (
+      e.shiftKey &&
+      (document.activeElement === primero || document.activeElement === raiz.current)
+    ) {
+      e.preventDefault();
+      ultimo?.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primero?.focus();
+    }
+  };
+
   return (
     <section
       ref={raiz}
       tabIndex={-1}
       role="dialog"
+      aria-modal={modo === 'lista' ? true : undefined}
       aria-label={`Ficha de ${producto.nombre}`}
+      onKeyDown={tecladoDialogo}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center outline-none"
     >
       <div

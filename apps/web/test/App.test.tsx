@@ -25,7 +25,7 @@ describe('App', () => {
     ).toBeTruthy();
     expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
-      '/escena?vitrina=1&vista=3d',
+      '/escena?vista=3d',
     );
     expect(screen.queryByRole('link', { name: 'Explorar como lista' })).toBeNull();
     expect(screen.queryByText(/utiliza productos ficticios/)).toBeNull();

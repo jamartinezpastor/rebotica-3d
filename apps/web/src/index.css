@@ -5,7 +5,7 @@
   --color-papel: #faf8f4;
   --color-tinta: #1d2420;
   --color-tinta-suave: #5c6660;
-  --color-cruz: #0f8a4b;
+  --color-cruz: #08773e;
   --color-cruz-claro: #e3f3ea;
   --color-aviso: #b45309;
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -41,6 +41,27 @@ body {
   margin: 0;
   min-height: 100dvh;
   font-size: 16px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-cruz);
+  outline-offset: 3px;
+}
+
+.saltar-contenido {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 50;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: white;
+  color: var(--color-cruz);
+  transform: translateY(-200%);
+}
+
+.saltar-contenido:focus {
+  transform: none;
 }
 
 /* El punto acompaña al ratón fuera de la mano 3D y no intercepta clics ni gestos. */

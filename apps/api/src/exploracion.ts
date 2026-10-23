@@ -1,12 +1,7 @@
-import {
-  CONSULTAS_FRECUENTES,
-  ExplorarEntrada,
-  ExplorarRespuesta,
-  type BaldaPasillo,
-  type ProductoResumen,
-} from '@rebotica/shared';
+import { CONSULTAS_FRECUENTES, ExplorarEntrada, type ProductoResumen } from '@rebotica/shared';
 import type { FastifyInstance } from 'fastify';
 import { CatalogoNoSincronizado, crearCatalogo, type BaseDatos } from './catalogo';
+import { pasilloInformativo } from './pasilloInformativo';
 
 /** Términos de búsqueda textual en 4.1, sin elegir principios activos ni inferir indicaciones. */
 const TERMINOS: Record<(typeof CONSULTAS_FRECUENTES)[number]['id'], string[]> = {
@@ -47,6 +42,31 @@ export function mencionaDolencia(texto: string, id: keyof typeof TERMINOS): bool
 
 export function registrarExploracion(app: FastifyInstance, db?: BaseDatos) {
   const catalogo = db ? crearCatalogo(db) : null;
+  const clasificar = (texto: string): NonNullable<ProductoResumen['clasificacion']>['consultas'] =>
+    CONSULTAS_FRECUENTES.filter((c) => mencionaDolencia(texto, c.id)).map((c) => ({
+      id: c.id,
+      titulo: c.etiqueta,
+    }));
+  app.get(
+    '/api/catalogo',
+    {
+      logLevel: 'silent',
+      onRequest: async (_req, reply) => {
+        reply.header('Cache-Control', 'no-store');
+      },
+      errorHandler: (_error, _req, reply) =>
+        reply.code(503).send({ error: 'Catálogo no disponible' }),
+    },
+    async (req, reply) => {
+      if (Object.keys(req.query as object).length)
+        return reply.code(400).send({ error: 'Consulta no válida' });
+      if (!catalogo) return reply.code(503).send({ error: 'Catálogo no disponible' });
+      const productos = await catalogo.todos(clasificar);
+      if (!productos.length)
+        return reply.code(503).send({ error: 'El catálogo aún no está sincronizado' });
+      return pasilloInformativo(productos, 'catalogo', 'Catálogo de medicamentos');
+    },
+  );
   app.route({
     method: ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'TRACE'],
     url: '/api/explorar',
@@ -86,46 +106,13 @@ export function registrarExploracion(app: FastifyInstance, db?: BaseDatos) {
       const { consultaId } = entrada.data;
       const productos = await catalogo.buscarIndicaciones(
         (texto) => mencionaDolencia(texto, consultaId),
-        (texto) =>
-          CONSULTAS_FRECUENTES.filter((c) => mencionaDolencia(texto, c.id)).map((c) => ({
-            id: c.id,
-            titulo: c.etiqueta,
-          })),
+        clasificar,
       );
-      const grupos = (receta: boolean) => {
-        const mapa = new Map<string, ProductoResumen[]>();
-        for (const p of productos.filter((p) => p.receta === receta)) {
-          const clave = normalizar(p.principioActivo);
-          mapa.set(clave, [...(mapa.get(clave) ?? []), p]);
-        }
-        return [...mapa.values()].sort((a, b) =>
-          a[0]!.principioActivo.localeCompare(b[0]!.principioActivo, 'es'),
-        );
-      };
-      const baldas: BaldaPasillo[] = grupos(false).map((ps, i) => ({
-        titulo: ps[0]!.principioActivo,
-        principioActivo: ps[0]!.principioActivo,
-        orden: i + 1,
-        productos: ps,
-      }));
-      return ExplorarRespuesta.parse({
-        id: consultaId,
-        version: 1,
-        titulo: CONSULTAS_FRECUENTES.find((c) => c.id === consultaId)!.etiqueta,
-        estado: 'informativo',
-        baldas,
-        ocultasPorPerfil: 0,
-        vitrina: grupos(true).map((ps) => ({
-          principioActivo: ps[0]!.principioActivo,
-          productos: ps,
-          formas: [...new Set(ps.flatMap((p) => (p.forma ? [p.forma] : [])))],
-          paraQueSeUsa: 'Consulta las indicaciones completas en la ficha oficial.',
-          porQueNecesitaReceta: 'Requiere prescripción médica.',
-          situacion: 'Su aparición aquí no indica que sea adecuado para ti.',
-        })),
-        consejos: [],
-        parafarmacia: [],
-      });
+      return pasilloInformativo(
+        productos,
+        consultaId,
+        CONSULTAS_FRECUENTES.find((c) => c.id === consultaId)!.etiqueta,
+      );
     },
   });
 }

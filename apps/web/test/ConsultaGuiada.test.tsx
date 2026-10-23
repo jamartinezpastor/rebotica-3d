@@ -115,7 +115,7 @@ describe('mostrador, interpretación y triaje F4-03', () => {
     await screen.findByRole('heading', { name: titulo });
     expect(screen.queryByText('Texto interno que no se muestra')).toBeNull();
     expect(screen.getByRole('link', { name: 'Ver demostración' }).getAttribute('href')).toBe(
-      '/escena?vitrina=1&vista=3d',
+      '/escena?demo=1&vitrina=1&vista=3d',
     );
     expect(screen.getByText(/productos ficticios/)).toBeTruthy();
     expect(onPasillo).not.toHaveBeenCalled();

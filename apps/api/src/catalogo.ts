@@ -221,6 +221,27 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
   }
 
   return {
+    /** Catálogo general: incluye también productos cuya ficha no está segmentada en CIMA. */
+    async todos(
+      clasificar: (texto: string) => NonNullable<ProductoResumen['clasificacion']>['consultas'],
+    ): Promise<ProductoResumen[]> {
+      const [indice, secciones] = await Promise.all([
+        obtenerIndice(),
+        conexion
+          .select({ nregistro: seccionFt.nregistro, texto: seccionFt.texto })
+          .from(seccionFt)
+          .where(eq(seccionFt.seccion, '4.1')),
+      ]);
+      const indicaciones = new Map(secciones.map((s) => [s.nregistro, s.texto]));
+      return [...indice.porClave.values()].flat().map((p) => ({
+        ...p,
+        clasificacion: {
+          edadMinPediatricaMeses: p.clasificacion?.edadMinPediatricaMeses ?? null,
+          consultas: clasificar(indicaciones.get(p.nregistro) ?? ''),
+        },
+      }));
+    },
+
     /** Búsqueda documental local: solo sección 4.1 de productos comercializados. */
     async buscarIndicaciones(
       coincide: (texto: string) => boolean,

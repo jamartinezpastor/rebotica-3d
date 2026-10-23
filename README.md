@@ -157,7 +157,14 @@ para pararlo.
 
 ## Vista de desarrollo de la escena 3D
 
-`pnpm dev` y abre `http://localhost:5173/escena`: estantería con productos ficticios. Con
+La portada y `/escena` abren el catálogo real de `/api/catalogo`: todos los medicamentos
+comercializados de la copia local, separados entre sin receta y con receta, con acceso a sus fichas.
+La exploración general se divide en páginas de 36 productos, tanto en 3D como en lista, para no
+cargar miles de cajas simultáneamente. Los botones Anterior y Siguiente permiten recorrerlos todos;
+agrupar vuelve a la primera página. Las consultas por dolencia conservan su colección completa.
+Si la API no está disponible se muestra un error; no se sustituyen por datos ficticios.
+
+Para las pruebas visuales, abre `http://localhost:5173/escena?demo=1`: productos ficticios. Con
 `?pasillo=<id>` coloca los productos reales de `/api/pasillos/<id>` (necesita la API con la base
 de datos sincronizada; `pnpm demo` lo monta).
 
@@ -211,7 +218,7 @@ la mano abierta.
   con renderizado por software, GPU antigua, ≤ 2 GB de memoria, ≤ 2 núcleos o ahorro de datos, la
   recomendada es la lista.
 - **Aviso de lentitud:** si la escena va por debajo de 24 fps sostenidos se ofrece cambiar a la lista.
-- **Medir en un dispositivo:** `/escena?vista=3d&fps=1&cajas=40` muestra un contador con los fps
+- **Medir en un dispositivo:** `/escena?demo=1&vista=3d&fps=1&cajas=40` muestra un contador con los fps
   medios, el percentil 95 y el fotograma más largo mientras se arrastra la cámara. Criterio del plan:
   60 fps con 40 cajas en un Android de gama media.
 - El JavaScript inicial no puede importar three (lo vigila `test/presupuesto.test.ts`).
@@ -237,7 +244,7 @@ ficha incluyen el aviso de precaución y de no iniciar ni cambiar tratamientos s
 médica. El motor de dosis (F3-02) y su interfaz (F3-03) están implementados para ambos catálogos;
 solo se habilitan con reglas validadas y vigentes. La derivación por alarmas sigue teniendo prioridad.
 
-- Vista ficticia: `/escena?vitrina=1` (o `&vista=lista`), sin descargar datos clínicos.
+- Vista ficticia: `/escena?demo=1&vitrina=1` (o `&vista=lista`), sin descargar datos clínicos.
 - `pnpm demo` incluye también productos reales con receta de CIMA en la vitrina.
 - Al actualizar una instalación existente, ejecutar una sincronización `--completo` para cargar
   las fichas y fotos con receta que antes no se almacenaban; la API aplica la nueva migración
@@ -319,6 +326,7 @@ reglas clínicas de producción.
 | Ruta                             | Qué devuelve                                                                            |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | `POST /api/explorar`             | Catálogo informativo por `consultaId`, desde las indicaciones 4.1 de CIMA local         |
+| `GET /api/catalogo`              | Catálogo general real, sin filtrar por dolencia, con baldas y vitrina separadas         |
 | `GET /api/pasillos/:id`          | Baldas sin receta y vitrina con receta, ambas con productos y condición de prescripción |
 | `GET /api/productos/:nregistro`  | Ficha: secciones 4.1–4.7, presentaciones, enlaces a CIMA y regla de dosis vigente       |
 | `GET /media/miniaturas/:archivo` | Miniatura del envase, con caché inmutable                                               |
@@ -331,6 +339,28 @@ reglas clínicas de producción.
 - Los resúmenes incorporan `clasificacion` para las agrupaciones revisadas. Las secciones de la
   ficha incluyen su `hash` actual para verificar la calculadora en el navegador.
 - Los contratos (`PasilloResponse`, `ProductoResponse`…) están en `@rebotica/shared`.
+
+## Accesibilidad e instalación (F5-01)
+
+La vista lista conserva todos los medicamentos y anuncia su título al entrar. Incluye navegación
+por teclado, enlace «Saltar al contenido» visible al recibir foco y foco visible en los controles.
+La ficha devuelve el foco al producto al cerrarse; en lista funciona como diálogo modal, con el
+fondo inerte, Tab dentro de la ficha y Escape para volver. En 3D se conserva el giro del envase.
+El verde de los textos mantiene contraste AA sobre blanco, papel y verde claro. El pasillo
+escucha los cambios de `prefers-reduced-motion` sin recargar: elimina entrada, muelles y giro
+automático; se mantienen los gestos manuales. El cursor también evita destellos con esa preferencia.
+
+La compilación de producción incluye manifiesto, iconos y service worker para instalar la app
+desde un navegador compatible, mediante HTTPS o localhost. No añade un botón a la portada.
+La caché solo guarda archivos estáticos de la aplicación; las consultas, fichas, resultados de API
+y datos de la calculadora no se guardan en ella. Sin red puede abrirse la interfaz, pero consultar
+medicamentos requiere conexión. Una nueva versión se activa al cerrar las ventanas anteriores,
+sin recargar una consulta o calculadora abierta. El service worker está desactivado en `pnpm dev`.
+
+Para comprobar la instalación local: `pnpm --filter @rebotica/web build` y
+`pnpm --filter @rebotica/web preview --host 127.0.0.1`, manteniendo la API en el puerto 3000.
+La revisión con un lector de pantalla real y la instalación en iOS/Android quedan como validación
+manual de dispositivo; las pruebas automáticas cubren foco, teclado, contraste y cambios de movimiento.
 
 ## Despliegue
 

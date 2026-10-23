@@ -390,7 +390,7 @@ export function ConsultaGuiada({
           <p>{MENSAJES_ERROR[estado.motivo].texto}</p>
           {(estado.motivo === 'catalogo' || estado.motivo === 'protocolo') && (
             <a
-              href="/escena?vitrina=1&vista=3d"
+              href="/escena?demo=1&vitrina=1&vista=3d"
               className="inline-flex min-h-12 items-center rounded-xl bg-cruz px-4 font-semibold text-white"
             >
               Ver demostración

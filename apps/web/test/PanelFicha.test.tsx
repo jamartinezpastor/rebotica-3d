@@ -93,6 +93,39 @@ afterEach(() => {
 });
 
 describe('PanelFicha', () => {
+  it('devuelve el foco al producto al cerrar y permite salir con Escape', async () => {
+    responder(ficha());
+    const volver = vi.fn();
+    const { rerender } = render(<button type="button">Abrir producto</button>);
+    const origen = screen.getByRole('button', { name: 'Abrir producto' });
+    origen.focus();
+    rerender(
+      <>
+        <button type="button">Abrir producto</button>
+        <PanelFicha producto={resumen} modo="lista" onVolver={volver} />
+      </>,
+    );
+    const dialogo = screen.getByRole('dialog');
+    expect(document.activeElement).toBe(dialogo);
+    expect(dialogo.getAttribute('aria-modal')).toBe('true');
+    fireEvent.keyDown(dialogo, { key: 'Escape' });
+    expect(volver).toHaveBeenCalledTimes(1);
+    rerender(<button type="button">Abrir producto</button>);
+    expect(document.activeElement).toBe(origen);
+  });
+
+  it('Tab y Mayús+Tab permanecen en la ficha modal sin entrar en pestañas inactivas', async () => {
+    responder(ficha());
+    render(<PanelFicha producto={resumen} modo="lista" onVolver={() => {}} />);
+    const ultimo = await screen.findByRole('link', { name: 'Ficha técnica oficial' });
+    const primero = screen.getByRole('button', { name: 'Volver al pasillo' });
+    ultimo.focus();
+    fireEvent.keyDown(ultimo, { key: 'Tab' });
+    expect(document.activeElement).toBe(primero);
+    fireEvent.keyDown(primero, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(ultimo);
+  });
+
   it.each(['3d', 'lista'] as const)(
     'un toque exterior vuelve al pasillo sin activar el fondo (%s)',
     async (modo) => {

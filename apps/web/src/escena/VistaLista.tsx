@@ -1,4 +1,5 @@
 import type { ProductoResumen } from '@rebotica/shared';
+import { useEffect, useRef } from 'react';
 import { COLOR_LADO_DEFECTO } from './colores';
 import type { BaldaEscena } from './Pasillo';
 import { AvisoReceta } from './AvisoReceta';
@@ -51,9 +52,18 @@ function Etiqueta({ children }: { children: string }) {
  * por un pasillo (plan: «Ver como lista» siempre disponible).
  */
 export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
+  const cabecera = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    cabecera.current?.focus();
+  }, []);
   return (
     <main className="mx-auto max-w-2xl px-4 pt-64 pb-40" aria-labelledby="titulo-pasillo">
-      <h1 id="titulo-pasillo" className="text-2xl font-semibold tracking-tight">
+      <h1
+        ref={cabecera}
+        tabIndex={-1}
+        id="titulo-pasillo"
+        className="text-2xl font-semibold tracking-tight"
+      >
         {titulo}
       </h1>
 
@@ -92,7 +102,10 @@ export function VistaLista({ titulo, baldas, onSeleccionar }: VistaListaProps) {
                     <button
                       type="button"
                       data-cursor="medicamento"
-                      onClick={() => onSeleccionar(p)}
+                      onClick={(e) => {
+                        e.currentTarget.focus();
+                        onSeleccionar(p);
+                      }}
                       className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left text-tinta ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
                     >
                       <Miniatura producto={p} />

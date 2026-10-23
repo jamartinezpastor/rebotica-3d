@@ -11,6 +11,7 @@ import { GiroFicha } from './giroFicha';
 import { ESTANTERIA_POR_DEFECTO, geometriaEstanteria, type GeometriaEstanteria } from './geometria';
 import { Letrero, LETRERO_ALTO } from './Letrero';
 import { RielCamara } from './RielCamara';
+import { useMenosMovimiento } from '../useMenosMovimiento';
 import {
   ALTO_EN_FICHA,
   DISTANCIA_FICHA,
@@ -115,17 +116,6 @@ export function datosRiel(
   for (const fila of puntos) fila.sort((a, b) => a - b);
   const alturas = geometria.huecos.map((h) => h.centro[1] + h.alto * 0.45);
   return { puntos, alturas };
-}
-
-/** `prefers-reduced-motion`: la escena nace ya montada, sin entrada animada. */
-function useMenosMovimiento(): boolean {
-  return useMemo(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    [],
-  );
 }
 
 export interface PasilloProps {

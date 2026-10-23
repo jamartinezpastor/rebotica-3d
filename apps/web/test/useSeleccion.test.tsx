@@ -1,4 +1,4 @@
-import { act, cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import type { ProductoResumen } from '@rebotica/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useSeleccion } from '../src/escena/useSeleccion';
@@ -25,6 +25,18 @@ afterEach(() => {
 });
 
 describe('useSeleccion', () => {
+  it('restaura el producto al volver aunque el fondo inerte haya perdido el foco', () => {
+    render(<button type="button">Producto de origen</button>);
+    const origen = screen.getByRole('button');
+    const { result } = renderHook(useSeleccion);
+    origen.focus();
+    act(() => result.current.seleccionar(producto('1')));
+    origen.blur();
+    expect(document.activeElement).not.toBe(origen);
+    act(() => window.dispatchEvent(new PopStateEvent('popstate')));
+    expect(document.activeElement).toBe(origen);
+  });
+
   it('seleccionar abre la ficha y añade una entrada al historial', () => {
     const { result } = renderHook(() => useSeleccion());
     const antes = window.history.length;

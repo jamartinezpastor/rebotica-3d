@@ -30,28 +30,31 @@ export function pasilloAEscena(
  * Descarga un pasillo y lo valida con el contrato compartido. Las baldas conservan el orden del
  * protocolo, que es el orden en que la escena las coloca.
  */
-export function usePasillo(id: string | null): EstadoPasillo {
+export function usePasillo(id: string | null, general = false): EstadoPasillo {
   const [estado, setEstado] = useState<{ id: string; valor: EstadoPasillo } | null>(null);
 
   useEffect(() => {
-    if (id === null) return;
+    if (id === null && !general) return;
+    const clave = general ? 'catalogo' : id!;
     const control = new AbortController();
-    fetch(`/api/pasillos/${encodeURIComponent(id)}`, { signal: control.signal })
+    fetch(general ? '/api/catalogo' : `/api/pasillos/${encodeURIComponent(id!)}`, {
+      signal: control.signal,
+    })
       .then(async (res) => {
         if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
         const pasillo = PasilloResponse.parse(await res.json());
         setEstado({
-          id,
+          id: clave,
           valor: pasilloAEscena(pasillo),
         });
       })
       .catch((err: unknown) => {
         if (control.signal.aborted) return;
         const mensaje = err instanceof Error ? err.message : 'No se pudo cargar el pasillo';
-        setEstado({ id, valor: { tipo: 'error', mensaje } });
+        setEstado({ id: clave, valor: { tipo: 'error', mensaje } });
       });
     return () => control.abort();
-  }, [id]);
+  }, [id, general]);
 
-  return id !== null && estado?.id === id ? estado.valor : { tipo: 'cargando' };
+  return estado?.id === (general ? 'catalogo' : id) ? estado.valor : { tipo: 'cargando' };
 }

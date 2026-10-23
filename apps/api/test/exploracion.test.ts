@@ -72,6 +72,36 @@ const explorar = (consultaId: string) =>
   app.inject({ method: 'POST', url: '/api/explorar', payload: { consultaId } });
 
 describe('catálogo informativo por dolencia', () => {
+  it('el catálogo general devuelve todos los comercializados, también sin 4.1, y separa receta', async () => {
+    const respuesta = await app.inject({ method: 'GET', url: '/api/catalogo' });
+    expect(respuesta.statusCode).toBe(200);
+    expect(respuesta.headers['cache-control']).toBe('no-store');
+    const catalogo = ExplorarRespuesta.parse(respuesta.json());
+    expect(catalogo.titulo).toBe('Catálogo de medicamentos');
+    expect(catalogo.baldas.flatMap((b) => b.productos.map((p) => p.nregistro)).sort()).toEqual([
+      'F1',
+      'F2',
+      'F5',
+    ]);
+    expect(catalogo.vitrina.flatMap((b) => b.productos.map((p) => p.nregistro))).toEqual(['F3']);
+    expect(
+      catalogo.baldas
+        .flatMap((b) => b.productos)
+        .find((p) => p.nregistro === 'F1')
+        ?.clasificacion?.consultas.map((c) => c.id),
+    ).toContain('dolor-cabeza');
+    const ficha = await app.inject({ method: 'GET', url: '/api/productos/F5' });
+    expect(ficha.statusCode).toBe(200);
+    expect(ProductoResponse.parse(ficha.json()).enlaces.prospecto).toContain('/F5/');
+  });
+
+  it('el catálogo general no acepta queries y sin base devuelve 503', async () => {
+    expect(
+      (await app.inject({ method: 'GET', url: '/api/catalogo?texto=privado' })).statusCode,
+    ).toBe(400);
+    expect((await sinBd.inject({ method: 'GET', url: '/api/catalogo' })).statusCode).toBe(503);
+  });
+
   it('devuelve todas las marcas y formas coincidentes, sin recortar por grupo o receta', async () => {
     const localPg = new PGlite();
     const localDb = drizzle(localPg);

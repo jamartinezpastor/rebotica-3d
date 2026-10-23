@@ -1,5 +1,5 @@
 import { AVISO_LEGAL, type PasilloResponse } from '@rebotica/shared';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { baldasDemo, vitrinaDemo } from './escena/demo';
 import {
@@ -17,6 +17,7 @@ import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
+import { paginaCatalogo, PRODUCTOS_POR_PAGINA } from './escena/paginaCatalogo';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
@@ -63,8 +64,7 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
 }
 
 /**
- * Vista de desarrollo del pasillo. `/escena` usa productos ficticios y `/escena?pasillo=<id>` los
- * de la API. Parámetros: `vista=3d|lista`, `cajas=N` (demo) y `fps=1` (contador).
+ * `/escena` abre el catálogo real. Solo `demo=1` usa datos ficticios para pruebas de la escena.
  */
 function VistaEscena({
   precargado,
@@ -72,6 +72,9 @@ function VistaEscena({
 }: { precargado?: PasilloResponse; onNueva?: () => void } = {}) {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const pasillo = precargado?.id ?? params.get('pasillo');
+  const demo = !precargado && !pasillo && params.get('demo') === '1';
+  const general = !precargado && !pasillo && !demo;
+  const [pagina, setPagina] = useState(0);
   const cajasDemo = Math.min(Math.max(Number(params.get('cajas')) || 36, 1), 200);
   const mostrarVitrinaDemo = params.get('vitrina') === '1';
   const midiendo = params.get('fps') === '1';
@@ -81,24 +84,32 @@ function VistaEscena({
     vistaInicial(params.get('vista'), leerPreferencia(), capacidad),
   );
   const [lento, setLento] = useState(false);
+  const botonVista = useRef<HTMLButtonElement>(null);
   const [fps, setFps] = useState<EstadisticasFps | null>(null);
   const [agrupacion, setAgrupacion] = useState<Agrupacion>(() => {
     const valor = params.get('agrupar');
     return esAgrupacion(valor) ? valor : 'original';
   });
 
-  const descargado = usePasillo(precargado ? null : pasillo);
+  const descargado = usePasillo(precargado ? null : pasillo, !precargado && !pasillo && !demo);
   const cargado = useMemo(() => (precargado ? pasilloAEscena(precargado) : null), [precargado]);
   const remoto = cargado ?? descargado;
+  useEffect(() => {
+    if (vista === '3d') botonVista.current?.focus();
+    // El foco inicial en lista lo recibe el título de VistaLista.
+  }, [vista, remoto.tipo]);
   const baldasDemoMemo = useMemo(
     () => [...baldasDemo(cajasDemo), ...(mostrarVitrinaDemo ? vitrinaDemo() : [])],
     [cajasDemo, mostrarVitrinaDemo],
   );
   const seleccion = useSeleccion();
-  const baldasOrigen = pasillo && remoto.tipo === 'listo' ? remoto.baldas : baldasDemoMemo;
   const baldasAgrupadas = useMemo(
-    () => agruparBaldas(baldasOrigen, agrupacion),
-    [baldasOrigen, agrupacion],
+    () =>
+      agruparBaldas(
+        !demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : [],
+        agrupacion,
+      ),
+    [demo, remoto, baldasDemoMemo, agrupacion],
   );
 
   const cambiarVista = (siguiente: VistaElegida) => {
@@ -108,23 +119,46 @@ function VistaEscena({
   };
 
   let titulo = 'Pasillo de demostración';
-  const baldas = baldasAgrupadas;
-  if (pasillo) {
+  const totalCajas = baldasAgrupadas.reduce((n, b) => n + b.productos.length, 0);
+  const paginas = Math.max(1, Math.ceil(totalCajas / PRODUCTOS_POR_PAGINA));
+  const paginaActual = Math.min(pagina, paginas - 1);
+  const paginado = general && paginas > 1;
+  const baldas = useMemo(
+    () => (paginado ? paginaCatalogo(baldasAgrupadas, paginaActual) : baldasAgrupadas),
+    [paginado, baldasAgrupadas, paginaActual],
+  );
+  if (!demo) {
     if (remoto.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
-    if (remoto.tipo === 'error') return <Preparando texto={remoto.mensaje} />;
+    if (remoto.tipo === 'error')
+      return (
+        <div>
+          <a href="/" className="inline-block p-4 text-cruz underline">
+            Volver al inicio
+          </a>
+          <Preparando texto="No se pudo cargar el catálogo real. Inténtalo de nuevo en unos minutos." />
+        </div>
+      );
     titulo = remoto.titulo;
   }
-  const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const puede3d = capacidad.nivel !== 'sin3d';
-  const borrador = !pasillo || (remoto.tipo === 'listo' && remoto.estado === 'borrador');
+  const borrador = demo || (remoto.tipo === 'listo' && remoto.estado === 'borrador');
 
   return (
     <div
       className={vista === '3d' ? 'relative h-dvh w-full overflow-hidden' : 'relative min-h-dvh'}
     >
+      {!seleccion.producto && (
+        <a
+          className="saltar-contenido"
+          href={vista === 'lista' ? '#titulo-pasillo' : '#cambiar-vista'}
+        >
+          Saltar al contenido
+        </a>
+      )}
       {vista === '3d' ? (
         <Suspense fallback={<Preparando />}>
           <Escena
+            key={general ? `${paginaActual}-${agrupacion}` : undefined}
             baldas={baldas}
             seleccionada={seleccion.producto?.nregistro ?? null}
             onSeleccionar={seleccion.seleccionar}
@@ -133,12 +167,27 @@ function VistaEscena({
           />
         </Suspense>
       ) : (
-        <VistaLista titulo={titulo} baldas={baldas} onSeleccionar={seleccion.seleccionar} />
+        <div inert={!!seleccion.producto}>
+          <VistaLista
+            key={general ? paginaActual : undefined}
+            titulo={titulo}
+            baldas={baldas}
+            onSeleccionar={seleccion.seleccionar}
+          />
+        </div>
       )}
 
       {midiendo && vista === '3d' && <ContadorFps e={fps} cajas={totalCajas} />}
 
-      {!seleccion.producto && <SelectorAgrupacion valor={agrupacion} onCambiar={setAgrupacion} />}
+      {!seleccion.producto && (
+        <SelectorAgrupacion
+          valor={agrupacion}
+          onCambiar={(valor) => {
+            setAgrupacion(valor);
+            setPagina(0);
+          }}
+        />
+      )}
 
       {!seleccion.producto &&
         (onNueva ? (
@@ -162,6 +211,33 @@ function VistaEscena({
         <div
           className={`z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
         >
+          {paginado && (
+            <nav
+              aria-label="Páginas del catálogo"
+              className={`pointer-events-auto flex items-center justify-between gap-2 rounded-xl bg-white p-2 shadow ${vista === 'lista' ? 'fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl' : ''}`}
+            >
+              <button
+                type="button"
+                disabled={paginaActual === 0}
+                onClick={() => setPagina(paginaActual - 1)}
+                className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              <p role="status" className="text-center text-sm">
+                {paginaActual * PRODUCTOS_POR_PAGINA + 1}–
+                {Math.min((paginaActual + 1) * PRODUCTOS_POR_PAGINA, totalCajas)} de {totalCajas}
+              </p>
+              <button
+                type="button"
+                disabled={paginaActual === paginas - 1}
+                onClick={() => setPagina(paginaActual + 1)}
+                className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
+              >
+                Siguiente
+              </button>
+            </nav>
+          )}
           {borrador && (
             <p
               role="note"
@@ -178,7 +254,13 @@ function VistaEscena({
               Catálogo informativo:{' '}
               <strong>
                 {totalCajas}{' '}
-                {totalCajas === 1 ? 'medicamento relacionado' : 'medicamentos relacionados'}
+                {!pasillo && !demo
+                  ? totalCajas === 1
+                    ? 'medicamento'
+                    : 'medicamentos'
+                  : totalCajas === 1
+                    ? 'medicamento relacionado'
+                    : 'medicamentos relacionados'}
               </strong>
               . Consulta la ficha completa.
             </p>
@@ -187,25 +269,29 @@ function VistaEscena({
       )}
 
       {/* «Ver como lista» está siempre a mano (plan §reglas de interfaz). */}
-      <div className="fixed top-3 right-3 z-10 flex flex-col items-end gap-2">
-        {(vista === 'lista' ? puede3d : true) && (
-          <button
-            type="button"
-            onClick={() => cambiarVista(vista === '3d' ? 'lista' : '3d')}
-            className="min-h-12 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-          >
-            {vista === '3d' ? 'Ver como lista' : 'Ver en 3D'}
-          </button>
-        )}
-        {vista === '3d' && lento && (
-          <p
-            role="status"
-            className="max-w-64 rounded-xl bg-amber-50 p-3 text-sm text-aviso ring-1 ring-amber-200"
-          >
-            El 3D va lento en este dispositivo. La lista muestra lo mismo y es más ligera.
-          </p>
-        )}
-      </div>
+      {!seleccion.producto && (
+        <div className="fixed top-3 right-3 z-10 flex flex-col items-end gap-2">
+          {(vista === 'lista' ? puede3d : true) && (
+            <button
+              id="cambiar-vista"
+              ref={botonVista}
+              type="button"
+              onClick={() => cambiarVista(vista === '3d' ? 'lista' : '3d')}
+              className="min-h-12 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+            >
+              {vista === '3d' ? 'Ver como lista' : 'Ver en 3D'}
+            </button>
+          )}
+          {vista === '3d' && lento && (
+            <p
+              role="status"
+              className="max-w-64 rounded-xl bg-amber-50 p-3 text-sm text-aviso ring-1 ring-amber-200"
+            >
+              El 3D va lento en este dispositivo. La lista muestra lo mismo y es más ligera.
+            </p>
+          )}
+        </div>
+      )}
 
       {seleccion.producto && (
         <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} modo={vista} />
@@ -263,7 +349,7 @@ export function App() {
       window.removeEventListener('pageshow', restaurar);
     };
   }, []);
-  // La portada enlaza a la demostración; los pasillos de la API se abren con ?pasillo=<id>.
+  // La portada y /escena usan siempre el catálogo real salvo la demo explícita.
   if (window.location.pathname === '/escena') return <VistaEscena />;
   if (pasilloConsulta)
     return (
@@ -278,18 +364,21 @@ export function App() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-32">
+      <a className="saltar-contenido" href="#contenido">
+        Saltar al contenido
+      </a>
       <header className="flex items-center gap-3">
         <Cruz />
         <h1 className="text-2xl font-semibold tracking-tight">Rebotica 3D</h1>
       </header>
 
-      <main className="mt-8 flex-1">
+      <main id="contenido" tabIndex={-1} className="mt-8 flex-1">
         <ConsultaGuiada modo="informativo" onActiva={setActiva} onPasillo={setPasilloConsulta} />
         {!activa && (
           <>
             <div className="mt-8 flex flex-col gap-3">
               <a
-                href="/escena?vitrina=1&vista=3d"
+                href="/escena?vista=3d"
                 className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
               >
                 Explorar medicamentos

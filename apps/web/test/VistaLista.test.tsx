@@ -22,6 +22,7 @@ describe('VistaLista', () => {
     render(<VistaLista titulo="Dolor" baldas={baldas} onSeleccionar={() => {}} />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Dolor' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Dolor' }));
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(baldas.length);
     expect(screen.getAllByRole('button')).toHaveLength(12);
     expect(
