@@ -203,7 +203,7 @@ describe('mostrador, interpretación y triaje F4-03', () => {
     revisarTexto('No puedo respirar. Caso sintético.');
     expect(screen.queryByRole('link', { name: /Explorar/ })).toBeNull();
     const titulo = await screen.findByRole('heading', { name: 'Necesitas atención urgente' });
-    expect(document.activeElement).toBe(titulo);
+    await waitFor(() => expect(document.activeElement).toBe(titulo));
     expect(screen.getByRole('link', { name: 'Llamar al 112' }).getAttribute('href')).toBe(
       'tel:112',
     );

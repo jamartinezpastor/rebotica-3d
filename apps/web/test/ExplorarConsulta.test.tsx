@@ -157,6 +157,24 @@ describe('recorrido informativo simplificado', () => {
     });
     expect(screen.queryByRole('button', { name: /PRODUCTO DE DEMOSTRACIÓN/ })).toBeNull();
   });
+  it('una copia sin sincronizar explica la disponibilidad del catálogo', async () => {
+    peticiones.mockImplementation(async (url) =>
+      url === '/api/health'
+        ? Response.json({ status: 'ok', version: 'prueba', time: new Date().toISOString() })
+        : Response.json(
+            { error: 'Catálogo pendiente', codigo: 'CATALOGO_NO_SINCRONIZADO' },
+            { status: 503 },
+          ),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
+    await screen.findByRole('heading', {
+      name: 'El catálogo de medicamentos se está preparando',
+    });
+    expect(screen.queryByText('No hay medicamentos relacionados en este catálogo')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva consulta' }));
+    expect(screen.getByRole('textbox')).toBeTruthy();
+  });
   it('Nueva consulta cancela la búsqueda e ignora respuestas tardías', async () => {
     let resolver!: (r: Response) => void;
     peticiones.mockImplementation(async (url) =>

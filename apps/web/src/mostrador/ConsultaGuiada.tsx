@@ -35,7 +35,13 @@ type Estado =
   | { tipo: 'error'; motivo: MotivoError };
 
 type MotivoError =
-  'cambiado' | 'catalogo' | 'protocolo' | 'interpretacion' | 'conexion' | 'servicio';
+  | 'cambiado'
+  | 'catalogo'
+  | 'sincronizacion'
+  | 'protocolo'
+  | 'interpretacion'
+  | 'conexion'
+  | 'servicio';
 class ErrorConsulta extends Error {
   constructor(readonly motivo: MotivoError) {
     super(motivo);
@@ -50,6 +56,10 @@ const MENSAJES_ERROR: Record<MotivoError, { titulo: string; texto: string }> = {
     titulo: 'El catálogo de consulta aún no está disponible',
     texto:
       'Todavía no podemos mostrar medicamentos a partir de tu consulta. Puedes explorar la demostración con productos ficticios.',
+  },
+  sincronizacion: {
+    titulo: 'El catálogo de medicamentos se está preparando',
+    texto: 'Todavía no hay indicaciones disponibles para buscar. Vuelve a intentarlo más tarde.',
   },
   protocolo: {
     titulo: 'Esta consulta está pendiente de revisión farmacéutica',
@@ -90,6 +100,8 @@ async function solicitar(url: string, control: AbortController, body?: unknown) 
       const fallo = ErrorTriaje.safeParse(await r.json().catch(() => null));
       if (fallo.success && fallo.data.codigo === 'CATALOGO_NO_CONFIGURADO')
         throw new ErrorConsulta('catalogo');
+      if (fallo.success && fallo.data.codigo === 'CATALOGO_NO_SINCRONIZADO')
+        throw new ErrorConsulta('sincronizacion');
       if (fallo.success && fallo.data.codigo === 'PROTOCOLO_NO_VALIDADO')
         throw new ErrorConsulta('protocolo');
     }

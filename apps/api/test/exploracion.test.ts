@@ -67,6 +67,60 @@ const explorar = (consultaId: string) =>
   app.inject({ method: 'POST', url: '/api/explorar', payload: { consultaId } });
 
 describe('catálogo informativo por dolencia', () => {
+  it('distingue una copia sin indicaciones de una búsqueda sin coincidencias', async () => {
+    const localPg = new PGlite();
+    const localDb = drizzle(localPg);
+    const solicitar = async () => {
+      const localApp = buildApp({ db: localDb });
+      try {
+        return await localApp.inject({
+          method: 'POST',
+          url: '/api/explorar',
+          payload: { consultaId: 'tos' },
+        });
+      } finally {
+        await localApp.close();
+      }
+    };
+    const comprobarPendiente = async () => {
+      const r = await solicitar();
+      expect(r.statusCode).toBe(503);
+      expect(r.headers['cache-control']).toBe('no-store');
+      expect(r.json().codigo).toBe('CATALOGO_NO_SINCRONIZADO');
+    };
+    try {
+      await migrate(localDb, {
+        migrationsFolder: fileURLToPath(
+          new URL('../../../packages/db/migrations', import.meta.url),
+        ),
+      });
+      await comprobarPendiente();
+      await localDb.insert(medicamento).values({
+        nregistro: 'F0',
+        nombre: 'Producto ficticio',
+        pactivos: 'activo ficticio',
+        receta: false,
+        comerc: true,
+        atcs: [],
+      });
+      await comprobarPendiente();
+      await localDb.insert(seccionFt).values({
+        nregistro: 'F0',
+        seccion: '4.1',
+        titulo: 'Indicaciones',
+        texto: '   ',
+        html: '',
+        hash: 'ficticio',
+      });
+      await comprobarPendiente();
+      await localDb.update(seccionFt).set({ texto: 'Indicación ficticia: cefalea' });
+      const r = await solicitar();
+      expect(r.statusCode).toBe(200);
+      expect(ExplorarRespuesta.parse(r.json()).baldas).toEqual([]);
+    } finally {
+      await localPg.close();
+    }
+  });
   it('consulta solo 4.1, sin necesitar protocolos, y separa los productos con receta', async () => {
     const r = await explorar('dolor-cabeza');
     expect(r.statusCode).toBe(200);

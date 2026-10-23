@@ -199,6 +199,21 @@ describe('construirAssets', () => {
     expect(filas.map((f) => f.nregistro).sort()).toEqual(['1', '2', '3']);
   });
 
+  it('reconstruye una miniatura perdida aunque la huella de la base no haya cambiado', async () => {
+    await construirAssets(db, { directorio, cliente: clienteFalso() });
+    const [nombre] = await readdir(join(directorio, 'miniaturas'));
+    const ruta = join(directorio, 'miniaturas', nombre!);
+    await rm(ruta);
+    descargas.length = 0;
+
+    const informe = await construirAssets(db, { directorio, cliente: clienteFalso() });
+    expect(informe.omitido).toBe(false);
+    expect(informe.miniaturas).toBe(1);
+    expect(await readdir(join(directorio, 'miniaturas'))).toEqual([nombre]);
+    expect((await sharp(ruta).metadata()).format).toBe('webp');
+    expect(descargas.filter((d) => d.includes('/1.jpg'))).toEqual([]);
+  });
+
   it('borra las miniaturas que ya no corresponden a ningún producto', async () => {
     await construirAssets(db, { directorio, cliente: clienteFalso() });
     await writeFile(join(directorio, 'miniaturas', '99-deadbeef.webp'), 'huérfana');

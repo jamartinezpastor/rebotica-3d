@@ -74,6 +74,17 @@ docker run --rm -p 3000:3000 rebotica-3d
 El job se lanza dentro del contenedor con `node jobs/sync-cima/dist/index.js` (tarea programada
 diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
 
+La base recién creada está vacía: desplegar la API aplica migraciones, pero no descarga el catálogo.
+Ejecutar la primera carga antes de dar la consulta por disponible. En Coolify, crear una tarea
+programada dentro de la aplicación, con el comando anterior, frecuencia `0 3 * * *` (zona horaria
+del servidor) y un tiempo máximo de 36 000 segundos para la carga inicial. Comprobar el informe de
+ejecución y que `/api/explorar` devuelve productos para una dolencia conocida. Las cargas siguientes
+son incrementales; no lanzar otra mientras haya una en curso.
+
+Si todavía no hay productos comercializados con indicaciones 4.1, `/api/explorar` devuelve
+`503 CATALOGO_NO_SINCRONIZADO`. Una consulta sin coincidencias en una copia con indicaciones devuelve
+`200` con listas vacías. Así la interfaz distingue la carga pendiente de la ausencia de coincidencias.
+
 | Invocación   | Qué hace                                                                 |
 | ------------ | ------------------------------------------------------------------------ |
 | (sin opción) | Primera vez: sincronización completa. Después: solo los cambios de CIMA. |
@@ -93,6 +104,7 @@ diaria en Coolify). Necesita `DATABASE_URL` y solo habla con CIMA:
   una miniatura WebP servible. Rellena `asset_caja` con la paleta, el color dominante, la forma de
   la caja y la ruta de la miniatura. Las fotos descargadas se guardan en `ASSETS_DIR/fotos` y no
   se piden dos veces; las miniaturas llevan en el nombre la huella de su contenido.
+  Si falta alguna miniatura referenciada, se reconstruye aunque la huella del catálogo no cambie.
 - Imprime un informe de recuento en JSON y sale con código 1 si hubo errores.
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.

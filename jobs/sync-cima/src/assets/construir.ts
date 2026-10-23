@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { assetCaja, medicamento, syncEstado, type Db } from '@rebotica/db';
 import { formaCajaDesde } from '@rebotica/shared';
 import { eq, notInArray } from 'drizzle-orm';
@@ -96,8 +96,13 @@ export async function construirAssets(
     .from(syncEstado)
     .where(eq(syncEstado.clave, CLAVE_HUELLA));
   if (!opciones.forzar && guardada?.valor === huella) {
-    const existentes = await conexion.select({ n: assetCaja.nregistro }).from(assetCaja);
-    if (existentes.length === productos.length) {
+    const existentes = await conexion
+      .select({ n: assetCaja.nregistro, foto: assetCaja.foto })
+      .from(assetCaja);
+    // Una base persistente puede sobrevivir a un contenedor o volumen de fotos vacío.
+    const archivos = new Set(await readdir(carpetaMiniaturas).catch(() => [] as string[]));
+    const faltanFotos = existentes.some((a) => a.foto && !archivos.has(basename(a.foto)));
+    if (existentes.length === productos.length && !faltanFotos) {
       informe.omitido = true;
       informe.duracionMs = Date.now() - inicio;
       return informe;

@@ -71,7 +71,12 @@ export type ProtocoloTriajeRespuesta = z.infer<typeof ProtocoloTriajeRespuesta>;
 /** Motivos públicos de indisponibilidad; nunca incluyen datos de la consulta o excepciones. */
 export const ErrorTriaje = z.strictObject({
   error: z.string(),
-  codigo: z.enum(['CATALOGO_NO_CONFIGURADO', 'PROTOCOLO_NO_VALIDADO', 'TRIAJE_NO_DISPONIBLE']),
+  codigo: z.enum([
+    'CATALOGO_NO_CONFIGURADO',
+    'CATALOGO_NO_SINCRONIZADO',
+    'PROTOCOLO_NO_VALIDADO',
+    'TRIAJE_NO_DISPONIBLE',
+  ]),
 });
 
 export const DerivacionTriaje = z.strictObject({

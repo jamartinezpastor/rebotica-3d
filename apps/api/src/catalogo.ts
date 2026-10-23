@@ -34,6 +34,8 @@ interface Indice {
   porClave: Map<string, ProductoResumen[]>;
 }
 
+export class CatalogoNoSincronizado extends Error {}
+
 const esGenerico = (nombre: string) => /\bEFG\b/i.test(nombre);
 
 /** Aspecto de la caja a partir de la fila de `asset_caja`; null si el producto no tiene. */
@@ -228,8 +230,14 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
           .from(seccionFt)
           .where(eq(seccionFt.seccion, '4.1')),
       ]);
-      const registros = new Set(secciones.filter((s) => coincide(s.texto)).map((s) => s.nregistro));
-      return [...indice.porClave.values()].flat().filter((p) => registros.has(p.nregistro));
+      const productos = [...indice.porClave.values()].flat();
+      const indicaciones = secciones.filter((s) => s.texto.trim());
+      const disponibles = new Set(indicaciones.map((s) => s.nregistro));
+      if (!productos.some((p) => disponibles.has(p.nregistro))) throw new CatalogoNoSincronizado();
+      const registros = new Set(
+        indicaciones.filter((s) => coincide(s.texto)).map((s) => s.nregistro),
+      );
+      return productos.filter((p) => registros.has(p.nregistro));
     },
 
     /** Productos de un principio activo (o asociación), separados por condición de prescripción. */

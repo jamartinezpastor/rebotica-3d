@@ -6,7 +6,7 @@ import {
   type ProductoResumen,
 } from '@rebotica/shared';
 import type { FastifyInstance } from 'fastify';
-import { crearCatalogo, type BaseDatos } from './catalogo';
+import { CatalogoNoSincronizado, crearCatalogo, type BaseDatos } from './catalogo';
 
 /** Términos de búsqueda textual en 4.1, sin elegir principios activos ni inferir indicaciones. */
 const TERMINOS: Record<(typeof CONSULTAS_FRECUENTES)[number]['id'], string[]> = {
@@ -48,14 +48,20 @@ export function registrarExploracion(app: FastifyInstance, db?: BaseDatos) {
     onRequest: async (_req, reply) => {
       reply.header('Cache-Control', 'no-store');
     },
-    errorHandler: (error, _req, reply) =>
-      reply
+    errorHandler: (error, _req, reply) => {
+      if (error instanceof CatalogoNoSincronizado)
+        return reply.code(503).send({
+          error: 'El catálogo aún no está sincronizado',
+          codigo: 'CATALOGO_NO_SINCRONIZADO',
+        });
+      return reply
         .code(
           error.statusCode && error.statusCode >= 400 && error.statusCode < 500
             ? error.statusCode
             : 503,
         )
-        .send({ error: 'Catálogo no disponible', codigo: 'CATALOGO_NO_DISPONIBLE' }),
+        .send({ error: 'Catálogo no disponible', codigo: 'CATALOGO_NO_DISPONIBLE' });
+    },
     handler: async (req, reply) => {
       if (req.method !== 'POST')
         return reply
