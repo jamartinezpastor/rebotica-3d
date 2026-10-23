@@ -10,7 +10,14 @@ import { CatalogoNoSincronizado, crearCatalogo, type BaseDatos } from './catalog
 
 /** Términos de búsqueda textual en 4.1, sin elegir principios activos ni inferir indicaciones. */
 const TERMINOS: Record<(typeof CONSULTAS_FRECUENTES)[number]['id'], string[]> = {
-  'dolor-cabeza': ['dolor de cabeza', 'cefalea', 'migraña'],
+  'dolor-cabeza': [
+    'dolor de cabeza',
+    'dolores de cabeza',
+    'cefalea',
+    'cefaleas',
+    'migraña',
+    'migrañas',
+  ],
   fiebre: ['fiebre', 'estados febriles'],
   'resfriado-congestion': ['resfriado', 'congestión nasal', 'catarro', 'procesos catarrales'],
   'dolor-garganta': ['dolor de garganta', 'irritación de garganta', 'irritación de la garganta'],
@@ -77,8 +84,13 @@ export function registrarExploracion(app: FastifyInstance, db?: BaseDatos) {
           codigo: 'CATALOGO_NO_CONFIGURADO',
         });
       const { consultaId } = entrada.data;
-      const productos = await catalogo.buscarIndicaciones((texto) =>
-        mencionaDolencia(texto, consultaId),
+      const productos = await catalogo.buscarIndicaciones(
+        (texto) => mencionaDolencia(texto, consultaId),
+        (texto) =>
+          CONSULTAS_FRECUENTES.filter((c) => mencionaDolencia(texto, c.id)).map((c) => ({
+            id: c.id,
+            titulo: c.etiqueta,
+          })),
       );
       const grupos = (receta: boolean) => {
         const mapa = new Map<string, ProductoResumen[]>();

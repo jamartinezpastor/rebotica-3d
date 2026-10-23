@@ -199,6 +199,84 @@ describe('sincronizarCambios', () => {
 });
 
 describe('sincronizacionDiaria', () => {
+  it.each([
+    { forzarCompleto: false, anterior: false },
+    { forzarCompleto: true, anterior: false },
+    { forzarCompleto: false, anterior: true },
+  ])(
+    'recupera una carga interrumpida sin perder productos (forzar=$forzarCompleto, previa=$anterior)',
+    async ({ forzarCompleto, anterior }) => {
+      let interrumpir = true;
+      const consultas: string[] = [];
+      const fetch = (async (entrada: URL | string | Request) => {
+        const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+        consultas.push(url.pathname + url.search);
+        if (url.pathname.endsWith('/medicamentos')) {
+          const receta = url.searchParams.get('receta') === '1';
+          if (receta && interrumpir) return new Response('{}', { status: 503 });
+          const resultados = (receta ? ['2001'] : ['1001', '1002']).map((nregistro) => ({
+            nregistro,
+            nombre: 'Producto ficticio',
+            receta,
+            comerc: true,
+            vtm: { nombre: 'activo ficticio' },
+          }));
+          return Response.json({
+            totalFilas: resultados.length,
+            pagina: 1,
+            tamanioPagina: 25,
+            resultados,
+          });
+        }
+        return fetchSimulado(entrada);
+      }) as typeof globalThis.fetch;
+      const crear = () => crearClienteCima({ fetch, intervaloMs: 0, maxReintentos: 0 });
+      detalles = { '2001': detalle('2001', { receta: true }) };
+      const inicio = new Date();
+      if (anterior)
+        await db.insert(syncEstado).values({
+          clave: 'cima.ultima_sincronizacion',
+          valor: '2026-10-01T00:00:00.000Z',
+        });
+      const primera = await sincronizacionDiaria(db, crear(), {
+        ahora: () => inicio,
+        forzarCompleto: anterior,
+      });
+      expect(primera.informe.errores).toHaveLength(1);
+      expect(await db.select().from(medicamento)).toHaveLength(2);
+      expect(
+        await db
+          .select()
+          .from(syncEstado)
+          .where(eq(syncEstado.clave, 'cima.ultima_sincronizacion')),
+      ).toHaveLength(anterior ? 1 : 0);
+
+      interrumpir = false;
+      consultas.length = 0;
+      const reanudacion = new Date(Date.now() + 1000);
+      const segunda = await sincronizacionDiaria(db, crear(), {
+        ahora: () => reanudacion,
+        forzarCompleto,
+      });
+      if (segunda.modo !== 'completo') throw new Error('Debe continuar la carga completa');
+      expect(segunda.informe.errores).toEqual([]);
+      expect(segunda.informe.sinReceta.reutilizados).toBe(forzarCompleto ? 0 : 2);
+      expect(segunda.informe.vitrina.sincronizados).toBe(1);
+      expect(consultas.filter((url) => /\/medicamento\?nregistro=100[12]$/.test(url))).toHaveLength(
+        forzarCompleto ? 2 : 0,
+      );
+      expect((await db.select().from(medicamento)).map((m) => m.nregistro).sort()).toEqual([
+        '1001',
+        '1002',
+        '2001',
+      ]);
+      const [marca] = await db.select().from(syncEstado);
+      expect(marca).toMatchObject({
+        clave: 'cima.ultima_sincronizacion',
+        valor: (forzarCompleto ? reanudacion : inicio).toISOString(),
+      });
+    },
+  );
   it('la primera vez es completa y guarda la marca; después solo lee cambios', async () => {
     const ahora = () => new Date('2026-10-12T03:00:00Z');
     // Sin listado simulado de /medicamentos: la pasada completa termina sin datos y sin errores.

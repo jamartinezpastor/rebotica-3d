@@ -175,8 +175,12 @@ function VistaEscena({
               role="note"
               className="rounded-xl bg-white/95 p-3 text-base text-tinta ring-1 ring-cruz/30"
             >
-              Catálogo informativo: las indicaciones de CIMA mencionan esta dolencia. No es una
-              selección de tratamiento para ti. Consulta la ficha completa.
+              Catálogo informativo:{' '}
+              <strong>
+                {totalCajas}{' '}
+                {totalCajas === 1 ? 'medicamento relacionado' : 'medicamentos relacionados'}
+              </strong>
+              . Consulta la ficha completa.
             </p>
           )}
         </div>

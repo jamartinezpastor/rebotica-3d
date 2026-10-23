@@ -33,8 +33,7 @@ export function SelectorAgrupacion({
       )}
       {valor === 'consultas' && (
         <p className="mt-2 text-base text-tinta-suave">
-          Asociaciones de protocolos revisados. Agrupar no sustituye el triaje ni la valoración
-          profesional.
+          Agrupa por las dolencias asociadas. Se conservan todos los medicamentos del resultado.
         </p>
       )}
     </div>

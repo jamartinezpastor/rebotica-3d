@@ -6,7 +6,7 @@ import {
   seccionFt,
   type Db,
 } from '@rebotica/db';
-import { and, eq, ne, notInArray, sql } from 'drizzle-orm';
+import { and, eq, gte, ne, notInArray, sql } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { ErrorCima, type ClienteCima } from './cliente';
 import {
@@ -27,6 +27,7 @@ export interface Informe {
   sinReceta: {
     listados: number;
     sincronizados: number;
+    reutilizados: number;
     omitidos: number;
     presentaciones: number;
     secciones: number;
@@ -37,6 +38,7 @@ export interface Informe {
   vitrina: {
     medicamentosConReceta: number;
     sincronizados: number;
+    reutilizados: number;
     retirados: number;
     grupos: number;
     conIndicacion: number;
@@ -50,6 +52,8 @@ export interface Informe {
 export interface OpcionesSync {
   /** Máximo de medicamentos de cada catálogo y de grupos con receta; para pruebas y ensayos. */
   limite?: number;
+  /** Reanudar una carga: reutiliza filas guardadas atómicamente desde su inicio original. */
+  reutilizarDesde?: Date;
   log?: (mensaje: string) => void;
 }
 
@@ -86,6 +90,7 @@ export async function sincronizar(
     sinReceta: {
       listados: 0,
       sincronizados: 0,
+      reutilizados: 0,
       omitidos: 0,
       presentaciones: 0,
       secciones: 0,
@@ -96,6 +101,7 @@ export async function sincronizar(
     vitrina: {
       medicamentosConReceta: 0,
       sincronizados: 0,
+      reutilizados: 0,
       retirados: 0,
       grupos: 0,
       conIndicacion: 0,
@@ -105,6 +111,16 @@ export async function sincronizar(
     peticiones: 0,
     duracionMs: 0,
   };
+  const reutilizables = new Map<string, boolean>();
+  if (opciones.reutilizarDesde) {
+    const filas = await conexion
+      .select({ nregistro: medicamento.nregistro, receta: medicamento.receta })
+      .from(medicamento)
+      .where(
+        and(eq(medicamento.comerc, true), gte(medicamento.actualizadoEn, opciones.reutilizarDesde)),
+      );
+    for (const fila of filas) reutilizables.set(fila.nregistro, fila.receta);
+  }
   let totalErrores = 0;
   const registrarError = (contexto: string, err: unknown) => {
     totalErrores++;
@@ -126,6 +142,11 @@ export async function sincronizar(
       // Principio 1: nada con receta o sin comercializar entra en las baldas.
       if (item.receta || !item.comerc) {
         informe.sinReceta.omitidos++;
+        continue;
+      }
+      if (reutilizables.get(item.nregistro) === false) {
+        vistos.push(item.nregistro);
+        informe.sinReceta.reutilizados++;
         continue;
       }
       try {
@@ -171,18 +192,23 @@ export async function sincronizar(
         informe.vitrina.medicamentosConReceta++;
         if (procesadosReceta < limite) {
           procesadosReceta++;
-          try {
-            const detalle = await cliente.obtener(urlMedicamento(item.nregistro), Detalle);
-            if (detalle?.comerc) {
-              const secciones =
-                (await cliente.obtener(urlFichaTecnica(item.nregistro), SeccionesFT)) ?? [];
-              const resultado = await guardarMedicamento(conexion, detalle, secciones);
-              vistos.push(detalle.nregistro);
-              informe.vitrina.sincronizados++;
-              informe.sinReceta.reglasARevisar += resultado.reglasARevisar;
+          if (item.comerc && reutilizables.get(item.nregistro) === true) {
+            vistos.push(item.nregistro);
+            informe.vitrina.reutilizados++;
+          } else {
+            try {
+              const detalle = await cliente.obtener(urlMedicamento(item.nregistro), Detalle);
+              if (detalle?.comerc) {
+                const secciones =
+                  (await cliente.obtener(urlFichaTecnica(item.nregistro), SeccionesFT)) ?? [];
+                const resultado = await guardarMedicamento(conexion, detalle, secciones);
+                vistos.push(detalle.nregistro);
+                informe.vitrina.sincronizados++;
+                informe.sinReceta.reglasARevisar += resultado.reglasARevisar;
+              }
+            } catch (err) {
+              registrarError(`medicamento ${item.nregistro}`, err);
             }
-          } catch (err) {
-            registrarError(`medicamento ${item.nregistro}`, err);
           }
         }
         const pactivo = item.vtm?.nombre?.trim();

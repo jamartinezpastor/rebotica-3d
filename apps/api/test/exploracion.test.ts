@@ -44,7 +44,12 @@ beforeAll(async () => {
         nregistro: `F${i}`,
         seccion: '4.1',
         titulo: 'Indicaciones',
-        texto: i === 2 ? 'Indicación ficticia diferente' : 'Indicación ficticia: cefalea',
+        texto:
+          i === 2
+            ? 'Indicación ficticia diferente'
+            : i === 1
+              ? 'Indicación ficticia: cefaleas y fiebre'
+              : 'Indicación ficticia: cefalea',
         html: '',
         hash: 'ficticio',
       });
@@ -67,6 +72,60 @@ const explorar = (consultaId: string) =>
   app.inject({ method: 'POST', url: '/api/explorar', payload: { consultaId } });
 
 describe('catálogo informativo por dolencia', () => {
+  it('devuelve todas las marcas y formas coincidentes, sin recortar por grupo o receta', async () => {
+    const localPg = new PGlite();
+    const localDb = drizzle(localPg);
+    const localApp = buildApp({ db: localDb });
+    try {
+      await migrate(localDb, {
+        migrationsFolder: fileURLToPath(
+          new URL('../../../packages/db/migrations', import.meta.url),
+        ),
+      });
+      const productos = Array.from({ length: 120 }, (_, i) => ({
+        nregistro: `COMPLETO-${i}`,
+        nombre: `Marca ficticia ${i}`,
+        pactivos: `Activo ficticio ${i % 4}`,
+        forma: i % 2 ? 'Forma ficticia A' : 'Forma ficticia B',
+        receta: i >= 72,
+        comerc: true,
+        atcs: [],
+      }));
+      await localDb.insert(medicamento).values(productos);
+      await localDb.insert(seccionFt).values(
+        productos.map((p) => ({
+          nregistro: p.nregistro,
+          seccion: '4.1',
+          titulo: 'Indicaciones ficticias',
+          texto: p.receta
+            ? 'Indicación ficticia: dolores de cabeza'
+            : 'Indicación ficticia: cefaleas',
+          html: '',
+          hash: 'ficticio',
+        })),
+      );
+      const r = await localApp.inject({
+        method: 'POST',
+        url: '/api/explorar',
+        payload: { consultaId: 'dolor-cabeza' },
+      });
+      expect(r.statusCode).toBe(200);
+      const p = ExplorarRespuesta.parse(r.json());
+      const sinReceta = p.baldas.flatMap((b) => b.productos);
+      const conReceta = p.vitrina.flatMap((g) => g.productos);
+      expect(sinReceta).toHaveLength(72);
+      expect(conReceta).toHaveLength(48);
+      expect(sinReceta.every((m) => !m.receta)).toBe(true);
+      expect(conReceta.every((m) => m.receta)).toBe(true);
+      expect([...sinReceta, ...conReceta].map((m) => m.nregistro).sort()).toEqual(
+        productos.map((m) => m.nregistro).sort(),
+      );
+      expect(p.ocultasPorPerfil).toBe(0);
+    } finally {
+      await localApp.close();
+      await localPg.close();
+    }
+  });
   it('distingue una copia sin indicaciones de una búsqueda sin coincidencias', async () => {
     const localPg = new PGlite();
     const localDb = drizzle(localPg);
@@ -129,6 +188,13 @@ describe('catálogo informativo por dolencia', () => {
     expect(p.estado).toBe('informativo');
     expect(p.baldas.flatMap((b) => b.productos.map((m) => m.nregistro))).toEqual(['F1']);
     expect(p.vitrina.flatMap((b) => b.productos.map((m) => m.nregistro))).toEqual(['F3']);
+    expect(p.baldas[0]?.productos[0]?.clasificacion?.consultas).toEqual([
+      { id: 'dolor-cabeza', titulo: 'Dolor de cabeza' },
+      { id: 'fiebre', titulo: 'Fiebre' },
+    ]);
+    expect(p.vitrina[0]?.productos[0]?.clasificacion?.consultas).toEqual([
+      { id: 'dolor-cabeza', titulo: 'Dolor de cabeza' },
+    ]);
     // Compartir principio activo, aparecer solo en 4.2 o estar retirado no crea una asociación.
     expect(ExplorarRespuesta.parse((await explorar('tos')).json()).baldas).toEqual([]);
   });
@@ -144,7 +210,17 @@ describe('catálogo informativo por dolencia', () => {
   it('normaliza acentos y espacios, con límites de palabra', () => {
     expect(mencionaDolencia('RINITIS\nALÉRGICA', 'alergia-estacional')).toBe(true);
     expect(mencionaDolencia('datos de prueba', 'tos')).toBe(false);
+    expect(mencionaDolencia('Texto ficticio: microcefaleas', 'dolor-cabeza')).toBe(false);
+    expect(mencionaDolencia('Texto ficticio: migrañoso', 'dolor-cabeza')).toBe(false);
   });
+  it.each(['dolor de cabeza', 'dolores de cabeza', 'cefalea', 'cefaleas', 'migraña', 'migrañas'])(
+    'encuentra la variante %s en las indicaciones',
+    (termino) => {
+      expect(
+        mencionaDolencia(`Indicación ficticia: ${termino.toUpperCase()}.`, 'dolor-cabeza'),
+      ).toBe(true);
+    },
+  );
   it('no acepta perfiles, texto libre ni queries y no registra contenido rechazado', async () => {
     const canario = 'CANARIO_PRIVADO_FICTICIO';
     for (const payload of [

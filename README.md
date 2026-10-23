@@ -99,6 +99,13 @@ Si todavía no hay productos comercializados con indicaciones 4.1, `/api/explora
 - Lo que pasa a receta se mueve a la vitrina y sus reglas pasan a `revisar`; lo que deja de
   comercializarse sale de ambas zonas (`comerc = false`).
 - La marca de la última pasada (`sync_estado`) solo avanza si no hubo errores.
+- La carga completa guarda su fecha de inicio y se reanuda tras una interrupción: reutiliza los
+  medicamentos ya guardados en esa carga y continúa con los pendientes. El informe distingue
+  descargados y reutilizados; `--completo` inicia una carga nueva. La pasada incremental posterior
+  parte del inicio original, para recoger también los cambios ocurridos durante la carga.
+- La respuesta oficial «No existen secciones para el medicamento indicado» conserva los datos
+  del medicamento sin bloquear la carga. Sin texto 4.1 no se le asignan dolencias ni dosis por
+  su nombre o por otro producto de su grupo.
 - Con `ASSETS_DIR` definido, genera tras la sincronización el aspecto de cada caja: descarga la
   miniatura del envase que publica CIMA (como máximo 200 px), extrae su paleta de colores y guarda
   una miniatura WebP servible. Rellena `asset_caja` con la paleta, el color dominante, la forma de
@@ -109,7 +116,24 @@ Si todavía no hay productos comercializados con indicaciones 4.1, `/api/explora
 - Ritmo de 4 peticiones por segundo (`CIMA_INTERVALO_MS`, 250 por defecto) y reintentos con espera
   creciente ante 429 y 5xx.
 
-## Demo con datos reales (sin PostgreSQL)
+## Catálogo completo en local (sin PostgreSQL externo)
+
+```bash
+pnpm catalogo
+```
+
+Arranca la web y la API con una base PGlite persistente en `.local/catalogo/`, ignorada por Git.
+Descarga ambos catálogos de CIMA completos, sin límite ni muestra de marcas, y conserva los datos
+y el progreso entre reinicios. La API sirve lo que ya hay en disco mientras sincroniza en segundo
+plano. La primera carga puede durar horas: **hasta terminar, los resultados son parciales**.
+Después aplica los cambios de CIMA al arrancar y cada 24 horas mientras esté abierto.
+Las fotos se generan al acabar la pasada de datos. La consola muestra el progreso.
+
+Usa `.env` para Gemini, como la demo. `PORT` cambia el puerto de API (3000 por defecto) y
+`CATALOGO_DIR` permite elegir otro directorio de datos. Solo un proceso puede abrir ese directorio.
+Detener la demo anterior antes de iniciar el catálogo en el mismo puerto.
+
+## Demo con muestra de datos reales (sin PostgreSQL)
 
 ```bash
 pnpm demo
@@ -277,6 +301,14 @@ Las alarmas y los errores bloquean la vista de productos. F4-04 incorpora los
 preguntas, criterios, baldas y grupos de vitrina. Se importan opcionalmente mediante
 `PROTOCOLOS_DIR`, sin sustituir versiones existentes. Todos siguen sin firma, con revisión
 pendiente: todavía no hay protocolos clínicos validados que autoricen recomendaciones clínicas.
+
+Se descarta F4-05 («Pedir cita») por el cambio de alcance del 23/10/2026. El recorrido principal
+es consulta → todos los medicamentos del catálogo comercializado cuya sección 4.1 coincida →
+ficha y prospecto. No se recortan marcas ni productos por grupo, y la IA no selecciona los
+medicamentos. La interfaz muestra el número de coincidencias y las agrupaciones conservan el
+conjunto completo, separado entre sin receta y con receta. La agrupación por dolencias usa las
+mismas coincidencias documentales, sin necesitar un protocolo clínico validado. La cobertura depende de completar
+la sincronización y de que CIMA publique las indicaciones estructuradas de cada producto.
 
 El paquete [`@rebotica/dosis`](packages/dosis/README.md) implementa el cálculo puro con reglas
 validadas, cita literal y hash vigente de la sección 4.2. Incluye redondeo decimal hacia abajo,

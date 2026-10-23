@@ -17,6 +17,12 @@ principios activos por IA. Se mantiene toda la ficha al pulsar un producto, la s
 receta y el requisito de reglas de dosis validadas. Los protocolos y el motor de triaje quedan
 disponibles para un futuro flujo clínico, pero no bloquean la navegación informativa.
 
+Cambio de alcance del usuario el 23/10/2026: se descarta F4-05 («Pedir cita»). La app se centra
+en introducir una dolencia y explorar todos los medicamentos comercializados cuya indicación
+oficial coincida, con sus fichas y prospectos completos. No limitar los resultados a semillas,
+marcas representativas ni una selección del modelo. Agrupar cambia la organización, sin quitar
+productos; se mantiene la separación entre sin receta y con receta.
+
 - Se trabaja por tickets del plan (`F0-01`, `F1-02`…). Implementa solo el ticket pedido y cumple
   su criterio de «hecho».
 - Antes de dar un ticket por terminado: `pnpm check` en verde (formato, lint, tipos, tests, build).
@@ -75,9 +81,15 @@ por Coolify (`DATABASE_URL`).
 ```bash
 pnpm install
 pnpm dev          # API en :3000 y web en :5173 (con proxy de /api)
+pnpm catalogo     # catálogo completo persistente en local, sin PostgreSQL externo
 pnpm check        # todo lo que ejecuta la CI
 pnpm --filter @rebotica/dosis test
 ```
+
+Para comprobar cobertura en local, usar `pnpm catalogo`: guarda CIMA y su progreso en
+`.local/catalogo/` (ignorado por Git), sirve lo ya cargado mientras sincroniza y reanuda tras
+reiniciar. La primera carga es larga y sus resultados son parciales hasta completarse.
+`pnpm demo` mantiene una muestra pequeña en memoria; no sirve para comprobar que estén todos.
 
 ## Convenciones
 

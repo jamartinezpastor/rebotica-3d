@@ -222,7 +222,10 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
 
   return {
     /** Búsqueda documental local: solo sección 4.1 de productos comercializados. */
-    async buscarIndicaciones(coincide: (texto: string) => boolean): Promise<ProductoResumen[]> {
+    async buscarIndicaciones(
+      coincide: (texto: string) => boolean,
+      clasificar?: (texto: string) => NonNullable<ProductoResumen['clasificacion']>['consultas'],
+    ): Promise<ProductoResumen[]> {
       const [indice, secciones] = await Promise.all([
         obtenerIndice(),
         conexion
@@ -234,10 +237,22 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       const indicaciones = secciones.filter((s) => s.texto.trim());
       const disponibles = new Set(indicaciones.map((s) => s.nregistro));
       if (!productos.some((p) => disponibles.has(p.nregistro))) throw new CatalogoNoSincronizado();
-      const registros = new Set(
-        indicaciones.filter((s) => coincide(s.texto)).map((s) => s.nregistro),
+      const registros = new Map(
+        indicaciones.filter((s) => coincide(s.texto)).map((s) => [s.nregistro, s.texto]),
       );
-      return productos.filter((p) => registros.has(p.nregistro));
+      return productos
+        .filter((p) => registros.has(p.nregistro))
+        .map((p) =>
+          clasificar
+            ? {
+                ...p,
+                clasificacion: {
+                  edadMinPediatricaMeses: p.clasificacion?.edadMinPediatricaMeses ?? null,
+                  consultas: clasificar(registros.get(p.nregistro)!),
+                },
+              }
+            : p,
+        );
     },
 
     /** Productos de un principio activo (o asociación), separados por condición de prescripción. */

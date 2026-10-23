@@ -45,7 +45,7 @@ function tituloDe(p: ProductoResumen, agrupacion: Agrupacion): string {
       const nombres = [...new Set(p.clasificacion?.consultas.map((c) => c.titulo) ?? [])].sort(
         orden,
       );
-      return nombres.length ? nombres.join(' · ') : 'Sin protocolo clínico validado';
+      return nombres.length ? nombres.join(' · ') : 'Sin dolencia clasificada';
     }
     default:
       return '';

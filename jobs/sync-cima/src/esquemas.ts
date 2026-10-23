@@ -62,7 +62,7 @@ export const Detalle = z.object({
 export type Detalle = z.infer<typeof Detalle>;
 
 /** Respuesta de GET /docSegmentado/contenido/1 (con o sin `seccion`). */
-export const SeccionesFT = z.array(
+const ListaSeccionesFT = z.array(
   z.object({
     seccion: z.string(),
     titulo: z.string(),
@@ -70,6 +70,14 @@ export const SeccionesFT = z.array(
     contenido: z.string().optional(),
   }),
 );
+// CIMA también responde HTTP 200 con este mensaje cuando solo publica la ficha en PDF.
+// Se conserva el medicamento, pero no se inventan indicaciones ni dosis sin texto estructurado.
+export const SeccionesFT = z
+  .union([
+    ListaSeccionesFT,
+    z.strictObject({ error: z.literal('No existen secciones para el medicamento indicado') }),
+  ])
+  .transform((respuesta) => (Array.isArray(respuesta) ? respuesta : []));
 export type SeccionesFT = z.infer<typeof SeccionesFT>;
 
 /**

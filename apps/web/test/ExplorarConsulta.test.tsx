@@ -93,6 +93,43 @@ const enviarTexto = () => {
 };
 
 describe('recorrido informativo simplificado', () => {
+  it('muestra todos los resultados y agrupar conserva la colección completa', async () => {
+    const todos = productosDemo(83).map((p, i) => ({ ...p, receta: i >= 52 }));
+    peticiones.mockImplementation(async (url) =>
+      url === '/api/health'
+        ? Response.json({ status: 'ok', version: 'prueba', time: new Date().toISOString() })
+        : Response.json({
+            ...pasillo,
+            baldas: [{ ...pasillo.baldas[0], productos: todos.slice(0, 52) }],
+            vitrina: [
+              {
+                principioActivo: 'Grupo ficticio con receta',
+                productos: todos.slice(52),
+                formas: [],
+                paraQueSeUsa: 'Indicación ficticia',
+                porQueNecesitaReceta: 'Requiere prescripción',
+                situacion: 'Información de prueba',
+              },
+            ],
+          }),
+    );
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
+    await screen.findByRole('heading', { name: 'Fiebre' });
+    const agrupacion = screen.getByRole('combobox', { name: 'Agrupar por' });
+    const comprobarTodos = () => {
+      expect(container.querySelectorAll('button[data-cursor="medicamento"]')).toHaveLength(83);
+      expect(screen.getByText('83 medicamentos relacionados')).toBeTruthy();
+    };
+    comprobarTodos();
+    for (const value of ['laboratorio', 'principio', 'generico']) {
+      fireEvent.change(agrupacion, {
+        target: { value },
+      });
+      comprobarTodos();
+    }
+    expect(peticiones.mock.calls.filter(([url]) => url === '/api/explorar')).toHaveLength(1);
+  });
   it('un clic en una dolencia abre los productos y conserva la ficha con sus tres pestañas', async () => {
     expect(calculadora).toBe(false);
     render(<App />);

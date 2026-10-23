@@ -23,7 +23,7 @@ export const AssetCajaPublico = z.strictObject({
 export type AssetCajaPublico = z.infer<typeof AssetCajaPublico>;
 
 export const ProductoResumen = z.strictObject({
-  /** Clasificación clínica revisada; nunca se deduce del nombre o de la forma del envase. */
+  /** Edad con regla validada; consultas de indicaciones oficiales o protocolos revisados. */
   clasificacion: z
     .strictObject({
       edadMinPediatricaMeses: z.number().int().min(0).max(215).nullable(),

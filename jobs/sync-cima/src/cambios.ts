@@ -6,6 +6,7 @@ import { Detalle, PaginaCambios, SeccionesFT } from './esquemas';
 import { guardarMedicamento, sincronizar, type BaseDatos, type Informe } from './sync';
 
 const CLAVE_ULTIMA = 'cima.ultima_sincronizacion';
+const CLAVE_CARGA = 'cima.carga_completa_desde';
 const DIA_MS = 24 * 60 * 60 * 1000;
 const MAX_ERRORES_INFORME = 50;
 
@@ -191,10 +192,41 @@ export async function sincronizacionDiaria(
   const ahora = opciones.ahora ?? (() => new Date());
   const arranque = ahora();
   const ultima = opciones.forzarCompleto ? null : await leerUltimaSincronizacion(db);
+  const conexion = db as unknown as Db;
+  const [pendiente] = await conexion
+    .select()
+    .from(syncEstado)
+    .where(eq(syncEstado.clave, CLAVE_CARGA));
 
-  if (!ultima) {
-    const informe = await sincronizar(db, cliente, { log: opciones.log });
-    if (informe.errores.length === 0) await guardarUltimaSincronizacion(db, arranque);
+  if (!ultima || pendiente) {
+    const fechaPendiente = pendiente ? new Date(pendiente.valor) : null;
+    const reanudando =
+      !opciones.forzarCompleto &&
+      fechaPendiente &&
+      !Number.isNaN(fechaPendiente.getTime()) &&
+      fechaPendiente.getTime() <= arranque.getTime();
+    const desde = reanudando ? fechaPendiente : arranque;
+    if (!reanudando)
+      await conexion
+        .insert(syncEstado)
+        .values({ clave: CLAVE_CARGA, valor: desde.toISOString() })
+        .onConflictDoUpdate({
+          target: syncEstado.clave,
+          set: { valor: desde.toISOString(), actualizadoEn: new Date() },
+        });
+    opciones.log?.(
+      `${reanudando ? 'reanudando' : 'iniciando'} carga completa desde ${desde.toISOString()}`,
+    );
+    const informe = await sincronizar(db, cliente, {
+      log: opciones.log,
+      reutilizarDesde: reanudando ? desde : undefined,
+    });
+    if (informe.errores.length === 0)
+      await conexion.transaction(async (tx) => {
+        // Los cambios ocurridos mientras se cargaba se recogerán en la siguiente pasada.
+        await guardarUltimaSincronizacion(tx, desde);
+        await tx.delete(syncEstado).where(eq(syncEstado.clave, CLAVE_CARGA));
+      });
     return { modo: 'completo', informe };
   }
 

@@ -7,7 +7,7 @@ import { geometriaEstanteria } from '../src/escena/geometria';
 describe('agrupaciones compartidas de lista y estantería', () => {
   it.each(AGRUPACIONES)('conserva todos los productos y la separación de receta: $id', ({ id }) => {
     const originales = [
-      { titulo: 'Muchos productos', productos: productosDemo(45) },
+      { titulo: 'Muchos productos', productos: productosDemo(195) },
       ...vitrinaDemo(),
     ];
     const antes = JSON.stringify(originales);
@@ -20,7 +20,8 @@ describe('agrupaciones compartidas de lista y estantería', () => {
     const escena = modeloPasillo(baldas, geometriaEstanteria())
       .flatMap((e) => e.cajas.map((c) => c.item.nregistro))
       .sort();
-    expect(lista).toHaveLength(50);
+    expect(lista).toHaveLength(200);
+    expect(lista).toEqual(originales.flatMap((b) => b.productos.map((p) => p.nregistro)).sort());
     expect(escena).toEqual(lista);
     expect(JSON.stringify(originales)).toBe(antes);
   });

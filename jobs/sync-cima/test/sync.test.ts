@@ -7,7 +7,7 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { crearClienteCima } from '../src/cliente';
 import { guardarMedicamento, quitarMarcas, sincronizar } from '../src/sync';
-import { Detalle } from '../src/esquemas';
+import { Detalle, SeccionesFT } from '../src/esquemas';
 
 // Datos ficticios con la forma de las respuestas de CIMA.
 const SIN_RECETA = [
@@ -83,7 +83,7 @@ const secciones = (n: string) => [
   { seccion: '4.3', titulo: 'Contraindicaciones', contenido: '<p>Alergia.</p>' },
 ];
 
-function cimaSimulada(opciones: { fallaDetalle?: string } = {}) {
+function cimaSimulada(opciones: { fallaDetalle?: string; sinSecciones?: string } = {}) {
   const fetch = async (entrada: URL | string | Request): Promise<Response> => {
     const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
     const resp = (cuerpo: unknown) => new Response(JSON.stringify(cuerpo));
@@ -108,6 +108,8 @@ function cimaSimulada(opciones: { fallaDetalle?: string } = {}) {
       );
     }
     if (url.pathname.includes('docSegmentado')) {
+      if (p.get('nregistro') === opciones.sinSecciones)
+        return resp({ error: 'No existen secciones para el medicamento indicado' });
       const s = secciones(p.get('nregistro') ?? '');
       const una = p.get('seccion');
       return resp(una ? s.filter((x) => x.seccion === una) : s);
@@ -215,6 +217,19 @@ describe('sincronizar', () => {
     expect(await db.select().from(presentacion)).toHaveLength(10);
     expect(await db.select().from(grupoReceta)).toHaveLength(1);
     expect(await db.select().from(reglaDosis)).toHaveLength(1);
+  });
+
+  it('conserva un medicamento sin secciones disponibles sin bloquear la carga completa', async () => {
+    const informe = await sincronizar(db, nuevoCliente(cimaSimulada({ sinSecciones: '1002' })));
+    expect(informe.errores).toEqual([]);
+    expect(informe.sinReceta.sincronizados).toBe(2);
+    expect(informe.sinReceta.sinPosologia).toBe(1);
+    expect(
+      await db.select().from(medicamento).where(eq(medicamento.nregistro, '1002')),
+    ).toHaveLength(1);
+    expect(await db.select().from(seccionFt).where(eq(seccionFt.nregistro, '1002'))).toEqual([]);
+    expect(() => SeccionesFT.parse({ error: 'Error distinto o temporal' })).toThrow();
+    expect(() => SeccionesFT.parse([{ seccion: '4.1' }])).toThrow();
   });
 
   it('un fallo en un medicamento no detiene el resto y se informa', async () => {
