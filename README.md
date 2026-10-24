@@ -135,9 +135,10 @@ Detener la demo anterior antes de iniciar el catálogo en el mismo puerto.
 
 ## Cobertura y estado de la copia (F1-06)
 
-Los resultados permiten desplegar el estado de la copia: vacía, parcial o completa según sus
-marcas de sincronización, con la fecha cubierta y el número de medicamentos con indicaciones
-consultables. Una búsqueda vacía en una copia parcial se presenta como provisional. Una copia
+El estado de la copia se consulta mediante los diagnósticos y el comando de cobertura: vacía,
+parcial o completa según sus marcas de sincronización, con la fecha cubierta y el número de
+medicamentos con indicaciones consultables. El banner inferior del catálogo se ha retirado.
+Una búsqueda vacía en una copia parcial se presenta como provisional. Una copia
 completa puede tener fichas sin sección 4.1 segmentada; estas siguen disponibles en el catálogo
 general, pero no se les asignan dolencias por su nombre o principio activo.
 
@@ -231,6 +232,14 @@ la mano abierta.
 
 ### Vista lista y rendimiento
 
+- **Comparación (F5-06):** «Añadir a comparación» en una ficha permite elegir hasta dos
+  medicamentos. La barra conserva la selección entre páginas, filtros y vistas; «Comparar»
+  abre sus datos oficiales en columnas en escritorio y por pares en móvil. Incluye textos
+  completos disponibles de las secciones 4.1–4.7, enlaces oficiales y fotos ampliables, con
+  la condición de receta diferenciada. Faltas de datos y errores se indican por separado.
+  La posología se muestra como texto oficial; no hay rankings, conversiones ni calculadoras
+  en esta vista. La selección vive solo en memoria y se borra al abandonar la página; no se
+  escribe en URL ni almacenamiento. Se comprueba que cada ficha corresponde al registro pedido.
 - **Grupos y recursos 3D (F2-08):** «Grupos» abre el salto al inicio de cualquier grupo del
   resultado, también en otras páginas. El raíl conserva todos los destinos y la GPU solo carga
   las estanterías próximas; conserva el original de una ficha durante su vuelo de regreso.

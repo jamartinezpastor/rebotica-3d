@@ -167,7 +167,7 @@ describe('recorrido informativo simplificado', () => {
     const agrupacion = screen.getByRole('combobox', { name: 'Agrupar por' });
     const comprobarTodos = () => {
       expect(container.querySelectorAll('button[data-cursor="medicamento"]')).toHaveLength(83);
-      expect(screen.getByText('83 medicamentos relacionados')).toBeTruthy();
+      expect(screen.queryByText(/Catálogo informativo:/)).toBeNull();
     };
     comprobarTodos();
     for (const value of ['laboratorio', 'principio', 'generico']) {
@@ -209,7 +209,7 @@ describe('recorrido informativo simplificado', () => {
     );
     expect(guardar).not.toHaveBeenCalled();
     expect(window.location.search).toBe('');
-    expect(screen.getByText(/Catálogo informativo:/)).toBeTruthy();
+    expect(screen.queryByText(/Catálogo informativo:/)).toBeNull();
   });
   it('las alarmas sustituyen el catálogo y no muestran productos', async () => {
     peticiones.mockImplementation(async (url) =>

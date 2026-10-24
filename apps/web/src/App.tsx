@@ -1,4 +1,4 @@
-import { AVISO_LEGAL, type PasilloResponse } from '@rebotica/shared';
+import { AVISO_LEGAL, type PasilloResponse, type ProductoResumen } from '@rebotica/shared';
 import {
   lazy,
   Suspense,
@@ -27,9 +27,10 @@ import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacio
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { paginaCatalogo, PRODUCTOS_POR_PAGINA } from './escena/paginaCatalogo';
-import { EstadoCatalogo } from './escena/EstadoCatalogo';
 import { CargaVisual } from './escena/CargaVisual';
 import { BusquedaCatalogo } from './escena/BusquedaCatalogo';
+import { BarraComparacion } from './escena/BarraComparacion';
+import { alternarComparado } from './escena/seleccionComparacion';
 import {
   FILTROS_INICIALES,
   filtrarCatalogo,
@@ -46,6 +47,7 @@ import {
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
+const Comparacion = lazy(() => import('./escena/Comparacion'));
 
 function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string }) {
   return (
@@ -130,6 +132,24 @@ function VistaEscena({
     [cajasDemo, mostrarVitrinaDemo],
   );
   const seleccion = useSeleccion();
+  const [comparados, setComparados] = useState<ProductoResumen[]>([]);
+  const [comparacionAbierta, setComparacionAbierta] = useState(false);
+  useEffect(() => {
+    const limpiar = () =>
+      flushSync(() => {
+        setComparados([]);
+        setComparacionAbierta(false);
+      });
+    const restaurar = (e: PageTransitionEvent) => {
+      if (e.persisted) limpiar();
+    };
+    window.addEventListener('pagehide', limpiar);
+    window.addEventListener('pageshow', restaurar);
+    return () => {
+      window.removeEventListener('pagehide', limpiar);
+      window.removeEventListener('pageshow', restaurar);
+    };
+  }, []);
   const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_INICIALES);
   const lista = useRef<HTMLDivElement>(null);
   const herramientas = useRef<HTMLDivElement>(null);
@@ -245,7 +265,9 @@ function VistaEscena({
   return (
     <div
       className={
-        vista === '3d' ? 'relative h-dvh w-full overflow-hidden' : 'relative min-h-dvh pt-20'
+        vista === '3d'
+          ? 'relative h-dvh w-full overflow-hidden'
+          : `relative min-h-dvh pt-20 ${comparados.length ? 'pb-20' : ''}`
       }
     >
       {!seleccion.producto && (
@@ -349,6 +371,23 @@ function VistaEscena({
           inert={!!seleccion.producto}
           className={`${seleccion.producto ? 'invisible' : ''} z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
         >
+          {comparados.length > 0 && (
+            <div
+              className={`pointer-events-auto ${vista === 'lista' ? `fixed inset-x-3 z-10 mx-auto max-w-xl ${paginado ? 'bottom-20' : 'bottom-3'}` : ''}`}
+            >
+              <BarraComparacion
+                productos={comparados}
+                onAbrir={() => setComparacionAbierta(true)}
+                onQuitar={(registro) => {
+                  if (comparados.length === 1)
+                    herramientas.current
+                      ?.querySelector<HTMLInputElement>('input[type="search"]')
+                      ?.focus({ preventScroll: true });
+                  setComparados((actual) => actual.filter((p) => p.nregistro !== registro));
+                }}
+              />
+            </div>
+          )}
           {paginado && (
             <nav
               aria-label="Páginas del catálogo"
@@ -384,26 +423,6 @@ function VistaEscena({
               Demostración: pendiente de validación farmacéutica
             </p>
           )}
-          {remoto.tipo === 'listo' && remoto.estado === 'informativo' && (
-            <div
-              role="note"
-              className="rounded-xl bg-white/95 p-3 text-base text-tinta ring-1 ring-cruz/30"
-            >
-              Catálogo informativo:{' '}
-              <strong>
-                {totalCajas}{' '}
-                {!pasillo && !demo
-                  ? totalCajas === 1
-                    ? 'medicamento'
-                    : 'medicamentos'
-                  : totalCajas === 1
-                    ? 'medicamento relacionado'
-                    : 'medicamentos relacionados'}
-              </strong>
-              . Consulta la ficha completa.
-              <EstadoCatalogo datos={remoto.catalogo} />
-            </div>
-          )}
         </div>
       }
 
@@ -433,7 +452,35 @@ function VistaEscena({
       )}
 
       {seleccion.producto && (
-        <PanelFicha producto={seleccion.producto} onVolver={seleccion.volver} modo={vista} />
+        <PanelFicha
+          producto={seleccion.producto}
+          onVolver={seleccion.volver}
+          modo={vista}
+          comparado={comparados.some((p) => p.nregistro === seleccion.producto?.nregistro)}
+          totalComparados={comparados.length}
+          onComparar={() => {
+            const producto = seleccion.producto;
+            if (producto) setComparados((actual) => alternarComparado(actual, producto));
+          }}
+        />
+      )}
+      {comparacionAbierta && comparados[0] && comparados[1] && (
+        <Suspense
+          fallback={
+            <p
+              role="status"
+              className="fixed inset-x-3 top-1/2 z-30 mx-auto max-w-md rounded-xl bg-white p-4 shadow-lg"
+            >
+              Preparando la comparación…
+            </p>
+          }
+        >
+          <Comparacion
+            primero={comparados[0]}
+            segundo={comparados[1]}
+            onCerrar={() => setComparacionAbierta(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

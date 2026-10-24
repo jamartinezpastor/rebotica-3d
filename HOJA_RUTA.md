@@ -14,7 +14,7 @@ validaciones manuales se registran como pendientes hasta realizarlas.
 | 3    | F5-04         | Buscar por nombre o principio activo dentro del resultado; filtros explícitos por forma, laboratorio y genérico; contador y quitar filtros; conservar posición al volver de una ficha y entre vistas. Sin filtros iniciales ocultos.                                           | Completado               |
 | 4    | F2-08         | Saltar a un grupo, cargar solo cajas cercanas, reutilizar geometrías y materiales y adaptar calidad al dispositivo. Conservar acceso a todos los medicamentos y la separación de receta. Medir también consultas con muchos resultados.                                        | Completado               |
 | 5    | F5-05         | Mejorar jerarquía de nombres y principios activos, fotos oficiales ampliables, controles compactos, siluetas de carga y transiciones entre páginas. Distinguir la foto oficial de la representación 3D generada. Refinar luces, sombras y etiquetas sin sobrecargar la escena. | Completado               |
-| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Pendiente                |
+| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Completado               |
 | 7    | F5-03         | Completar privacidad, uso de Gemini, fuentes y versiones de reglas en un lugar accesible. Conservar la portada limpia y describir el comportamiento real del almacenamiento y las métricas.                                                                                    | Pendiente                |
 | 8    | F5-01 / F2-06 | Comprobar lector de pantalla, teclado, zoom, instalación iOS/Android y movimiento reducido; medir fps en un móvil de referencia. Las pruebas automáticas no sustituyen estos resultados.                                                                                       | Pendiente de dispositivo |
 | 9    | F6-01 a F6-03 | Revisión y firma farmacéutica de reglas y protocolos que se activen, prueba con 5–8 personas y decisión documentada del alcance de lanzamiento. Sin regla validada y vigente no hay calculadora.                                                                               | Pendiente                |
@@ -32,8 +32,8 @@ si se mantiene esa ampliación.
 
 ## Orden de trabajo
 
-F5-02, F1-06, F5-04, F2-08 y F5-05 están implementados. El siguiente paso es F5-06:
-comparar dos fichas oficiales sin rankings ni equivalencias de dosis. La
+F5-02, F1-06, F5-04, F2-08, F5-05 y F5-06 están implementados. El siguiente paso es F5-03:
+privacidad, uso de Gemini, fuentes y versiones de reglas. La
 validación farmacéutica y las pruebas con personas requieren participantes reales; no se dan por
 completadas mediante código ni datos ficticios.
 
@@ -124,3 +124,35 @@ completadas mediante código ni datos ficticios.
   desbordamiento horizontal; diálogo de foto y Escape mantienen ficha y foco. Comprobado que
   la preferencia de menos movimiento elimina la transición de página.
 - Las pruebas en dispositivos físicos, lectores de pantalla y con personas siguen pendientes.
+
+## Verificación de F5-06 — 24/10/2026
+
+- `pnpm check` correcto: 704 tests, formato, lint, tipos y build. JavaScript inicial: 115,88 kB gzip.
+- «Añadir a comparación» desde una ficha; hasta dos medicamentos elegidos explícitamente y
+  en ese orden. La selección se conserva entre páginas, filtros y lista/3D. Para añadir un
+  tercero hay que quitar uno; se puede retirar desde su ficha o desde la barra de comparación.
+- Comparación en columnas en escritorio y por pares de datos en móvil: principio activo,
+  forma, laboratorio, categoría, EFG, pictograma de conducción y suministro. Textos oficiales
+  disponibles de las secciones 4.1–4.7 y enlaces a prospecto y ficha técnica. Los resúmenes no
+  sustituyen el texto oficial en esta vista.
+- Medicamentos con receta diferenciados en cabecera y en los pares de datos, conservando
+  el aviso de precaución. Posología en texto oficial, sin calculadoras, conversiones, rankings
+  ni selección de tratamientos.
+- Cada ficha se valida con el contrato y el registro solicitado. Errores y secciones ausentes
+  se indican de forma independiente, sin ocultar la ficha que sí esté disponible ni inventar datos.
+- Diálogo nativo con Escape y retorno del foco; ampliar una foto y cerrarla mantiene abierta
+  la comparación. El módulo de comparación se carga en diferido.
+- Selección solo en memoria: no se escribe en URL ni almacenamiento, se borra al salir de
+  la página y al restaurar una página desde bfcache. Comparar solo consulta la API local de fichas.
+- Chrome con fichas y fotos ficticias de prueba, en 320, 390, 768 y 1440 px: sin desbordamiento
+  horizontal ni solapamiento entre barra y paginación; retorno de foco, fotos y uso desde 3D
+  comprobados. Las pruebas de dispositivo físico y lector de pantalla siguen pendientes.
+
+### Ajustes de interfaz solicitados — 24/10/2026
+
+- Cursor verde visible en la comparación y en las fotos ampliadas: se dibuja dentro del
+  diálogo activo de la capa superior y vuelve al catálogo al cerrarlo. Conserva el brillo de
+  hover y no queda oculto por la mano 3D del fondo. Verificado en Chrome desde lista y 3D.
+- Retirado el banner inferior «Catálogo informativo», incluido su desplegable de estado.
+  Los diagnósticos de cobertura siguen disponibles mediante API y `pnpm cobertura`.
+- `pnpm check` correcto: 706 tests, formato, lint, tipos y build. JavaScript inicial: 115,94 kB gzip.

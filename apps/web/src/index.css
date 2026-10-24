@@ -105,8 +105,9 @@ html.cursor-punto-activo * {
 }
 
 /* La mano conserva la prioridad, también al arrastrar con captura del puntero. */
-html:has(canvas.cursor-mano-3d-activo:not([data-cursor='medicamento'])) .cursor-punto,
-html:has(canvas.cursor-mano-3d-arrastrando) .cursor-punto {
+html:not(:has(dialog[open])):has(canvas.cursor-mano-3d-activo:not([data-cursor='medicamento']))
+  .cursor-punto,
+html:not(:has(dialog[open])):has(canvas.cursor-mano-3d-arrastrando) .cursor-punto {
   visibility: hidden;
 }
 

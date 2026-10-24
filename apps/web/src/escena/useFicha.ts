@@ -23,6 +23,8 @@ export function useFicha(nregistro: string): EstadoFicha {
         }
         if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
         const ficha = ProductoResponse.parse(await res.json());
+        if (ficha.nregistro !== nregistro)
+          throw new Error('La ficha no corresponde al registro solicitado');
         setEstado({ nregistro, valor: { tipo: 'listo', ficha } });
       })
       .catch(() => {

@@ -13,6 +13,9 @@ export interface PanelFichaProps {
   onVolver: () => void;
   /** En 3D la hoja deja libre la parte alta, donde gira la caja; en lista ocupa más. */
   modo?: '3d' | 'lista';
+  onComparar?: () => void;
+  comparado?: boolean;
+  totalComparados?: number;
 }
 
 function Parrafos({ lista }: { lista: string[] }) {
@@ -63,7 +66,14 @@ function Seccion({ seccion, abierta }: { seccion: SeccionMostrada; abierta: bool
  * La pestaña Dosis muestra siempre la posología oficial en texto: la calculadora solo aparece
  * con una regla validada y vigente (principio 3).
  */
-export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps) {
+export function PanelFicha({
+  producto,
+  onVolver,
+  modo = '3d',
+  onComparar,
+  comparado = false,
+  totalComparados = 0,
+}: PanelFichaProps) {
   const raiz = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -159,7 +169,23 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
         }`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-2">
-          <p className="text-sm font-semibold text-tinta-suave">Ficha del medicamento</p>
+          {onComparar ? (
+            <button
+              type="button"
+              onClick={onComparar}
+              aria-pressed={comparado}
+              disabled={!comparado && totalComparados >= 2}
+              className="min-h-11 rounded-lg px-2 text-sm font-semibold text-cruz ring-1 ring-cruz/30 disabled:text-tinta-suave disabled:opacity-60"
+            >
+              {comparado
+                ? 'Quitar de comparación'
+                : totalComparados >= 2
+                  ? 'Comparación completa'
+                  : 'Añadir a comparación'}
+            </button>
+          ) : (
+            <p className="text-sm font-semibold text-tinta-suave">Ficha del medicamento</p>
+          )}
           <button
             type="button"
             onClick={onVolver}
@@ -171,6 +197,11 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <header className="px-4 pt-3">
+            {onComparar && comparado && (
+              <p role="status" className="mb-2 text-sm text-cruz">
+                Medicamentos en comparación: {totalComparados} de 2.
+              </p>
+            )}
             {ficha?.borradorDosis && !ficha.reglaDosis && (
               <p
                 role="status"
