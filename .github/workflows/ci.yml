@@ -8,6 +8,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      VITEST_MAX_WORKERS: '2'
+      npm_config_workspace_concurrency: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -17,3 +20,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm rendimiento
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rendimiento
+          path: |
+            .lighthouseci/
+            apps/web/dist/presupuesto-js.json
+          retention-days: 14

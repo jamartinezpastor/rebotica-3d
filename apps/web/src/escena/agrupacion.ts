@@ -58,6 +58,7 @@ function repartir(baldas: readonly BaldaEscena[]): BaldaEscena[] {
     const partes = Math.max(1, Math.ceil(b.productos.length / 6));
     return Array.from({ length: partes }, (_, i) => ({
       ...b,
+      grupo: b.titulo,
       titulo: partes > 1 ? `${b.titulo} (${i + 1}/${partes})` : b.titulo,
       productos: b.productos.slice(i * 6, i * 6 + 6),
     }));

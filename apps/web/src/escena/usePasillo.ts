@@ -4,7 +4,13 @@ import type { BaldaEscena } from './Pasillo';
 
 export type EstadoPasillo =
   | { tipo: 'cargando' }
-  | { tipo: 'listo'; titulo: string; estado: PasilloResponse['estado']; baldas: BaldaEscena[] }
+  | {
+      tipo: 'listo';
+      titulo: string;
+      estado: PasilloResponse['estado'];
+      baldas: BaldaEscena[];
+      catalogo?: PasilloResponse['catalogo'];
+    }
   | { tipo: 'error'; mensaje: string };
 
 export function pasilloAEscena(
@@ -14,6 +20,7 @@ export function pasilloAEscena(
     tipo: 'listo',
     titulo: pasillo.titulo,
     estado: pasillo.estado,
+    ...(pasillo.catalogo ? { catalogo: pasillo.catalogo } : {}),
     baldas: [
       ...pasillo.baldas.map((b) => ({ titulo: b.titulo, productos: b.productos })),
       ...pasillo.vitrina.map((g) => ({
@@ -39,6 +46,7 @@ export function usePasillo(id: string | null, general = false): EstadoPasillo {
     const control = new AbortController();
     fetch(general ? '/api/catalogo' : `/api/pasillos/${encodeURIComponent(id!)}`, {
       signal: control.signal,
+      ...(general ? { headers: { 'x-rebotica-catalogo': '1' } } : {}),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);

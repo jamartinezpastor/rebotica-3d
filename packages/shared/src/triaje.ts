@@ -74,6 +74,7 @@ export const ErrorTriaje = z.strictObject({
   codigo: z.enum([
     'CATALOGO_NO_CONFIGURADO',
     'CATALOGO_NO_SINCRONIZADO',
+    'CATALOGO_SIN_INDICACIONES',
     'PROTOCOLO_NO_VALIDADO',
     'TRIAJE_NO_DISPONIBLE',
   ]),

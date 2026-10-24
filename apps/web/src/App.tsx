@@ -1,5 +1,14 @@
 import { AVISO_LEGAL, type PasilloResponse } from '@rebotica/shared';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { flushSync } from 'react-dom';
 import { baldasDemo, vitrinaDemo } from './escena/demo';
 import {
@@ -18,6 +27,22 @@ import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacio
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { paginaCatalogo, PRODUCTOS_POR_PAGINA } from './escena/paginaCatalogo';
+import { EstadoCatalogo } from './escena/EstadoCatalogo';
+import { CargaVisual } from './escena/CargaVisual';
+import { BusquedaCatalogo } from './escena/BusquedaCatalogo';
+import {
+  FILTROS_INICIALES,
+  filtrarCatalogo,
+  indiceBusqueda,
+  opcionesFiltros,
+  type FiltrosCatalogo,
+} from './escena/filtrosCatalogo';
+import {
+  destinosGrupos,
+  indiceDeRegistro,
+  registroVisible,
+  type RetornoLista,
+} from './escena/navegacionCatalogo';
 
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
@@ -58,7 +83,9 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
       {e
         ? `${e.fps.toFixed(0)} fps · p95 ${e.p95Ms.toFixed(0)} ms · máx ${e.maxMs.toFixed(0)} ms`
         : 'sin datos (mueve la cámara)'}
-      {` · ${cajas} cajas · dpr ${Math.min(window.devicePixelRatio, 1.5).toFixed(2)}`}
+      {` · ${cajas} productos en página`}
+      {e?.recursos &&
+        ` · ${e.recursos.geometrias} geometrías · ${e.recursos.texturas} texturas · ${e.recursos.llamadas} dibujos`}
     </p>
   );
 }
@@ -95,7 +122,7 @@ function VistaEscena({
   const cargado = useMemo(() => (precargado ? pasilloAEscena(precargado) : null), [precargado]);
   const remoto = cargado ?? descargado;
   useEffect(() => {
-    if (vista === '3d') botonVista.current?.focus();
+    if (vista === '3d') botonVista.current?.focus({ preventScroll: true });
     // El foco inicial en lista lo recibe el título de VistaLista.
   }, [vista, remoto.tipo]);
   const baldasDemoMemo = useMemo(
@@ -103,32 +130,104 @@ function VistaEscena({
     [cajasDemo, mostrarVitrinaDemo],
   );
   const seleccion = useSeleccion();
-  const baldasAgrupadas = useMemo(
-    () =>
-      agruparBaldas(
-        !demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : [],
-        agrupacion,
-      ),
-    [demo, remoto, baldasDemoMemo, agrupacion],
+  const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_INICIALES);
+  const lista = useRef<HTMLDivElement>(null);
+  const herramientas = useRef<HTMLDivElement>(null);
+  const mirada = useRef<string | null>(null);
+  const listaGuardada = useRef<RetornoLista | null>(null);
+  const [retorno, setRetorno] = useState<RetornoLista>();
+  const [registroInicial, setRegistroInicial] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const recolocar = useRef(false);
+  const alMirar = useCallback((registro: string) => {
+    mirada.current = registro;
+  }, []);
+  const fuente = useMemo(
+    () => (!demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : []),
+    [demo, remoto, baldasDemoMemo],
   );
+  const indice = useMemo(() => indiceBusqueda(fuente), [fuente]);
+  const opciones = useMemo(() => opcionesFiltros(fuente), [fuente]);
+  const filtradas = useMemo(
+    () => filtrarCatalogo(fuente, filtros, indice),
+    [fuente, filtros, indice],
+  );
+  const baldasAgrupadas = useMemo(
+    () => agruparBaldas(filtradas, agrupacion),
+    [filtradas, agrupacion],
+  );
+  const destinos = useMemo(() => destinosGrupos(baldasAgrupadas), [baldasAgrupadas]);
 
-  const cambiarVista = (siguiente: VistaElegida) => {
-    setVista(siguiente);
-    guardarPreferencia(siguiente);
-    setLento(false);
+  const reiniciarRecorrido = () => {
+    setPagina(0);
+    setRegistroInicial(null);
+    mirada.current = null;
+    listaGuardada.current = null;
+    setRevision((n) => n + 1);
+    recolocar.current = true;
   };
+  useLayoutEffect(() => {
+    if (recolocar.current) {
+      recolocar.current = false;
+      if (window.scrollY !== 0) window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [revision, vista]);
 
   let titulo = 'Pasillo de demostración';
+  const totalOriginal = fuente.reduce((n, b) => n + b.productos.length, 0);
   const totalCajas = baldasAgrupadas.reduce((n, b) => n + b.productos.length, 0);
   const paginas = Math.max(1, Math.ceil(totalCajas / PRODUCTOS_POR_PAGINA));
   const paginaActual = Math.min(pagina, paginas - 1);
-  const paginado = general && paginas > 1;
+  // En 3D también se acotan las consultas grandes; la lista por dolencia conserva todo.
+  const paginado = !demo && paginas > 1 && (general || vista === '3d');
   const baldas = useMemo(
     () => (paginado ? paginaCatalogo(baldasAgrupadas, paginaActual) : baldasAgrupadas),
     [paginado, baldasAgrupadas, paginaActual],
   );
+  const cambiarVista = (siguiente: VistaElegida) => {
+    if (vista === 'lista') {
+      const registro =
+        registroVisible(lista.current, herramientas.current?.getBoundingClientRect().bottom ?? 0) ??
+        baldas[0]?.productos[0]?.nregistro ??
+        null;
+      listaGuardada.current = { registro, scrollY: window.scrollY };
+      mirada.current = registro;
+      setRegistroInicial(registro);
+      const i = indiceDeRegistro(baldasAgrupadas, registro);
+      if (i >= 0) setPagina(Math.floor(i / PRODUCTOS_POR_PAGINA));
+      if (window.scrollY !== 0) window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      const registro = mirada.current ?? baldas[0]?.productos[0]?.nregistro ?? null;
+      setRetorno(
+        listaGuardada.current?.registro === registro ? { ...listaGuardada.current } : { registro },
+      );
+    }
+    setVista(siguiente);
+    guardarPreferencia(siguiente);
+    setLento(false);
+  };
+  const cambiarPagina = (siguiente: number) => {
+    setPagina(siguiente);
+    mirada.current = null;
+    listaGuardada.current = null;
+    setRegistroInicial(null);
+    setRetorno({
+      registro: paginaCatalogo(baldasAgrupadas, siguiente)[0]?.productos[0]?.nregistro ?? null,
+    });
+  };
+  const irAGrupo = (registro: string) => {
+    const i = indiceDeRegistro(baldasAgrupadas, registro);
+    if (i < 0) return;
+    setPagina(Math.floor(i / PRODUCTOS_POR_PAGINA));
+    setRegistroInicial(registro);
+    mirada.current = registro;
+    listaGuardada.current = null;
+    setRetorno({ registro });
+    setRevision((n) => n + 1);
+    if (vista === '3d') botonVista.current?.focus({ preventScroll: true });
+  };
   if (!demo) {
-    if (remoto.tipo === 'cargando') return <Preparando texto="Cargando el pasillo…" />;
+    if (remoto.tipo === 'cargando') return <CargaVisual texto="Cargando el pasillo…" />;
     if (remoto.tipo === 'error')
       return (
         <div>
@@ -145,7 +244,9 @@ function VistaEscena({
 
   return (
     <div
-      className={vista === '3d' ? 'relative h-dvh w-full overflow-hidden' : 'relative min-h-dvh'}
+      className={
+        vista === '3d' ? 'relative h-dvh w-full overflow-hidden' : 'relative min-h-dvh pt-20'
+      }
     >
       {!seleccion.producto && (
         <a
@@ -155,38 +256,74 @@ function VistaEscena({
           Saltar al contenido
         </a>
       )}
-      {vista === '3d' ? (
-        <Suspense fallback={<Preparando />}>
+      <div
+        ref={herramientas}
+        data-herramientas-catalogo
+        inert={!!seleccion.producto}
+        className={`${seleccion.producto ? 'invisible' : ''} ${vista === '3d' ? 'fixed inset-x-3 top-18 z-10 mx-auto max-w-xl' : 'sticky top-18 z-10 mx-3 sm:mx-auto sm:max-w-xl'}`}
+      >
+        <SelectorAgrupacion
+          destinos={destinos}
+          onIr={irAGrupo}
+          valor={agrupacion}
+          onCambiar={(valor) => {
+            setAgrupacion(valor);
+            reiniciarRecorrido();
+          }}
+        >
+          <BusquedaCatalogo
+            valor={filtros}
+            onCambiar={(valor) => {
+              setFiltros(valor);
+              reiniciarRecorrido();
+            }}
+            opciones={opciones}
+            coincidencias={totalCajas}
+            total={totalOriginal}
+          />
+        </SelectorAgrupacion>
+      </div>
+      {totalCajas === 0 && vista === '3d' ? (
+        <p
+          role="status"
+          className={`mx-auto max-w-xl p-6 ${vista === '3d' ? 'absolute inset-x-0 top-72' : ''}`}
+        >
+          No hay medicamentos que coincidan con estos filtros.
+        </p>
+      ) : vista === '3d' ? (
+        <Suspense fallback={<CargaVisual texto="Preparando la estantería…" />}>
           <Escena
-            key={general ? `${paginaActual}-${agrupacion}` : undefined}
+            key={`${paginaActual}-${agrupacion}-${revision}`}
             baldas={baldas}
             seleccionada={seleccion.producto?.nregistro ?? null}
             onSeleccionar={seleccion.seleccionar}
             onFps={midiendo ? setFps : undefined}
             onLento={() => setLento(true)}
+            registroInicial={registroInicial}
+            onMirar={alMirar}
+            calidadInicial={capacidad.nivel === 'bajo' ? 'ligera' : 'normal'}
           />
         </Suspense>
       ) : (
-        <div inert={!!seleccion.producto}>
+        <div ref={lista} inert={!!seleccion.producto}>
           <VistaLista
-            key={general ? paginaActual : undefined}
             titulo={titulo}
             baldas={baldas}
             onSeleccionar={seleccion.seleccionar}
+            conHerramientas
+            retorno={retorno}
+            pagina={paginaActual}
           />
         </div>
       )}
 
-      {midiendo && vista === '3d' && <ContadorFps e={fps} cajas={totalCajas} />}
-
-      {!seleccion.producto && (
-        <SelectorAgrupacion
-          valor={agrupacion}
-          onCambiar={(valor) => {
-            setAgrupacion(valor);
-            setPagina(0);
-          }}
-        />
+      {midiendo && vista === '3d' && (
+        <ContadorFps e={fps} cajas={baldas.reduce((n, b) => n + b.productos.length, 0)} />
+      )}
+      {seleccion.producto && vista === '3d' && (
+        <p className="pointer-events-none absolute top-3 left-3 z-10 rounded-full bg-white/90 px-3 py-2 text-xs text-tinta-suave">
+          Modelo 3D generado
+        </p>
       )}
 
       {!seleccion.producto &&
@@ -207,9 +344,10 @@ function VistaEscena({
           </a>
         ))}
 
-      {!seleccion.producto && (
+      {
         <div
-          className={`z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
+          inert={!!seleccion.producto}
+          className={`${seleccion.producto ? 'invisible' : ''} z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
         >
           {paginado && (
             <nav
@@ -219,7 +357,7 @@ function VistaEscena({
               <button
                 type="button"
                 disabled={paginaActual === 0}
-                onClick={() => setPagina(paginaActual - 1)}
+                onClick={() => cambiarPagina(paginaActual - 1)}
                 className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
               >
                 Anterior
@@ -231,7 +369,7 @@ function VistaEscena({
               <button
                 type="button"
                 disabled={paginaActual === paginas - 1}
-                onClick={() => setPagina(paginaActual + 1)}
+                onClick={() => cambiarPagina(paginaActual + 1)}
                 className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
               >
                 Siguiente
@@ -247,7 +385,7 @@ function VistaEscena({
             </p>
           )}
           {remoto.tipo === 'listo' && remoto.estado === 'informativo' && (
-            <p
+            <div
               role="note"
               className="rounded-xl bg-white/95 p-3 text-base text-tinta ring-1 ring-cruz/30"
             >
@@ -263,10 +401,11 @@ function VistaEscena({
                     : 'medicamentos relacionados'}
               </strong>
               . Consulta la ficha completa.
-            </p>
+              <EstadoCatalogo datos={remoto.catalogo} />
+            </div>
           )}
         </div>
-      )}
+      }
 
       {/* «Ver como lista» está siempre a mano (plan §reglas de interfaz). */}
       {!seleccion.producto && (
@@ -287,7 +426,7 @@ function VistaEscena({
               role="status"
               className="max-w-64 rounded-xl bg-amber-50 p-3 text-sm text-aviso ring-1 ring-amber-200"
             >
-              El 3D va lento en este dispositivo. La lista muestra lo mismo y es más ligera.
+              Se ha reducido el detalle para mejorar la fluidez. Puedes cambiar a la lista.
             </p>
           )}
         </div>

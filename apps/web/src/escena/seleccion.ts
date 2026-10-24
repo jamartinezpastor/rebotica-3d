@@ -45,6 +45,25 @@ export function escalaEnFicha(altoCaja: number, altoFicha = ALTO_EN_FICHA): numb
   return Math.min(4, Math.max(1, altoFicha / altoCaja));
 }
 
+/** Encaja el volumen durante todo el giro, incluida la perspectiva de su cara más próxima. */
+export function escalaSegunEncuadre(
+  d: { ancho: number; alto: number; fondo: number },
+  fov: number,
+  aspecto: number,
+): number {
+  const diametro = Math.hypot(d.ancho, d.fondo);
+  if (!(diametro > 0 && d.alto > 0 && aspecto > 0 && fov > 0 && fov < 180)) return 1;
+  const tangente = Math.tan((fov * Math.PI) / 360);
+  const horizontal = tangente * aspecto * 0.8;
+  const vertical = tangente * 0.3;
+  return Math.min(
+    4,
+    ALTO_EN_FICHA / d.alto,
+    (2 * horizontal * DISTANCIA_FICHA) / (diametro * (1 + horizontal)),
+    (2 * vertical * DISTANCIA_FICHA) / (d.alto + vertical * diametro),
+  );
+}
+
 export interface CajaUbicada {
   /** Balda (0 = la más baja) y posición x absoluta de la caja en el pasillo. */
   balda: number;

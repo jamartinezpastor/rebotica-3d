@@ -1,5 +1,5 @@
 import type { ProductoResumen } from '@rebotica/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface Seleccion {
   producto: ProductoResumen | null;
@@ -14,16 +14,22 @@ export interface Seleccion {
 export function useSeleccion(): Seleccion {
   const [producto, setProducto] = useState<ProductoResumen | null>(null);
   const origen = useRef<HTMLElement | null>(null);
+  const desplazamiento = useRef(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Tras retirar `inert` del fondo, vuelve al producto que abrió la ficha.
     if (!producto) {
-      if (origen.current?.isConnected) origen.current.focus();
+      if (origen.current?.isConnected) {
+        origen.current.focus({ preventScroll: true });
+        if (window.scrollY !== desplazamiento.current)
+          window.scrollTo({ top: desplazamiento.current, behavior: 'instant' });
+      }
       origen.current = null;
     }
   }, [producto]);
 
   const seleccionar = useCallback((p: ProductoResumen) => {
+    if (!origen.current) desplazamiento.current = window.scrollY;
     if (!origen.current && document.activeElement instanceof HTMLElement)
       origen.current = document.activeElement;
     setProducto((actual) => {

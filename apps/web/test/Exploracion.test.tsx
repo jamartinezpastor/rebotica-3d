@@ -34,6 +34,37 @@ afterEach(() => {
 });
 
 describe('exploración agrupada', () => {
+  it('acota el 3D de consultas grandes y conserva todas las coincidencias en lista', async () => {
+    window.history.replaceState(null, '', '/escena?pasillo=prueba&vista=3d');
+    const productos = productosDemo(80);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          id: 'prueba',
+          version: 1,
+          titulo: 'Dolencia de prueba',
+          estado: 'informativo',
+          baldas: [
+            { titulo: 'Grupo de prueba', principioActivo: 'Activo de prueba', orden: 1, productos },
+          ],
+          vitrina: [],
+          ocultasPorPerfil: 0,
+          consejos: [],
+          parafarmacia: [],
+        }),
+      ),
+    );
+    const { container } = render(<App />);
+    await screen.findByText('1–36 de 80');
+    expect(await screen.findAllByTestId('caja-3d')).toHaveLength(36);
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('37–72 de 80')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
+    expect(container.querySelectorAll('button[data-cursor="medicamento"]')).toHaveLength(80);
+    expect(screen.queryByRole('navigation', { name: 'Páginas del catálogo' })).toBeNull();
+  });
+
   it('el catálogo general limita las cajas simultáneas y permite recorrer todos los registros', async () => {
     window.history.replaceState(null, '', '/escena?vista=3d');
     const productos = productosDemo(80);
@@ -160,7 +191,8 @@ describe('exploración agrupada', () => {
       target: { value: 'tipo' },
     });
     expect(
-      within(escena).getAllByRole('heading', { name: /Tipo ficticio/ }).length,
+      within(screen.getByTestId('escena-3d')).getAllByRole('heading', { name: /Tipo ficticio/ })
+        .length,
     ).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
     expect(screen.getAllByRole('heading', { name: /Tipo ficticio/ }).length).toBeGreaterThan(0);

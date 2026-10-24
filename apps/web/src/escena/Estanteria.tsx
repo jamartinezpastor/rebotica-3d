@@ -1,7 +1,15 @@
 import { useThree } from '@react-three/fiber';
 import { useLayoutEffect, useRef } from 'react';
-import { Matrix4, Quaternion, Vector3, type InstancedMesh } from 'three';
+import {
+  BoxGeometry,
+  Matrix4,
+  MeshStandardMaterial,
+  Quaternion,
+  Vector3,
+  type InstancedMesh,
+} from 'three';
 import type { GeometriaEstanteria, Pieza } from './geometria';
+import { useRecurso } from './RecursosEscena';
 
 /** Colores de la escena: blanco cálido y el verde de la cruz como único acento. */
 export const COLOR_MADERA = '#efe9df';
@@ -43,44 +51,58 @@ export interface EstanteriaProps {
 export function Estanteria({ geometria, receta = false }: EstanteriaProps) {
   const estructura = useInstancias(geometria.estructura);
   const frisos = useInstancias(geometria.frisos);
+  const recursos = useRecurso(`estructura:${receta}`, () => {
+    const cubo = new BoxGeometry(1, 1, 1);
+    const madera = new MeshStandardMaterial({
+      color: receta ? '#263442' : COLOR_MADERA,
+      roughness: 0.85,
+      metalness: receta ? 0.25 : 0,
+    });
+    const friso = new MeshStandardMaterial({
+      color: receta ? '#f2b544' : COLOR_FRISO,
+      roughness: 0.6,
+    });
+    const cristal = new MeshStandardMaterial({
+      color: '#d7e4eb',
+      transparent: true,
+      opacity: 0.12,
+      roughness: 0.45,
+      depthWrite: false,
+    });
+    return {
+      cubo,
+      madera,
+      friso,
+      cristal,
+      liberar() {
+        cubo.dispose();
+        madera.dispose();
+        friso.dispose();
+        cristal.dispose();
+      },
+    };
+  });
 
   return (
     <group>
       <instancedMesh
         ref={estructura}
-        args={[undefined, undefined, geometria.estructura.length]}
+        args={[recursos.cubo, recursos.madera, geometria.estructura.length]}
         frustumCulled={false}
-      >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial
-          color={receta ? '#263442' : COLOR_MADERA}
-          roughness={0.85}
-          metalness={receta ? 0.25 : 0}
-        />
-      </instancedMesh>
+      />
       <instancedMesh
         ref={frisos}
-        args={[undefined, undefined, geometria.frisos.length]}
+        args={[recursos.cubo, recursos.friso, geometria.frisos.length]}
         frustumCulled={false}
-      >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial
-          color={receta ? '#f2b544' : COLOR_FRISO}
-          roughness={0.6}
-          metalness={0}
-        />
-      </instancedMesh>
+      />
       {receta && (
-        <mesh position={[0, 0.68, 0.18]} raycast={() => null}>
-          <boxGeometry args={[1.13, 1.07, 0.008]} />
-          <meshStandardMaterial
-            color="#d7e4eb"
-            transparent
-            opacity={0.12}
-            roughness={0.45}
-            depthWrite={false}
-          />
-        </mesh>
+        <mesh
+          position={[0, 0.68, 0.18]}
+          scale={[1.13, 1.07, 0.008]}
+          geometry={recursos.cubo}
+          material={recursos.cristal}
+          raycast={() => null}
+        />
       )}
     </group>
   );

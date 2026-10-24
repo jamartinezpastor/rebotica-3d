@@ -30,3 +30,5 @@ export * from './consulta';
 export * from './interpretacion';
 export * from './triaje';
 export * from './exploracion';
+export * from './catalogo';
+export * from './indicaciones';

@@ -1,6 +1,6 @@
 import { useThree } from '@react-three/fiber';
 import type { FormaCaja } from '@rebotica/shared';
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useId } from 'react';
 import { CanvasTexture, LinearFilter, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import {
   dibujarCara,
@@ -12,6 +12,7 @@ import {
 import { crearGeometriaCaja, medidasCara } from './geometriaCaja';
 import { UMBRAL_TOQUE } from './seleccion';
 import { marcarMedicamento } from './cursorMedicamento';
+import { useRecurso } from './RecursosEscena';
 
 /** Dibuja una cara en su propio lienzo y la convierte en textura. */
 function texturaDe(
@@ -34,22 +35,24 @@ function texturaDe(
   textura.colorSpace = SRGBColorSpace;
   textura.minFilter = LinearFilter;
   textura.generateMipmaps = false;
-  textura.anisotropy = 4;
+  textura.anisotropy = calidad === 'ligera' ? 1 : 4;
   return textura;
 }
 
 /** Geometría, texturas y materiales de una caja; las mutaciones viven aquí, fuera del render. */
-function construirCaja(forma: FormaCaja, datos: DatosEnvase, calidad: Calidad) {
-  const { geometria, ranuras } = crearGeometriaCaja(forma);
+function construirMateriales(
+  forma: FormaCaja,
+  ranuras: ReturnType<typeof crearGeometriaCaja>['ranuras'],
+  datos: DatosEnvase,
+  calidad: Calidad,
+) {
   const texturas = ranuras.map((r) => texturaDe(forma, r, datos, calidad));
   const materiales = texturas.map(
     (map) => new MeshStandardMaterial({ map, roughness: 0.62, metalness: 0 }),
   );
   return {
-    geometria,
     materiales,
     liberar() {
-      geometria.dispose();
       materiales.forEach((m) => m.dispose());
       texturas.forEach((t) => t.dispose());
     },
@@ -83,20 +86,23 @@ export function Caja({ forma, datos, calidad = 'estanteria', posicion, onSelecci
   // Los datos cambian de identidad en cada render del padre: se comparan por valor.
   const clave = JSON.stringify(datos);
 
-  const caja = useMemo(
-    () => construirCaja(forma, JSON.parse(clave) as DatosEnvase, calidad),
-    [forma, clave, calidad],
+  const formaCompartida = useRecurso(`geometria:${forma}`, () => {
+    const valor = crearGeometriaCaja(forma);
+    return { ...valor, liberar: () => valor.geometria.dispose() };
+  });
+  const caja = useRecurso(`envase:${forma}:${calidad}:${clave}`, () =>
+    construirMateriales(forma, formaCompartida.ranuras, datos, calidad),
   );
 
   useEffect(() => {
     invalidar();
-    return () => caja.liberar();
   }, [caja, invalidar]);
 
   return (
     <mesh
       position={posicion}
-      geometry={caja.geometria}
+      dispose={null}
+      geometry={formaCompartida.geometria}
       material={caja.materiales}
       onPointerOver={
         onSeleccionar

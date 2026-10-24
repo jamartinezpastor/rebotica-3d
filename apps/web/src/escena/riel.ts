@@ -76,6 +76,7 @@ export interface ConfiguracionRiel {
   /** Con `true` no hay muelles: los cambios son instantáneos (menos movimiento). */
   instantaneo?: boolean;
   filaInicial?: number;
+  xInicial?: number;
 }
 
 type Eje = 'x' | 'y' | null;
@@ -104,12 +105,15 @@ export class ControlRiel {
   private filaAlEmpezar = 0;
   private vy = 0;
 
-  constructor({ puntos, instantaneo = false, filaInicial = 0 }: ConfiguracionRiel) {
+  constructor({ puntos, instantaneo = false, filaInicial = 0, xInicial }: ConfiguracionRiel) {
     this.puntos = puntos;
     this.instantaneo = instantaneo;
     this.filaObjetivo = acotar(Math.round(filaInicial), 0, Math.max(0, puntos.length - 1));
     this.fila = this.filaObjetivo;
-    this.x = this.puntosDe(this.filaObjetivo)[0] ?? 0;
+    this.x =
+      xInicial !== undefined && Number.isFinite(xInicial)
+        ? puntoMasCercano(this.puntosDe(this.filaObjetivo), xInicial)
+        : (this.puntosDe(this.filaObjetivo)[0] ?? 0);
     this.objetivoX = this.x;
   }
 

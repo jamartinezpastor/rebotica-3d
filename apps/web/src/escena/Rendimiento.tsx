@@ -21,12 +21,19 @@ export interface RendimientoProps {
 export function Rendimiento({ onFps, onLento }: RendimientoProps) {
   const medidor = useMemo(() => new MedidorFps({ ventana: 60 }), []);
 
-  useFrame((_, delta) => {
+  useFrame(({ gl }, delta) => {
     medidor.registrar(delta);
     if (medidor.total % CADA_N !== 0) return;
     const e = medidor.estadisticas();
     if (!e) return;
-    onFps?.(e);
+    onFps?.({
+      ...e,
+      recursos: {
+        geometrias: gl.info.memory.geometries,
+        texturas: gl.info.memory.textures,
+        llamadas: gl.info.render.calls,
+      },
+    });
     if (e.muestras >= VENTANA_AVISO && esLento(e) && medidor.primerAviso()) onLento?.();
   });
 

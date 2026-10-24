@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -201,7 +202,21 @@ export const assetCaja = pgTable(
   ],
 );
 
-/** Analítica anónima: sin texto libre ni datos del paciente. */
+/** Conteos diarios: una fila por dolencia y día UTC, sin eventos individuales. */
+export const consultaConteo = pgTable(
+  'consulta_conteo',
+  {
+    dia: date('dia').notNull(),
+    protocoloId: text('protocolo_id').notNull(),
+    total: integer('total').notNull().default(1),
+  },
+  (t) => [
+    primaryKey({ columns: [t.dia, t.protocoloId] }),
+    check('consulta_conteo_total_positivo', sql`${t.total} > 0`),
+  ],
+);
+
+/** Tabla del plan original, conservada por compatibilidad. La app usa consultaConteo. */
 export const consultaEvento = pgTable(
   'consulta_evento',
   {

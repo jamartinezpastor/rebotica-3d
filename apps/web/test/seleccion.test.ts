@@ -6,8 +6,10 @@ import {
   avanzarTransicion,
   cajaMasCercana,
   escalaEnFicha,
+  escalaSegunEncuadre,
   suavizado,
 } from '../src/escena/seleccion';
+import { dimensionesCaja } from '../src/escena/cajas';
 
 describe('suavizado', () => {
   it('parte de 0, acaba en 1, es simétrico y monótono', () => {
@@ -71,6 +73,39 @@ describe('avanzarTransicion', () => {
 });
 
 describe('geometría de la ficha', () => {
+  it('el envase cabe durante todo el giro en móvil vertical y escritorio, sin recortar sus caras', () => {
+    const fov = 38;
+    const tangente = Math.tan((fov * Math.PI) / 360);
+    for (const aspecto of [0.35, 0.46, 1, 2])
+      for (const forma of [
+        'caja-plana',
+        'caja-alta',
+        'caja-cuadrada',
+        'tubo',
+        'cilindro',
+      ] as const) {
+        const d = dimensionesCaja(forma);
+        const escala = escalaSegunEncuadre(d, fov, aspecto);
+        for (let angulo = 0; angulo < Math.PI * 2; angulo += Math.PI / 12)
+          for (const lado of [-1, 1])
+            for (const profundidad of [-1, 1]) {
+              const x =
+                (escala *
+                  (lado * d.ancho * Math.cos(angulo) + profundidad * d.fondo * Math.sin(angulo))) /
+                2;
+              const z =
+                (escala *
+                  (-lado * d.ancho * Math.sin(angulo) + profundidad * d.fondo * Math.cos(angulo))) /
+                2;
+              expect(
+                Math.abs(x) / ((DISTANCIA_FICHA - z) * tangente * aspecto),
+              ).toBeLessThanOrEqual(0.8 + 1e-9);
+              expect(
+                (d.alto * escala) / (2 * (DISTANCIA_FICHA - z) * tangente),
+              ).toBeLessThanOrEqual(0.3 + 1e-9);
+            }
+      }
+  });
   it('el velo queda detrás de la caja y delante de las estanterías', () => {
     expect(DISTANCIA_VELO).toBeGreaterThan(DISTANCIA_FICHA);
     // La cámara del raíl está al menos a 1,2 m de las cajas.

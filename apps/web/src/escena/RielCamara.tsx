@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { PerspectiveCamera } from 'three';
-import { ControlRiel, distanciaRiel, metrosPorPixel } from './riel';
+import { ControlRiel, distanciaRiel, metrosPorPixel, puntoMasCercano } from './riel';
 
 /** Cuánto por encima del centro de la balda se coloca el ojo de la cámara. */
 const ELEVACION_OJO = 0.05;
@@ -43,6 +43,8 @@ export interface RielCamaraProps {
   activo?: boolean;
   /** Enter o espacio: el producto que la cámara tiene delante (posición x y balda). */
   onActivar?: (x: number, fila: number) => void;
+  inicio?: { x: number; fila: number };
+  onMirar?: (x: number, fila: number) => void;
 }
 
 /**
@@ -56,6 +58,8 @@ export function RielCamara({
   instantaneo = false,
   activo = true,
   onActivar,
+  inicio,
+  onMirar,
 }: RielCamaraProps) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
@@ -68,10 +72,12 @@ export function RielCamara({
         puntos,
         instantaneo,
         // Se empieza a la altura de los ojos: la balda del medio si hay tres.
-        filaInicial: Math.min(1, Math.max(0, puntos.length - 1)),
+        filaInicial: inicio?.fila ?? Math.min(1, Math.max(0, puntos.length - 1)),
+        xInicial: inicio?.x,
       }),
-    [puntos, instantaneo],
+    [puntos, instantaneo, inicio],
   );
+  const ultimaMirada = useRef<{ control: ControlRiel; x: number; fila: number } | null>(null);
 
   useLayoutEffect(() => {
     invalidar();
@@ -153,6 +159,17 @@ export function RielCamara({
     camera.position.set(control.x, y + ELEVACION_OJO, distancia);
     camera.lookAt(control.x, y, 0);
     if (control.enMovimiento()) invalidar();
+    const fila = Math.round(control.fila);
+    const x = puntoMasCercano(control.puntosDe(fila), control.x);
+    if (
+      activo &&
+      (ultimaMirada.current?.control !== control ||
+        ultimaMirada.current.x !== x ||
+        ultimaMirada.current.fila !== fila)
+    ) {
+      ultimaMirada.current = { control, x, fila };
+      onMirar?.(x, fila);
+    }
   });
 
   return null;

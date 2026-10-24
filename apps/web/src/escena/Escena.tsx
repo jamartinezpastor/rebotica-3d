@@ -4,6 +4,8 @@ import type { EstadisticasFps } from './medidorFps';
 import { Pasillo, type BaldaEscena } from './Pasillo';
 import { Rendimiento } from './Rendimiento';
 import { Cursor3D } from './Cursor3D';
+import { useState } from 'react';
+import { RecursosEscena } from './RecursosEscena';
 
 /** Blanco del vacío: el suelo, la niebla y el fondo son del mismo color y no hay horizonte. */
 export const COLOR_VACIO = '#ffffff';
@@ -27,6 +29,9 @@ export interface EscenaProps {
   onFps?: (estadisticas: EstadisticasFps) => void;
   /** Aviso único cuando la escena va por debajo de 24 fps sostenidos. */
   onLento?: () => void;
+  registroInicial?: string | null;
+  onMirar?: (registro: string) => void;
+  calidadInicial?: 'normal' | 'ligera';
 }
 
 /**
@@ -41,10 +46,15 @@ export default function Escena({
   onSeleccionar,
   onFps,
   onLento,
+  registroInicial,
+  onMirar,
+  calidadInicial = 'normal',
 }: EscenaProps) {
+  const [reducida, setReducida] = useState(calidadInicial === 'ligera');
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      className="entrada-resultados"
+      dpr={reducida ? [0.75, 1] : [1, 1.5]}
       frameloop="demand"
       // Sin tone mapping: el blanco de la escena debe ser el blanco de la página.
       flat
@@ -56,11 +66,26 @@ export default function Escena({
       <fog attach="fog" args={[COLOR_VACIO, 6, 18]} />
       {/* Intensidades en unidades físicas (three ≥ r155): ~π veces las del modo antiguo. */}
       <hemisphereLight args={['#ffffff', '#ece6da', 1.6]} />
-      <directionalLight position={[2.5, 4, 3]} intensity={2.2} />
-      <Rendimiento onFps={onFps} onLento={onLento} />
+      <directionalLight position={[2.5, 4, 4]} intensity={1.9} />
+      <Rendimiento
+        onFps={onFps}
+        onLento={() => {
+          setReducida(true);
+          onLento?.();
+        }}
+      />
       <Cursor3D />
       <Suelo />
-      <Pasillo baldas={baldas} seleccionada={seleccionada} onSeleccionar={onSeleccionar} />
+      <RecursosEscena>
+        <Pasillo
+          baldas={baldas}
+          seleccionada={seleccionada}
+          onSeleccionar={onSeleccionar}
+          registroInicial={registroInicial}
+          onMirar={onMirar}
+          ligera={reducida}
+        />
+      </RecursosEscena>
     </Canvas>
   );
 }

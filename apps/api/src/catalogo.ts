@@ -247,17 +247,21 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
       coincide: (texto: string) => boolean,
       clasificar?: (texto: string) => NonNullable<ProductoResumen['clasificacion']>['consultas'],
     ): Promise<ProductoResumen[]> {
-      const [indice, secciones] = await Promise.all([
+      const [indiceActual, secciones] = await Promise.all([
         obtenerIndice(),
         conexion
           .select({ nregistro: seccionFt.nregistro, texto: seccionFt.texto })
           .from(seccionFt)
           .where(eq(seccionFt.seccion, '4.1')),
       ]);
-      const productos = [...indice.porClave.values()].flat();
+      const productos = [...indiceActual.porClave.values()].flat();
       const indicaciones = secciones.filter((s) => s.texto.trim());
       const disponibles = new Set(indicaciones.map((s) => s.nregistro));
-      if (!productos.some((p) => disponibles.has(p.nregistro))) throw new CatalogoNoSincronizado();
+      if (!productos.some((p) => disponibles.has(p.nregistro))) {
+        // No conservar durante un minuto el índice vacío de una carga que acaba de arrancar.
+        indice = null;
+        throw new CatalogoNoSincronizado();
+      }
       const registros = new Map(
         indicaciones.filter((s) => coincide(s.texto)).map((s) => [s.nregistro, s.texto]),
       );

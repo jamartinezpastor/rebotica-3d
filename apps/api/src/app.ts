@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import fastifyStatic from '@fastify/static';
+import fastifyCompress from '@fastify/compress';
 import { HealthResponse } from '@rebotica/shared';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import pkg from '../package.json' with { type: 'json' };
@@ -39,6 +40,13 @@ export function buildApp({
   interpretacion,
 }: AppOptions = {}) {
   const app = Fastify(fastify);
+
+  // También funciona fuera de un proxy: comprime respuestas de texto, no las peticiones.
+  app.register(fastifyCompress, {
+    encodings: ['br', 'gzip'],
+    threshold: 1024,
+    globalDecompression: false,
+  });
 
   app.addHook('onSend', async (_request, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff');

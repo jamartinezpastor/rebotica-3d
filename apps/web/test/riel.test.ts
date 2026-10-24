@@ -64,6 +64,15 @@ describe('pasoMuelle', () => {
 });
 
 describe('puntos del raíl', () => {
+  it('restaura la balda y la posición de un producto, ajustada a un destino válido', () => {
+    const c = new ControlRiel({ puntos: PUNTOS, filaInicial: 2, xInicial: 0.44 });
+    expect(c.fila).toBe(2);
+    expect(c.x).toBe(0.45);
+    expect(c.destinoActual()).toBe(0.45);
+    c.teclado('ArrowLeft');
+    reposar(c);
+    expect(c.x).toBeCloseTo(0.05);
+  });
   it('encuentra el más cercano y el siguiente en cada dirección', () => {
     expect(puntoMasCercano([0, 1, 2], 1.4)).toBe(1);
     expect(puntoMasCercano([], 3)).toBe(3);

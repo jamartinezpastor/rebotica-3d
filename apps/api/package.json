@@ -7,6 +7,7 @@
     "dist"
   ],
   "scripts": {
+    "cobertura": "tsx scripts/cobertura.ts",
     "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
     "build": "tsup",
     "start": "node --env-file-if-exists=../../.env dist/server.js",
@@ -15,6 +16,7 @@
     "eval:interpretacion": "tsx --env-file-if-exists=../../.env scripts/evaluar-interpretacion.ts"
   },
   "dependencies": {
+    "@fastify/compress": "^9.2.2",
     "@fastify/static": "^10.1.6",
     "@rebotica/db": "workspace:*",
     "@rebotica/dosis": "workspace:*",

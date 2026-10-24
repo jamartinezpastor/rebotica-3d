@@ -86,7 +86,7 @@ describe('VistaLista', () => {
     // Es decorativa: el nombre del producto ya está en el botón.
     expect(imagenes[0]?.getAttribute('alt')).toBe('');
     // El producto sin foto conserva el cuadro con su color, para no dejar un hueco.
-    expect(container.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(1);
+    expect(container.querySelectorAll('span[aria-hidden="true"] svg')).toHaveLength(1);
   });
 
   it('no muestra dosis ni pautas, solo nombre, principio activo y forma', () => {

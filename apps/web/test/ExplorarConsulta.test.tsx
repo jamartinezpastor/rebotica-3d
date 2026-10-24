@@ -93,6 +93,54 @@ const enviarTexto = () => {
 };
 
 describe('recorrido informativo simplificado', () => {
+  it('una copia completa sin indicaciones permite abrir el catálogo general y no anuncia una descarga', async () => {
+    peticiones.mockImplementation(async (url) =>
+      url === '/api/health'
+        ? Response.json({ status: 'ok', version: 'prueba', time: new Date().toISOString() })
+        : Response.json(
+            { error: 'Sin indicaciones', codigo: 'CATALOGO_SIN_INDICACIONES' },
+            { status: 503 },
+          ),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Esta copia no permite buscar por dolencia' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
+      '/escena?vista=3d',
+    );
+    expect(screen.queryByText('El catálogo de medicamentos se está preparando')).toBeNull();
+  });
+  it.each([
+    ['parcial', 'Aún no hay coincidencias en los datos cargados'],
+    ['completo', 'No se han encontrado coincidencias en esta copia'],
+  ] as const)('un resultado vacío distingue la copia %s', async (estado, titulo) => {
+    peticiones.mockImplementation(async (url) =>
+      url === '/api/health'
+        ? Response.json({ status: 'ok', version: 'prueba', time: new Date().toISOString() })
+        : Response.json({
+            ...pasillo,
+            baldas: [],
+            catalogo: {
+              estado,
+              total: 5,
+              sinReceta: 4,
+              conReceta: 1,
+              conIndicaciones: 3,
+              sinIndicaciones: 2,
+              cargaPendiente: estado === 'parcial',
+              cargaPendienteDesde: estado === 'parcial' ? '2026-01-01T00:00:00.000Z' : null,
+              sincronizadoHasta: estado === 'completo' ? '2026-01-01T00:00:00.000Z' : null,
+            },
+          }),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
+    expect(await screen.findByRole('heading', { name: titulo })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /PRODUCTO DE DEMOSTRACIÓN/ })).toBeNull();
+  });
+
   it('muestra todos los resultados y agrupar conserva la colección completa', async () => {
     const todos = productosDemo(83).map((p, i) => ({ ...p, receta: i >= 52 }));
     peticiones.mockImplementation(async (url) =>
@@ -190,7 +238,7 @@ describe('recorrido informativo simplificado', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
     await screen.findByRole('heading', {
-      name: 'No hay medicamentos relacionados en este catálogo',
+      name: 'No se han encontrado coincidencias en esta copia',
     });
     expect(screen.queryByRole('button', { name: /PRODUCTO DE DEMOSTRACIÓN/ })).toBeNull();
   });

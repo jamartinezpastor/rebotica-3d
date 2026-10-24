@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FormaCaja, GrupoPaciente } from './dominio';
+import { EstadoCatalogoPublico } from './catalogo';
 
 /**
  * Contratos de la API pública (plan §Endpoints). Los usan la API para validar lo que envía y
@@ -92,6 +93,7 @@ export const PerfilPasillo = z.object({
 export type PerfilPasillo = z.infer<typeof PerfilPasillo>;
 
 export const PasilloResponse = z.strictObject({
+  catalogo: EstadoCatalogoPublico.optional(),
   id: z.string().min(1),
   version: z.number().int().positive(),
   titulo: z.string().min(1),

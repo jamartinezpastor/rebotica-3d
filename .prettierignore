@@ -1,3 +1,4 @@
 dist
 coverage
+.lighthouseci
 pnpm-lock.yaml

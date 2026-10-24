@@ -12,10 +12,12 @@ import {
   type DerivacionTriaje,
   type PasilloResponse,
   type RespuestasTriaje,
+  type EstadoCatalogoPublico,
 } from '@rebotica/shared';
 import { Mostrador } from './Mostrador';
 import { Derivacion } from './Derivacion';
 import { Pregunta } from './Pregunta';
+import { EstadoCatalogo } from '../escena/EstadoCatalogo';
 
 type Protocolo = ProtocoloTriajeRespuesta;
 type Estado =
@@ -31,13 +33,14 @@ type Estado =
     }
   | { tipo: 'derivacion'; resultado: DerivacionConsulta | DerivacionTriaje }
   | { tipo: 'listo'; pasillo: PasilloResponse }
-  | { tipo: 'vacio' }
+  | { tipo: 'vacio'; catalogo?: EstadoCatalogoPublico }
   | { tipo: 'error'; motivo: MotivoError };
 
 type MotivoError =
   | 'cambiado'
   | 'catalogo'
   | 'sincronizacion'
+  | 'indicaciones'
   | 'protocolo'
   | 'interpretacion'
   | 'conexion'
@@ -48,6 +51,11 @@ class ErrorConsulta extends Error {
   }
 }
 const MENSAJES_ERROR: Record<MotivoError, { titulo: string; texto: string }> = {
+  indicaciones: {
+    titulo: 'Esta copia no permite buscar por dolencia',
+    texto:
+      'No hay indicaciones consultables en esta copia. Puedes explorar el catálogo general y abrir los prospectos oficiales.',
+  },
   cambiado: {
     titulo: 'Las preguntas de esta consulta han cambiado',
     texto: 'Empieza una nueva consulta para usar la versión actual.',
@@ -90,7 +98,13 @@ async function solicitar(url: string, control: AbortController, body?: unknown) 
     referrerPolicy: 'no-referrer',
     ...(body === undefined
       ? {}
-      : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+      : {
+          headers: {
+            'content-type': 'application/json',
+            ...(url === '/api/explorar' ? { 'x-rebotica-catalogo': '1' } : {}),
+          },
+          body: JSON.stringify(body),
+        }),
   }).catch(() => {
     throw new ErrorConsulta('conexion');
   });
@@ -102,6 +116,8 @@ async function solicitar(url: string, control: AbortController, body?: unknown) 
         throw new ErrorConsulta('catalogo');
       if (fallo.success && fallo.data.codigo === 'CATALOGO_NO_SINCRONIZADO')
         throw new ErrorConsulta('sincronizacion');
+      if (fallo.success && fallo.data.codigo === 'CATALOGO_SIN_INDICACIONES')
+        throw new ErrorConsulta('indicaciones');
       if (fallo.success && fallo.data.codigo === 'PROTOCOLO_NO_VALIDADO')
         throw new ErrorConsulta('protocolo');
     }
@@ -185,7 +201,7 @@ export function ConsultaGuiada({
       if (pasillo.id !== id) throw new Error('contrato');
       if (c.signal.aborted) return;
       if (![...pasillo.baldas, ...pasillo.vitrina].some((g) => g.productos.length))
-        setEstado({ tipo: 'vacio' });
+        setEstado({ tipo: 'vacio', catalogo: pasillo.catalogo });
       else onPasillo(pasillo);
       return;
     }
@@ -297,12 +313,16 @@ export function ConsultaGuiada({
       {estado.tipo === 'vacio' && (
         <section className="space-y-3">
           <h2 className="text-2xl font-semibold">
-            No hay medicamentos relacionados en este catálogo
+            {estado.catalogo?.estado === 'parcial'
+              ? 'Aún no hay coincidencias en los datos cargados'
+              : 'No se han encontrado coincidencias en esta copia'}
           </h2>
           <p>
-            La copia local de las indicaciones oficiales no contiene coincidencias para esta
-            dolencia. Puedes elegir otra consulta.
+            {estado.catalogo?.estado === 'parcial'
+              ? 'La copia está pendiente de completar. Los resultados pueden aumentar cuando termine la carga.'
+              : 'La búsqueda no ha encontrado coincidencias en las indicaciones disponibles de CIMA. Puedes elegir otra consulta.'}
           </p>
+          <EstadoCatalogo datos={estado.catalogo} />
         </section>
       )}
       {estado.tipo === 'derivacion' && <Derivacion resultado={estado.resultado} />}
@@ -388,6 +408,14 @@ export function ConsultaGuiada({
         <section role="alert" className="space-y-3">
           <h2 className="text-2xl font-semibold">{MENSAJES_ERROR[estado.motivo].titulo}</h2>
           <p>{MENSAJES_ERROR[estado.motivo].texto}</p>
+          {estado.motivo === 'indicaciones' && (
+            <a
+              href="/escena?vista=3d"
+              className="inline-flex min-h-12 items-center rounded-xl bg-cruz px-4 font-semibold text-white"
+            >
+              Explorar medicamentos
+            </a>
+          )}
           {(estado.motivo === 'catalogo' || estado.motivo === 'protocolo') && (
             <a
               href="/escena?demo=1&vitrina=1&vista=3d"

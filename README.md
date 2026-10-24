@@ -133,6 +133,26 @@ Usa `.env` para Gemini, como la demo. `PORT` cambia el puerto de API (3000 por d
 `CATALOGO_DIR` permite elegir otro directorio de datos. Solo un proceso puede abrir ese directorio.
 Detener la demo anterior antes de iniciar el catálogo en el mismo puerto.
 
+## Cobertura y estado de la copia (F1-06)
+
+Los resultados permiten desplegar el estado de la copia: vacía, parcial o completa según sus
+marcas de sincronización, con la fecha cubierta y el número de medicamentos con indicaciones
+consultables. Una búsqueda vacía en una copia parcial se presenta como provisional. Una copia
+completa puede tener fichas sin sección 4.1 segmentada; estas siguen disponibles en el catálogo
+general, pero no se les asignan dolencias por su nombre o principio activo.
+
+```bash
+pnpm cobertura                       # consulta la API propia en :3000
+pnpm cobertura --registro 67968       # explica las coincidencias de un medicamento
+pnpm cobertura --local               # lee la base persistente con el servidor detenido
+```
+
+`GET /api/catalogo/estado` y `GET /api/catalogo/cobertura` sirven los diagnósticos desde la copia
+local, sin llamadas a CIMA ni Gemini. El informe cubre las 14 dolencias con los mismos términos
+que usa la búsqueda y separa sin receta y con receta. Son coincidencias documentales, no una
+medida de exhaustividad clínica. Detalles, limitaciones y verificación de la copia actual en
+[docs/COBERTURA.md](docs/COBERTURA.md).
+
 ## Demo con muestra de datos reales (sin PostgreSQL)
 
 ```bash
@@ -161,7 +181,8 @@ La portada y `/escena` abren el catálogo real de `/api/catalogo`: todos los med
 comercializados de la copia local, separados entre sin receta y con receta, con acceso a sus fichas.
 La exploración general se divide en páginas de 36 productos, tanto en 3D como en lista, para no
 cargar miles de cajas simultáneamente. Los botones Anterior y Siguiente permiten recorrerlos todos;
-agrupar vuelve a la primera página. Las consultas por dolencia conservan su colección completa.
+agrupar vuelve a la primera página. Las consultas por dolencia conservan su colección completa
+en lista; en 3D también se recorren en páginas de 36 cajas para acotar el trabajo de la GPU.
 Si la API no está disponible se muestra un error; no se sustituyen por datos ficticios.
 
 Para las pruebas visuales, abre `http://localhost:5173/escena?demo=1`: productos ficticios. Con
@@ -210,6 +231,28 @@ la mano abierta.
 
 ### Vista lista y rendimiento
 
+- **Grupos y recursos 3D (F2-08):** «Grupos» abre el salto al inicio de cualquier grupo del
+  resultado, también en otras páginas. El raíl conserva todos los destinos y la GPU solo carga
+  las estanterías próximas; conserva el original de una ficha durante su vuelo de regreso.
+  La escena comparte geometrías, materiales y sombra y libera los recursos al dejar de usarlos.
+  Equipos de capacidad baja empiezan con texturas ligeras y DPR máximo 1; la lentitud sostenida
+  también activa esa reducción. La ficha mantiene su resolución. `?fps=1` incluye las geometrías,
+  texturas GPU y llamadas de dibujo para comprobar el coste durante el recorrido.
+- **Presentación y fotos (F5-05):** nombres y principios activos con jerarquía diferenciada,
+  siluetas durante la carga y transiciones de página que respetan menos movimiento. Las fotos
+  de CIMA se amplían desde la ficha, sin alterarlas ni aumentar su detalle; cerrar la foto
+  devuelve el foco y mantiene la ficha abierta. Una foto fallida se sustituye por una silueta.
+  El modelo 3D generado está identificado y su encuadre deja margen durante todo el giro,
+  también en móvil vertical. Volver y los enlaces oficiales permanecen accesibles mientras
+  el contenido de una ficha larga se desplaza.
+- **Búsqueda y filtros (F5-04):** buscar por nombre o principio activo dentro de todos los
+  resultados, antes de paginar. La búsqueda ignora tildes y mayúsculas. «Filtros» permite elegir
+  forma farmacéutica, laboratorio e identificación EFG; el contador muestra las coincidencias
+  y «Quitar filtros» recupera el resultado completo. No se aplican filtros por defecto ni se
+  hacen peticiones adicionales. La separación de receta y la agrupación se conservan.
+- **Volver al mismo punto:** cerrar una ficha restaura el foco y el desplazamiento. Al alternar
+  lista y 3D, el medicamento visible determina la página y la posición del raíl. La búsqueda,
+  los filtros y esta posición solo viven en memoria; no se guardan en la URL ni en almacenamiento.
 - **Vista lista:** el mismo pasillo como lista de botones (baldas con sus productos, etiquetas de
   genérico y conducción); elegir un producto abre la misma ficha. El botón «Ver como lista» / «Ver
   en 3D» está siempre visible.
@@ -264,9 +307,9 @@ Conserva la elección al alternar entre vistas. Se puede abrir con `?agrupar=lab
 - Uso infantil: solo se indica una edad mínima si hay una regla validada y vigente con tramo
   pediátrico. No equivale a indicación para cualquier niño; se mantienen las restricciones de
   edad, peso y condiciones de la ficha. Sin esa regla aparece «Sin uso infantil verificado».
-- Consultas/enfermedades: asociaciones de los últimos protocolos firmados, por principio activo
-  y separando baldas y vitrina. No se deducen del nombre ni de palabras de la ficha técnica.
-  Sin protocolo firmado aparece «Sin protocolo clínico validado». Si hay varias consultas,
+- Consultas/enfermedades del catálogo informativo: coincidencias textuales en la sección 4.1
+  local, separando baldas y vitrina. No se deducen del nombre ni del principio activo.
+  Sin coincidencias aparece «Sin dolencia clasificada». Si hay varias consultas,
   se muestran juntas para evitar duplicar una misma caja.
 - La demostración ficticia tiene varios laboratorios y tipos. No inventa clasificaciones
   pediátricas o enfermedades: esas agrupaciones reflejarán los datos revisados cuando existan.
@@ -362,6 +405,50 @@ Para comprobar la instalación local: `pnpm --filter @rebotica/web build` y
 La revisión con un lector de pantalla real y la instalación en iOS/Android quedan como validación
 manual de dispositivo; las pruebas automáticas cubren foco, teclado, contraste y cambios de movimiento.
 
+## Rendimiento y conteos agregados (F5-02)
+
+`pnpm check` incluye la comprobación del JavaScript inicial durante el build: sigue todos los
+imports estáticos del manifiesto de Vite, suma el tamaño gzip de cada archivo una sola vez e
+incluye el registro de la PWA. Falla a partir de 250 000 bytes. La escena 3D y la calculadora
+diferidas quedan fuera de ese presupuesto inicial. El informe está en
+`apps/web/dist/presupuesto-js.json`.
+
+La API negocia Brotli o gzip para las respuestas de texto de más de 1 kB, incluidos JavaScript
+y CSS. Conserva las políticas de caché y añade `Vary: Accept-Encoding`. No depende de que el
+proxy del despliegue configure compresión ni cambia el tratamiento de las peticiones de entrada.
+
+Después del build, `pnpm rendimiento` ejecuta tres mediciones Lighthouse con perfil móvil sobre
+la portada compilada, con el servidor real de la aplicación en `127.0.0.1:4175`. No conecta con
+CIMA, PostgreSQL ni Gemini: mide la carga de la portada, no los tiempos de interpretación o de
+búsqueda. Requiere Chrome instalado; si no se detecta automáticamente, indicar su ejecutable en
+`CHROME_PATH`. Falla si la mediana del rendimiento es inferior a 90. CI ejecuta ambas comprobaciones
+y guarda los informes como artefactos durante 14 días. Los informes locales quedan en
+`.lighthouseci/`, fuera de Git; no se publican en almacenamiento externo de Lighthouse.
+
+La exploración real 3D monta como máximo 36 productos de la colección por página. La vista lista
+por dolencia conserva todos sus resultados. El contador de fps indica las cajas de la página
+dibujada. La demostración explícita permite otras cantidades para medir en dispositivos; estos
+límites y Lighthouse no certifican por sí solos 60 fps en un móvil.
+
+Cada respuesta correcta de `POST /api/explorar` incrementa un contador en `consulta_conteo`
+después de enviar la respuesta. Solo guarda `dia` (UTC), `protocolo_id` (dolencia del catálogo) y
+`total`, con una única fila por día y dolencia y actualización atómica. No escribe eventos
+individuales, texto libre, perfiles, IP, cookies, identificadores de sesión ni cabeceras. No añade
+peticiones de analítica desde el navegador ni usa servicios de terceros. El catálogo general y
+las consultas rechazadas o fallidas no se cuentan. Un error de escritura no bloquea la consulta.
+
+Los conteos representan solicitudes, no personas únicas ni tratamientos. Se consultan de forma
+administrativa en PostgreSQL; no hay un endpoint público de estadísticas. Ejemplo de agregado:
+
+```sql
+SELECT dia, protocolo_id, total
+FROM consulta_conteo
+ORDER BY dia DESC, total DESC;
+```
+
+La migración `0006_whole_husk` añade esta tabla sin modificar medicamentos, reglas o protocolos.
+La tabla histórica `consulta_evento` se conserva por compatibilidad, pero la app no escribe en ella.
+
 ## Despliegue
 
 Producción: https://rebotica.martinezpastor.dev
@@ -377,6 +464,7 @@ Producción: https://rebotica.martinezpastor.dev
 
 ## Documentación
 
+- Próximos pasos y criterios de cierre: [HOJA_RUTA.md](HOJA_RUTA.md).
 - Plan del proyecto: https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 - Reglas para agentes de código: [CLAUDE.md](CLAUDE.md)
 - Datos: [API REST de CIMA (AEMPS)](https://sede.aemps.gob.es/docs/CIMA-REST-API_1_19.pdf)

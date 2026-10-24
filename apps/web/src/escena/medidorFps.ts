@@ -11,6 +11,7 @@ export interface EstadisticasFps {
   /** Fotograma más largo de la ventana (ms). */
   maxMs: number;
   muestras: number;
+  recursos?: { geometrias: number; texturas: number; llamadas: number };
 }
 
 export interface OpcionesMedidor {

@@ -12,7 +12,30 @@ export const LETRERO_ALTO = (LETRERO_ANCHO * ALTO_PX) / ANCHO_PX;
 const VERDE = '#0f8a4b';
 const VERDE_CLARO = '#8fd3ac';
 
-function dibujar(ctx: CanvasRenderingContext2D, texto: string, fijos: number, receta: boolean) {
+function lineasCartel(texto: string): { texto: string; inicio: number }[] {
+  if (texto.length <= 28) return [{ texto, inicio: 0 }];
+  const mitad = Math.floor(texto.length / 2);
+  const espacios = Array.from(texto.matchAll(/ /g), (m) => m.index).filter(
+    (i) => i > 0 && i < texto.length - 1,
+  );
+  const corte = espacios.reduce(
+    (mejor, i) => (Math.abs(i - mitad) < Math.abs(mejor - mitad) ? i : mejor),
+    espacios[0] ?? mitad,
+  );
+  const siguiente = corte + (texto[corte] === ' ' ? 1 : 0);
+  return [
+    { texto: texto.slice(0, corte), inicio: 0 },
+    { texto: texto.slice(siguiente), inicio: siguiente },
+  ];
+}
+
+function dibujar(
+  ctx: CanvasRenderingContext2D,
+  texto: string,
+  fijos: number,
+  receta: boolean,
+  objetivo: string,
+) {
   ctx.clearRect(0, 0, ANCHO_PX, ALTO_PX);
   ctx.fillStyle = receta ? '#fff3d6' : '#ffffff';
   ctx.fillRect(0, 0, ANCHO_PX, ALTO_PX);
@@ -21,17 +44,25 @@ function dibujar(ctx: CanvasRenderingContext2D, texto: string, fijos: number, re
   ctx.strokeRect(2.5, 2.5, ANCHO_PX - 5, ALTO_PX - 5);
 
   // Monoespaciada para que cada carácter conserve su casilla mientras se descifra.
-  const n = Math.max(texto.length, 1);
-  const tamano = Math.min(44, (ANCHO_PX - 40) / (n * 0.6));
+  const lineas = lineasCartel(objetivo);
+  const n = Math.max(...lineas.map((l) => l.texto.length), 1);
+  const tamano = Math.min(lineas.length === 1 ? 44 : 34, (ANCHO_PX - 40) / (n * 0.6));
   ctx.font = `bold ${tamano}px ui-monospace, Consolas, "Courier New", monospace`;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   const ancho = tamano * 0.6;
-  const x0 = (ANCHO_PX - ancho * n) / 2;
-  for (let i = 0; i < texto.length; i++) {
-    ctx.fillStyle = receta ? '#78350f' : i < fijos ? VERDE : VERDE_CLARO;
-    ctx.fillText(texto[i] ?? '', x0 + i * ancho, ALTO_PX / 2 + 2);
-  }
+  lineas.forEach((linea, fila) => {
+    const x0 = (ANCHO_PX - ancho * linea.texto.length) / 2;
+    for (let i = 0; i < linea.texto.length; i++) {
+      const indice = linea.inicio + i;
+      ctx.fillStyle = receta ? '#78350f' : indice < fijos ? VERDE : VERDE_CLARO;
+      ctx.fillText(
+        texto[indice] ?? '',
+        x0 + i * ancho,
+        ALTO_PX / 2 + 2 + (fila - (lineas.length - 1) / 2) * 40,
+      );
+    }
+  });
 }
 
 /** Lienzo y textura de un cartel; las mutaciones viven aquí, fuera del render de React. */
@@ -55,7 +86,7 @@ function crearCartel(receta: boolean) {
       if (dibujado && dibujado.texto === visible && dibujado.fijos === fijos) return;
       const ctx = lienzo.getContext('2d');
       if (!ctx) return;
-      dibujar(ctx, visible, fijos, receta);
+      dibujar(ctx, visible, fijos, receta, objetivo);
       textura.needsUpdate = true;
       dibujado = { texto: visible, semilla, fijos };
     },

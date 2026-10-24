@@ -1,7 +1,16 @@
-import { ExplorarRespuesta, type ProductoResumen } from '@rebotica/shared';
+import {
+  ExplorarRespuesta,
+  type ProductoResumen,
+  type EstadoCatalogoPublico,
+} from '@rebotica/shared';
 
 /** Todos los productos recibidos, agrupados sin mezclar la condición de prescripción. */
-export function pasilloInformativo(productos: ProductoResumen[], id: string, titulo: string) {
+export function pasilloInformativo(
+  productos: ProductoResumen[],
+  id: string,
+  titulo: string,
+  catalogo?: EstadoCatalogoPublico,
+) {
   const grupos = (receta: boolean) => {
     const mapa = new Map<string, ProductoResumen[]>();
     for (const producto of productos) {
@@ -21,6 +30,7 @@ export function pasilloInformativo(productos: ProductoResumen[], id: string, tit
     );
   };
   return ExplorarRespuesta.parse({
+    ...(catalogo ? { catalogo } : {}),
     id,
     version: 1,
     titulo,

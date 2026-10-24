@@ -1,7 +1,13 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import type { ProductoResumen } from '@rebotica/shared';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three';
+import {
+  Vector3,
+  type Group,
+  type Mesh,
+  type MeshBasicMaterial,
+  type PerspectiveCamera,
+} from 'three';
 import { avance, muelle, planificarEntrada } from './animacion';
 import { datosEnvase } from './arteEnvase';
 import { Caja } from './Caja';
@@ -13,17 +19,17 @@ import { Letrero, LETRERO_ALTO } from './Letrero';
 import { RielCamara } from './RielCamara';
 import { useMenosMovimiento } from '../useMenosMovimiento';
 import {
-  ALTO_EN_FICHA,
   DISTANCIA_FICHA,
   DISTANCIA_VELO,
   POSICION_FICHA_Y,
   VELOCIDAD_GIRO,
   avanzarTransicion,
   cajaMasCercana,
-  escalaEnFicha,
+  escalaSegunEncuadre,
   suavizado,
 } from './seleccion';
 import { Sombra } from './Sombra';
+import { ventanaEstanterias } from './ventanaEscena';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
 export interface BaldaEscena {
@@ -31,6 +37,7 @@ export interface BaldaEscena {
   productos: ProductoResumen[];
   receta?: boolean;
   descripcion?: string;
+  grupo?: string;
 }
 
 /** Baldas por estantería: el plan usa estanterías de tres baldas. */
@@ -124,6 +131,9 @@ export interface PasilloProps {
   seleccionada?: string | null;
   /** Se llama al tocar una caja (con el producto) o al elegirla con el teclado. */
   onSeleccionar?: (producto: ProductoResumen) => void;
+  registroInicial?: string | null;
+  onMirar?: (registro: string) => void;
+  ligera?: boolean;
 }
 
 /**
@@ -131,21 +141,62 @@ export interface PasilloProps {
  * o desde un lateral y frena con un muelle; después las cajas caen a su hueco una a una y los
  * letreros se descifran. Todo el movimiento se calcula aquí con una sola línea de tiempo.
  */
-export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloProps) {
+export function Pasillo({
+  baldas,
+  seleccionada = null,
+  onSeleccionar,
+  registroInicial,
+  onMirar,
+  ligera = false,
+}: PasilloProps) {
   const invalidar = useThree((s) => s.invalidate);
   const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
   const menosMovimiento = useMenosMovimiento();
   const geometria = useMemo(() => geometriaEstanteria(), []);
   const modelo = useMemo(() => modeloPasillo(baldas, geometria), [baldas, geometria]);
   const plan = useMemo(() => planificarEntrada(modelo.map((m) => m.cajas.length)), [modelo]);
   const riel = useMemo(() => datosRiel(modelo, geometria), [modelo, geometria]);
+  const ubicadas = useMemo(
+    () =>
+      modelo.flatMap((est) =>
+        est.cajas.map((c) => ({
+          balda: c.balda,
+          x: est.posicion[0] + c.posicion[0],
+          item: c.item,
+          estanteria: est.indice,
+        })),
+      ),
+    [modelo],
+  );
+  const inicio = useMemo(() => {
+    const caja = ubicadas.find((c) => c.item.nregistro === registroInicial);
+    return caja ? { x: caja.x, fila: caja.balda } : undefined;
+  }, [ubicadas, registroInicial]);
+  const [centro, setCentro] = useState(
+    () => ubicadas.find((c) => c.item.nregistro === registroInicial)?.estanteria ?? 0,
+  );
+  const centroActual = useRef(centro);
+  const alMirar = useCallback(
+    (x: number, fila: number) => {
+      const caja = ubicadas[cajaMasCercana(ubicadas, x, fila)];
+      if (caja) {
+        if (caja.estanteria !== centroActual.current) {
+          centroActual.current = caja.estanteria;
+          setCentro(caja.estanteria);
+        }
+        onMirar?.(caja.item.nregistro);
+      }
+    },
+    [ubicadas, onMirar],
+  );
 
   const t0 = useRef<number | null>(null);
   const reloj = useCallback(() => {
-    if (menosMovimiento) return 1e6;
+    if (menosMovimiento || modelo.length > (ligera ? 3 : 5)) return 1e6;
     if (t0.current === null) t0.current = performance.now();
     return (performance.now() - t0.current) / 1000;
-  }, [menosMovimiento]);
+  }, [menosMovimiento, modelo.length, ligera]);
 
   // Producto que se está mostrando en la ficha. Se conserva mientras dura el vuelo de vuelta,
   // aunque `seleccionada` ya sea null, y se limpia cuando la caja ha regresado a su balda.
@@ -161,6 +212,16 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
     modelo.forEach((est, i) => est.cajas.forEach((c, j) => mapa.set(c.item.nregistro, { i, j })));
     return mapa;
   }, [modelo]);
+  const visibles = useMemo(
+    () =>
+      ventanaEstanterias(
+        modelo.length,
+        centro,
+        ligera ? 1 : 2,
+        mostrada ? indice.get(mostrada)?.i : undefined,
+      ),
+    [modelo.length, centro, ligera, mostrada, indice],
+  );
 
   const sel = useRef({ u: 0, origen: new Vector3(), tieneOrigen: false });
   // Giro de la caja en la ficha: automático, arrastrable con inercia y de vuelta a los 3 s.
@@ -228,7 +289,9 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
 
   useFrame((_, delta) => {
     const t = reloj();
-    modelo.forEach((est, i) => {
+    visibles.forEach((i) => {
+      const est = modelo[i];
+      if (!est) return;
       const tramo = plan.estanterias[i];
       const grupo = grupos.current[i];
       if (!tramo || !grupo) return;
@@ -301,7 +364,11 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
       destino.copy(camera.position).addScaledVector(rayo, DISTANCIA_FICHA / profundidad);
 
       const forma = modelo[lugar.i]?.cajas[lugar.j]?.forma;
-      const escala = escalaEnFicha(forma ? dimensionesCaja(forma).alto : ALTO_EN_FICHA);
+      const escala = escalaSegunEncuadre(
+        dimensionesCaja(forma ?? 'caja-plana'),
+        (camera as PerspectiveCamera).fov,
+        size.width / size.height,
+      );
 
       volando.current.position.lerpVectors(estado.origen, destino, e);
       volando.current.scale.setScalar(1 + (escala - 1) * e);
@@ -335,18 +402,11 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
   /** Enter sobre el raíl: elige el producto que la cámara tiene delante. */
   const activarPorTeclado = useCallback(
     (x: number, fila: number) => {
-      const ubicadas = modelo.flatMap((est) =>
-        est.cajas.map((c) => ({
-          balda: c.balda,
-          x: est.posicion[0] + c.posicion[0],
-          item: c.item,
-        })),
-      );
       const k = cajaMasCercana(ubicadas, x, fila);
       const elegida = ubicadas[k];
       if (elegida) onSeleccionar?.(elegida.item);
     },
-    [modelo, onSeleccionar],
+    [ubicadas, onSeleccionar],
   );
 
   const lugarMostrada = mostrada ? indice.get(mostrada) : undefined;
@@ -360,8 +420,12 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
         instantaneo={menosMovimiento}
         activo={mostrada === null}
         onActivar={activarPorTeclado}
+        inicio={inicio}
+        onMirar={alMirar}
       />
-      {modelo.map((est, i) => {
+      {visibles.map((i) => {
+        const est = modelo[i];
+        if (!est) return null;
         const tramo = plan.estanterias[i];
         const horizontal = est.origen[0] !== 0;
         return (
@@ -441,6 +505,7 @@ export function Pasillo({ baldas, seleccionada = null, onSeleccionar }: PasilloP
                 <Caja
                   forma={c.forma}
                   datos={datosEnvase(c.item)}
+                  calidad={ligera ? 'ligera' : 'estanteria'}
                   posicion={[0, 0, 0]}
                   onSeleccionar={mostrada === null ? () => onSeleccionar?.(c.item) : undefined}
                 />

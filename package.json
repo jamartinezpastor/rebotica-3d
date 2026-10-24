@@ -8,6 +8,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "cobertura": "pnpm --filter @rebotica/api cobertura",
     "dev": "pnpm --parallel --filter @rebotica/api --filter @rebotica/web dev",
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",
@@ -16,11 +17,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "rendimiento": "lhci autorun --config=lighthouserc.cjs",
     "demo": "pnpm --parallel --filter @rebotica/sync-cima --filter @rebotica/web demo",
     "catalogo": "pnpm --parallel --filter @rebotica/sync-cima --filter @rebotica/web catalogo"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
     "@types/node": "^22.20.5",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",

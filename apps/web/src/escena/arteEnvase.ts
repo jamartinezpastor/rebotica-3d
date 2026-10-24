@@ -538,9 +538,9 @@ export interface TamanoCara {
 }
 
 /** Calidad de las texturas: la estantería usa poca resolución y la ficha, la máxima. */
-export type Calidad = 'estanteria' | 'ficha';
+export type Calidad = 'ligera' | 'estanteria' | 'ficha';
 
-const PX_POR_METRO: Record<Calidad, number> = { estanteria: 2600, ficha: 8000 };
+const PX_POR_METRO: Record<Calidad, number> = { ligera: 1300, estanteria: 2600, ficha: 8000 };
 const LADO_MAXIMO = 1024;
 
 /**

@@ -43,6 +43,13 @@
       "when": 1792439601319,
       "tag": "0005_quiet_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792834566393,
+      "tag": "0006_whole_husk",
+      "breakpoints": true
     }
   ]
 }

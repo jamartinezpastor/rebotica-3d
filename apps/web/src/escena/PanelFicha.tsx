@@ -4,6 +4,8 @@ import { esEnlaceCima, pestanasDe, type IdPestana, type SeccionMostrada } from '
 import { useFicha } from './useFicha';
 import { AvisoReceta } from './AvisoReceta';
 import { instalarCierreExterior } from './cierreExterior';
+import { FotoOficial } from './FotoOficial';
+import { CargaVisual } from './CargaVisual';
 const CalculadoraDosis = lazy(() => import('./CalculadoraDosis'));
 
 export interface PanelFichaProps {
@@ -71,9 +73,10 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
   // Al abrir la ficha el foco pasa a ella: el lector de pantalla anuncia su título.
   useEffect(() => {
     const anterior = document.activeElement;
-    raiz.current?.focus();
+    raiz.current?.focus({ preventScroll: true });
     return () => {
-      if (anterior instanceof HTMLElement && anterior.isConnected) anterior.focus();
+      if (anterior instanceof HTMLElement && anterior.isConnected)
+        anterior.focus({ preventScroll: true });
     };
   }, [producto.nregistro]);
 
@@ -155,122 +158,130 @@ export function PanelFicha({ producto, onVolver, modo = '3d' }: PanelFichaProps)
           modo === '3d' ? 'max-h-[52dvh]' : 'max-h-[88dvh]'
         }`}
       >
-        <header className="px-4 pt-3">
-          {ficha?.borradorDosis && !ficha.reglaDosis && (
-            <p
-              role="status"
-              className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-base text-aviso ring-1 ring-amber-200"
-            >
-              Demostración: pendiente de validación farmacéutica
-            </p>
-          )}
-          {(producto.receta || ficha?.receta) && <AvisoReceta />}
-          <div className="flex items-start gap-3">
-            {ficha?.asset?.foto && (
-              <img
-                src={ficha.asset.foto}
-                alt="Foto del envase publicada en CIMA"
-                width={64}
-                height={64}
-                className="h-16 w-16 shrink-0 rounded-lg bg-white object-contain ring-1 ring-black/10"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg leading-snug font-semibold">{producto.nombre}</h2>
-              <p className="mt-0.5 text-sm text-tinta-suave">
-                {[producto.principioActivo, producto.forma].filter(Boolean).join(' · ')}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-2">
+          <p className="text-sm font-semibold text-tinta-suave">Ficha del medicamento</p>
+          <button
+            type="button"
+            onClick={onVolver}
+            aria-label="Volver al pasillo"
+            className="min-h-11 rounded-lg bg-cruz px-3 text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+          >
+            Volver
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <header className="px-4 pt-3">
+            {ficha?.borradorDosis && !ficha.reglaDosis && (
+              <p
+                role="status"
+                className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-base text-aviso ring-1 ring-amber-200"
+              >
+                Demostración: pendiente de validación farmacéutica
               </p>
-              {(ficha?.categoria ?? producto.categoria) && (
-                <p className="text-sm text-tinta-suave">{ficha?.categoria ?? producto.categoria}</p>
+            )}
+            {(producto.receta || ficha?.receta) && <AvisoReceta />}
+            <div className="flex items-start gap-3">
+              {ficha?.asset?.foto && (
+                <FotoOficial
+                  key={ficha.asset.foto}
+                  foto={ficha.asset.foto}
+                  ampliable
+                  alt="Foto del envase publicada en CIMA"
+                />
               )}
-              {(ficha?.laboratorio ?? producto.laboratorio) && (
-                <p className="text-sm text-tinta-suave">
-                  {ficha?.laboratorio ?? producto.laboratorio}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg leading-snug font-semibold break-words">
+                  {producto.nombre}
+                </h2>
+                <p className="mt-1 text-sm font-medium text-cruz">
+                  {[producto.principioActivo, producto.forma].filter(Boolean).join(' · ')}
                 </p>
-              )}
+                {(ficha?.categoria ?? producto.categoria) && (
+                  <p className="text-sm text-tinta-suave">
+                    {ficha?.categoria ?? producto.categoria}
+                  </p>
+                )}
+                {(ficha?.laboratorio ?? producto.laboratorio) && (
+                  <p className="text-sm text-tinta-suave">
+                    {ficha?.laboratorio ?? producto.laboratorio}
+                  </p>
+                )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onVolver}
-              aria-label="Volver al pasillo"
-              className="min-h-11 shrink-0 rounded-lg bg-cruz px-3 text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-            >
-              Volver
-            </button>
+            {ficha?.problemaSuministro && (
+              <p
+                role="status"
+                className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-aviso ring-1 ring-amber-200"
+              >
+                Hay problemas de suministro de este medicamento: puede que no lo encuentres.
+              </p>
+            )}
+          </header>
+
+          <div
+            role="tablist"
+            aria-label="Información del producto"
+            className="sticky top-0 z-10 mt-2 flex gap-1 bg-white px-4 py-2"
+          >
+            {orden.map((p) => (
+              <button
+                key={p}
+                id={`${id}-tab-${p}`}
+                type="button"
+                role="tab"
+                aria-selected={activa === p}
+                aria-controls={`${id}-panel`}
+                tabIndex={activa === p ? 0 : -1}
+                onClick={() => setActiva(p)}
+                onKeyDown={alTeclear}
+                className={`min-h-11 flex-1 rounded-lg px-2 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz ${
+                  activa === p ? 'bg-cruz text-white' : 'bg-black/5 text-tinta'
+                }`}
+              >
+                {etiquetas[p]}
+              </button>
+            ))}
           </div>
-          {ficha?.problemaSuministro && (
-            <p
-              role="status"
-              className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-aviso ring-1 ring-amber-200"
-            >
-              Hay problemas de suministro de este medicamento: puede que no lo encuentres.
-            </p>
-          )}
-        </header>
 
-        <div role="tablist" aria-label="Información del producto" className="mt-2 flex gap-1 px-4">
-          {orden.map((p) => (
-            <button
-              key={p}
-              id={`${id}-tab-${p}`}
-              type="button"
-              role="tab"
-              aria-selected={activa === p}
-              aria-controls={`${id}-panel`}
-              tabIndex={activa === p ? 0 : -1}
-              onClick={() => setActiva(p)}
-              onKeyDown={alTeclear}
-              className={`min-h-11 flex-1 rounded-lg px-2 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz ${
-                activa === p ? 'bg-cruz text-white' : 'bg-black/5 text-tinta'
-              }`}
-            >
-              {etiquetas[p]}
-            </button>
-          ))}
+          <div
+            id={`${id}-panel`}
+            role="tabpanel"
+            aria-labelledby={`${id}-tab-${activa}`}
+            tabIndex={0}
+            className="mt-3 space-y-3 px-4 pb-3"
+          >
+            {estado.tipo === 'cargando' && <CargaVisual texto="Cargando la ficha…" compacta />}
+            {estado.tipo === 'error' && (
+              <p role="status" className="text-base text-tinta-suave">
+                {estado.noDisponible
+                  ? 'No hay ficha disponible para este producto.'
+                  : 'No se pudo cargar la ficha de este producto. Inténtalo de nuevo en unos minutos.'}
+              </p>
+            )}
+            {ficha && activa === 'dosis' && !ficha.reglaDosis && (
+              <p className="rounded-lg bg-cruz-claro px-3 py-2 text-sm text-tinta">
+                Esta es la posología oficial de la ficha técnica, no una pauta personalizada. La
+                dosis depende de la edad, el peso y la situación de cada persona: consulta a tu
+                médico o farmacéutico.
+              </p>
+            )}
+            {ficha && activa === 'dosis' && ficha.reglaDosis !== null && (
+              <Suspense fallback={<p role="status">Preparando la calculadora…</p>}>
+                <CalculadoraDosis ficha={ficha} />
+              </Suspense>
+            )}
+            {ficha && pestanaActiva && pestanaActiva.secciones.length === 0 && (
+              <p className="text-base text-tinta-suave">
+                No hay información de este apartado. Consulta el prospecto oficial.
+              </p>
+            )}
+            {pestanaActiva?.secciones.map((s, i) => (
+              <Seccion key={s.seccion} seccion={s} abierta={i === 0} />
+            ))}
+          </div>
         </div>
 
-        <div
-          id={`${id}-panel`}
-          role="tabpanel"
-          aria-labelledby={`${id}-tab-${activa}`}
-          tabIndex={0}
-          className="mt-3 min-h-24 flex-1 space-y-3 overflow-y-auto px-4 pb-2"
-        >
-          {estado.tipo === 'cargando' && (
-            <p role="status" className="text-base text-tinta-suave">
-              Cargando la ficha…
-            </p>
-          )}
-          {estado.tipo === 'error' && (
-            <p role="status" className="text-base text-tinta-suave">
-              {estado.noDisponible
-                ? 'No hay ficha disponible para este producto.'
-                : 'No se pudo cargar la ficha de este producto. Inténtalo de nuevo en unos minutos.'}
-            </p>
-          )}
-          {ficha && activa === 'dosis' && !ficha.reglaDosis && (
-            <p className="rounded-lg bg-cruz-claro px-3 py-2 text-sm text-tinta">
-              Esta es la posología oficial de la ficha técnica, no una pauta personalizada. La dosis
-              depende de la edad, el peso y la situación de cada persona: consulta a tu médico o
-              farmacéutico.
-            </p>
-          )}
-          {ficha && activa === 'dosis' && ficha.reglaDosis !== null && (
-            <Suspense fallback={<p role="status">Preparando la calculadora…</p>}>
-              <CalculadoraDosis ficha={ficha} />
-            </Suspense>
-          )}
-          {ficha && pestanaActiva && pestanaActiva.secciones.length === 0 && (
-            <p className="text-base text-tinta-suave">
-              No hay información de este apartado. Consulta el prospecto oficial.
-            </p>
-          )}
-          {pestanaActiva?.secciones.map((s, i) => (
-            <Seccion key={s.seccion} seccion={s} abierta={i === 0} />
-          ))}
-        </div>
-
-        <footer className="space-y-1.5 border-t border-black/10 px-4 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        <footer className="shrink-0 space-y-1.5 border-t border-black/10 px-4 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
           {ficha && (
             <p className="flex flex-wrap gap-x-4 gap-y-1 text-base">
               {esEnlaceCima(ficha.enlaces.prospecto) && (
