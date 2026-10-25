@@ -6,6 +6,34 @@ import { AvisoReceta } from './AvisoReceta';
 import type { RetornoLista } from './navegacionCatalogo';
 import { FotoOficial } from './FotoOficial';
 
+/** Revela el foco sin dejarlo bajo las barras fijas, también al cambiar el alto de la ventana. */
+function revelarProducto(elemento: HTMLElement) {
+  const r = elemento.getBoundingClientRect();
+  if (!r.height) return;
+  const herramientas = document.querySelector<HTMLElement>('[data-herramientas-catalogo]');
+  const posicion = herramientas ? getComputedStyle(herramientas).position : '';
+  const arriba = Math.max(
+    64,
+    posicion === 'fixed' || posicion === 'sticky'
+      ? herramientas!.getBoundingClientRect().bottom
+      : 0,
+  );
+  let abajo = window.innerHeight;
+  for (const barra of document.querySelectorAll<HTMLElement>(
+    '.paginacion-catalogo, .barra-comparacion',
+  )) {
+    if (getComputedStyle(barra).position === 'fixed')
+      abajo = Math.min(abajo, barra.getBoundingClientRect().top);
+  }
+  const delta =
+    r.top < arriba || r.height > abajo - arriba
+      ? r.top - arriba - 12
+      : r.bottom > abajo
+        ? r.bottom - abajo + 12
+        : 0;
+  if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+}
+
 export interface VistaListaProps {
   titulo: string;
   baldas: readonly BaldaEscena[];
@@ -58,8 +86,10 @@ export function VistaLista({
     ).find((el) => el.dataset.registro === retorno?.registro);
     (destino ?? cabecera.current)?.focus({ preventScroll: true });
     if (retorno) {
-      const borde =
-        document.querySelector('[data-herramientas-catalogo]')?.getBoundingClientRect().bottom ?? 0;
+      const borde = Math.max(
+        64,
+        document.querySelector('[data-herramientas-catalogo]')?.getBoundingClientRect().bottom ?? 0,
+      );
       const top =
         retorno.scrollY ??
         Math.max(0, (destino ?? cabecera.current)?.getBoundingClientRect().top ?? 0) +
@@ -127,6 +157,7 @@ export function VistaLista({
                         type="button"
                         data-cursor="medicamento"
                         data-registro={p.nregistro}
+                        onFocus={(e) => revelarProducto(e.currentTarget)}
                         onClick={(e) => {
                           e.currentTarget.focus({ preventScroll: true });
                           onSeleccionar(p);

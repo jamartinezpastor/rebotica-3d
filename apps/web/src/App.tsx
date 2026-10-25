@@ -31,6 +31,7 @@ import { CargaVisual } from './escena/CargaVisual';
 import { BusquedaCatalogo } from './escena/BusquedaCatalogo';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
+import { EnlaceInformacion } from './EnlaceInformacion';
 import {
   FILTROS_INICIALES,
   filtrarCatalogo,
@@ -48,6 +49,7 @@ import {
 // La escena 3D se descarga en diferido: no cuenta en el JavaScript inicial (< 250 kB).
 const Escena = lazy(() => import('./escena/Escena'));
 const Comparacion = lazy(() => import('./escena/Comparacion'));
+const Informacion = lazy(() => import('./Informacion'));
 
 function Preparando({ texto = 'Preparando la estantería…' }: { texto?: string }) {
   return (
@@ -207,7 +209,10 @@ function VistaEscena({
   const cambiarVista = (siguiente: VistaElegida) => {
     if (vista === 'lista') {
       const registro =
-        registroVisible(lista.current, herramientas.current?.getBoundingClientRect().bottom ?? 0) ??
+        registroVisible(
+          lista.current,
+          Math.max(64, herramientas.current?.getBoundingClientRect().bottom ?? 0),
+        ) ??
         baldas[0]?.productos[0]?.nregistro ??
         null;
       listaGuardada.current = { registro, scrollY: window.scrollY };
@@ -264,6 +269,7 @@ function VistaEscena({
 
   return (
     <div
+      data-vista-catalogo={vista}
       className={
         vista === '3d'
           ? 'relative h-dvh w-full overflow-hidden'
@@ -373,7 +379,7 @@ function VistaEscena({
         >
           {comparados.length > 0 && (
             <div
-              className={`pointer-events-auto ${vista === 'lista' ? `fixed inset-x-3 z-10 mx-auto max-w-xl ${paginado ? 'bottom-20' : 'bottom-3'}` : ''}`}
+              className={`barra-comparacion pointer-events-auto ${vista === 'lista' ? `fixed inset-x-3 z-10 mx-auto max-w-xl ${paginado ? 'bottom-20' : 'bottom-3'}` : ''}`}
             >
               <BarraComparacion
                 productos={comparados}
@@ -391,7 +397,7 @@ function VistaEscena({
           {paginado && (
             <nav
               aria-label="Páginas del catálogo"
-              className={`pointer-events-auto flex items-center justify-between gap-2 rounded-xl bg-white p-2 shadow ${vista === 'lista' ? 'fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl' : ''}`}
+              className={`paginacion-catalogo pointer-events-auto flex items-center justify-between gap-2 rounded-xl bg-white p-2 shadow ${vista === 'lista' ? 'fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl' : ''}`}
             >
               <button
                 type="button"
@@ -536,6 +542,12 @@ export function App() {
     };
   }, []);
   // La portada y /escena usan siempre el catálogo real salvo la demo explícita.
+  if (window.location.pathname === '/informacion')
+    return (
+      <Suspense fallback={<Preparando texto="Preparando la información…" />}>
+        <Informacion />
+      </Suspense>
+    );
   if (window.location.pathname === '/escena') return <VistaEscena />;
   if (pasilloConsulta)
     return (
@@ -576,6 +588,7 @@ export function App() {
 
       <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">
         <p>{AVISO_LEGAL}</p>
+        <EnlaceInformacion />
         <div className="mt-3">
           <EstadoServidor />
         </div>

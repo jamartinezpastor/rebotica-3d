@@ -1,6 +1,7 @@
 import { calcularDosis, type CondicionPaciente } from '@rebotica/dosis';
 import type { ProductoResponse } from '@rebotica/shared';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { prepararCalculadora } from './prepararCalculadora';
 import { DibujoDosis, numeroDosis, unidadDosis } from './DibujoDosis';
 
@@ -47,6 +48,25 @@ function Formulario({
   const [motivo, setMotivo] = useState('');
   const [condiciones, setCondiciones] = useState<CondicionPaciente[]>([]);
   const [pesoConfirmado, setPesoConfirmado] = useState(false);
+  useEffect(() => {
+    const limpiar = () =>
+      flushSync(() => {
+        setEdad('');
+        setPeso('');
+        setMotivo('');
+        setCondiciones([]);
+        setPesoConfirmado(false);
+      });
+    const restaurar = (e: PageTransitionEvent) => {
+      if (e.persisted) limpiar();
+    };
+    window.addEventListener('pagehide', limpiar);
+    window.addEventListener('pageshow', restaurar);
+    return () => {
+      window.removeEventListener('pagehide', limpiar);
+      window.removeEventListener('pageshow', restaurar);
+    };
+  }, []);
   const { regla, fuenteActual } = preparada;
   const cambiarEdad = (valor: string) => {
     setEdad(valor);
@@ -87,6 +107,19 @@ function Formulario({
         Introduce los datos para consultar la regla revisada de esta presentación. Los datos se
         calculan en tu dispositivo.
       </p>
+      <details className="text-base">
+        <summary className="min-h-11 cursor-pointer font-semibold">
+          Fuente y versión de la regla
+        </summary>
+        <p>
+          Regla {regla.id}, versión {regla.version}. Revisada por {regla.fuente.validadoPor} el{' '}
+          {regla.fuente.fecha}.
+        </p>
+        <p className="mt-2 text-sm break-words">
+          Registro CIMA: {fuenteActual.nregistro}. Sección 4.2. Huella: {fuenteActual.hashSeccion}.
+        </p>
+        <blockquote className="mt-2 border-l-2 border-cruz pl-3">{regla.fuente.cita}</blockquote>
+      </details>
       <div>
         <label htmlFor={`${id}-edad`} className="block text-base font-semibold">
           Edad: {edad === '' ? 'sin indicar' : edadTexto(edadMeses)}
@@ -238,18 +271,6 @@ function Formulario({
                 .
               </p>
             )}
-            <details className="text-base">
-              <summary className="min-h-11 cursor-pointer font-semibold">
-                Fuente de esta pauta
-              </summary>
-              <p>
-                Regla {resultado.trazabilidad.reglaId}, versión {resultado.trazabilidad.version}.
-                Revisada por {regla.fuente.validadoPor} el {regla.fuente.fecha}.
-              </p>
-              <blockquote className="mt-2 border-l-2 border-cruz pl-3">
-                {regla.fuente.cita}
-              </blockquote>
-            </details>
           </>
         )}
       </div>

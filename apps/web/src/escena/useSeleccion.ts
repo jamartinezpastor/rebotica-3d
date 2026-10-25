@@ -50,7 +50,7 @@ export function useSeleccion(): Seleccion {
   useEffect(() => {
     const alAtras = () => setProducto(null);
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') volver();
+      if (e.key === 'Escape' && producto) volver();
     };
     window.addEventListener('popstate', alAtras);
     window.addEventListener('keydown', alTeclear);
@@ -58,7 +58,7 @@ export function useSeleccion(): Seleccion {
       window.removeEventListener('popstate', alAtras);
       window.removeEventListener('keydown', alTeclear);
     };
-  }, [volver]);
+  }, [volver, producto]);
 
   return { producto, seleccionar, volver };
 }

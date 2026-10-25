@@ -5,6 +5,7 @@ import { FotoOficial } from './FotoOficial';
 import { CargaVisual } from './CargaVisual';
 import { esEnlaceCima, parrafos } from './fichaSecciones';
 import { useFicha, type EstadoFicha } from './useFicha';
+import { EnlaceInformacion } from '../EnlaceInformacion';
 
 const CAMPOS: { titulo: string; valor: (f: ProductoResponse) => string | null }[] = [
   { titulo: 'Principio activo', valor: (f) => f.principioActivo },
@@ -115,10 +116,10 @@ export default function Comparacion({
       onClick={(e) => {
         if (e.target === e.currentTarget) onCerrar();
       }}
-      className="m-auto max-h-[92dvh] w-[min(96vw,64rem)] max-w-none overflow-hidden rounded-2xl bg-papel p-0 text-tinta shadow-2xl backdrop:bg-slate-950/60"
+      className="comparacion m-auto max-h-[92dvh] w-[min(96vw,64rem)] max-w-none overflow-hidden rounded-2xl bg-papel p-0 text-tinta shadow-2xl backdrop:bg-slate-950/60"
     >
-      <div className="flex max-h-[92dvh] flex-col">
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-white px-4 py-3">
+      <div className="comparacion-cuerpo flex max-h-[92dvh] flex-col">
+        <header className="comparacion-cabecera flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-white px-4 py-3">
           <h2 id={titulo} className="text-xl font-semibold">
             Comparación de medicamentos
           </h2>
@@ -130,7 +131,7 @@ export default function Comparacion({
             Volver al catálogo
           </button>
         </header>
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
+        <div className="comparacion-contenido min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
           <p className="text-sm text-tinta-suave">
             Información de la copia local de CIMA. Comparar estos datos no establece equivalencias
             ni elige un tratamiento.
@@ -253,7 +254,8 @@ export default function Comparacion({
           ))}
         </div>
         <footer className="shrink-0 border-t border-black/10 bg-white px-4 py-3 text-sm text-tinta-suave">
-          {AVISO_LEGAL}
+          <p>{AVISO_LEGAL}</p>
+          <EnlaceInformacion nuevaPestana />
         </footer>
       </div>
     </dialog>

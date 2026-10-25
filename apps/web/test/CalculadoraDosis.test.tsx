@@ -75,6 +75,31 @@ function rellenar(peso = '20', edad = '48') {
 afterEach(cleanup);
 
 describe('calculadora de dosis en la ficha', () => {
+  it('permite leer la versión y fuente antes de introducir datos personales', () => {
+    render(<CalculadoraDosis ficha={ficha()} />);
+    expect(screen.getByText(/Regla regla-ficticia, versión 1/)).toBeTruthy();
+    expect(screen.getByText(/Huella: hash-ficticio/)).toBeTruthy();
+    expect(screen.queryByText('4 ml por toma')).toBeNull();
+  });
+  it('vacía edad, peso, motivo y condiciones al salir y restaurar una página de bfcache', () => {
+    render(<CalculadoraDosis ficha={ficha()} />);
+    rellenar();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Embarazo' }));
+    fireEvent(window, new Event('pagehide'));
+    expect(screen.getByRole('spinbutton', { name: 'Edad en meses' })).toHaveProperty('value', '');
+    expect(screen.getByRole('spinbutton', { name: 'Peso en kg' })).toHaveProperty('value', '');
+    expect(screen.getByRole('checkbox', { name: 'Embarazo' })).toHaveProperty('checked', false);
+    expect(screen.queryByText('4 ml por toma')).toBeNull();
+    rellenar();
+    const restaurado = new Event('pageshow');
+    Object.defineProperty(restaurado, 'persisted', { value: true });
+    fireEvent(window, restaurado);
+    expect(screen.getByRole('combobox', { name: 'Motivo de consulta' })).toHaveProperty(
+      'value',
+      '',
+    );
+    expect(screen.getByRole('spinbutton', { name: 'Peso en kg' })).toHaveProperty('value', '');
+  });
   it.each(['borrador', 'revisar'])('no muestra controles con regla %s', (estado) => {
     render(<CalculadoraDosis ficha={{ ...ficha(), reglaDosis: { ...regla(), estado } }} />);
     expect(screen.queryByRole('slider')).toBeNull();

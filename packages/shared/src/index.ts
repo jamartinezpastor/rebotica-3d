@@ -32,3 +32,4 @@ export * from './triaje';
 export * from './exploracion';
 export * from './catalogo';
 export * from './indicaciones';
+export * from './informacion';

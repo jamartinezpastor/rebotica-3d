@@ -112,7 +112,8 @@ describe('comparación informativa de dos fichas', () => {
     );
     expect(screen.queryByText('Nombre que no debe aparecer')).toBeNull();
     await screen.findByText(`Laboratorio oficial ficticio ${segundo.nregistro}`);
-    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Prospecto oficial' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ficha técnica oficial' })).toBeNull();
   });
   it('Escape no llega al navegador y salir devuelve el foco al botón que abrió la comparación', async () => {
     responder();

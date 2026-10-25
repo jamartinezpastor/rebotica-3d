@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "rendimiento": "lhci autorun --config=lighthouserc.cjs",
+    "validar:ui": "pnpm --filter @rebotica/web validar:ui",
     "demo": "pnpm --parallel --filter @rebotica/sync-cima --filter @rebotica/web demo",
     "catalogo": "pnpm --parallel --filter @rebotica/sync-cima --filter @rebotica/web catalogo"
   },

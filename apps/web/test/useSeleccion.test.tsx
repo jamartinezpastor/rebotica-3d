@@ -1,6 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import type { ProductoResumen } from '@rebotica/shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useSeleccion } from '../src/escena/useSeleccion';
 
 const producto = (n: string): ProductoResumen => ({
@@ -22,9 +22,17 @@ const producto = (n: string): ProductoResumen => ({
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, '');
+  vi.restoreAllMocks();
 });
 
 describe('useSeleccion', () => {
+  it('Escape fuera de una ficha no retrocede el navegador aunque exista una entrada antigua', () => {
+    window.history.replaceState({ ficha: 'anterior' }, '');
+    const atras = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    renderHook(useSeleccion);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(atras).not.toHaveBeenCalled();
+  });
   it('restaura el producto al volver aunque el fondo inerte haya perdido el foco', () => {
     render(<button type="button">Producto de origen</button>);
     const origen = screen.getByRole('button');

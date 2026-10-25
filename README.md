@@ -38,16 +38,40 @@ No hay revisión intermedia ni cuestionario obligatorio en este recorrido inform
 **4.1 (indicaciones)** de la copia local de CIMA. No busca en la posología ni elige medicamentos
 por su nombre o por un protocolo en borrador. Solo incluye medicamentos comercializados, agrupa
 alfabéticamente por principio activo y separa los de receta en la vitrina. Una coincidencia
-documental no determina si un medicamento está indicado para una persona concreta. Se advierte
-en el pasillo; los resultados vacíos se explican sin inventar productos.
+documental no determina si un medicamento está indicado para una persona concreta. Este límite
+se explica en la información de fuentes; los resultados vacíos no inventan productos.
 
 El estado `informativo` se distingue de un protocolo `validado` o un `borrador`: no autoriza
 tratamientos. Al pulsar un producto se conserva la ficha completa, fotos, caja 3D, pestañas Uso,
 Precauciones y Dosis y enlaces a CIMA. La calculadora conserva sus requisitos de validación.
-Texto y selección viven en memoria, sin almacenamiento, registros ni URL; nueva consulta y salida
-cancelan las peticiones. Un error no abre automáticamente una demostración.
+El texto libre vive en memoria: no se guarda en base de datos, en los registros de su ruta ni en
+la URL. Nueva consulta y salida cancelan las peticiones. Un error no abre automáticamente una demostración.
+
+### Privacidad, fuentes y versiones (F5-03)
+
+`/informacion` explica el recorrido de chips y texto libre, el uso de Gemini, la memoria de la
+pestaña, la preferencia de vista, las cachés de la PWA y de los datos públicos, los conteos diarios
+y los registros técnicos de acceso. Enlace en el pie de la portada, fichas, comparación y filtros;
+no reintroduce avisos junto al input ni el banner del catálogo.
+
+`GET /api/informacion` entrega versiones de los paquetes de app y motor, versión de correspondencias,
+configuración de la interpretación y estado del catálogo cuando pueda consultarse. No devuelve
+claves, variables de entorno ni datos de pacientes; no llama al modelo y usa `no-store`.
+
+La fuente y versión de una regla validada se consultan antes de introducir edad o peso. Los datos
+de la calculadora se limpian al salir y al restaurar una página desde bfcache. La app no garantiza
+la retención de Google: esa información enlaza a sus condiciones y configuración del proyecto.
+Por decisión del usuario se publica únicamente información técnica del uso de datos, sin
+responsable ni correo público. Alcance y fuentes en
+[Privacidad y fuentes](docs/PRIVACIDAD.md).
 
 ## Comprobaciones
+
+Después de `pnpm check`, `pnpm validar:ui` revisa el build con Chrome y datos ficticios: axe,
+teclado, reflow, comparación, fotos, movimiento reducido y arranque PWA sin red. Requiere Chrome
+instalado (`CHROME_PATH` si no se detecta) y el puerto 4176 libre. No usa CIMA, Gemini ni BD.
+Informes locales en `.local/validacion-ui/`. No sustituye lector de pantalla ni pruebas en móvil.
+Resultados, correcciones y protocolo manual en [Validación de interfaz](docs/VALIDACION_UI.md).
 
 ```bash
 pnpm check   # formato, lint, tipos, tests y build; es lo mismo que ejecuta la CI

@@ -1,4 +1,5 @@
 import { FILTROS_INICIALES, hayFiltros, type FiltrosCatalogo } from './filtrosCatalogo';
+import { EnlaceInformacion } from '../EnlaceInformacion';
 
 export function BusquedaCatalogo({
   valor,
@@ -77,6 +78,7 @@ export function BusquedaCatalogo({
                 <option value="no">Sin identificación EFG</option>
               </select>
             </label>
+            <EnlaceInformacion nuevaPestana />
           </div>
         </details>
       </div>

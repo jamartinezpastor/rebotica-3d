@@ -6,6 +6,7 @@ import { AvisoReceta } from './AvisoReceta';
 import { instalarCierreExterior } from './cierreExterior';
 import { FotoOficial } from './FotoOficial';
 import { CargaVisual } from './CargaVisual';
+import { EnlaceInformacion } from '../EnlaceInformacion';
 const CalculadoraDosis = lazy(() => import('./CalculadoraDosis'));
 
 export interface PanelFichaProps {
@@ -133,6 +134,7 @@ export function PanelFicha({
     ).filter(
       (el) =>
         el.tabIndex >= 0 &&
+        !el.closest('dialog:not([open]), [hidden], [inert]') &&
         Array.from(raiz.current?.querySelectorAll('details:not([open])') ?? []).every(
           (detalle) =>
             !detalle.contains(el) || detalle.querySelector(':scope > summary')?.contains(el),
@@ -164,11 +166,11 @@ export function PanelFicha({
     >
       <div
         ref={panel}
-        className={`pointer-events-auto flex w-full max-w-md flex-col rounded-t-2xl bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-black/10 ${
+        className={`panel-ficha pointer-events-auto flex w-full max-w-md flex-col rounded-t-2xl bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-black/10 ${
           modo === '3d' ? 'max-h-[52dvh]' : 'max-h-[88dvh]'
         }`}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-2">
+        <div className="ficha-acciones flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-2">
           {onComparar ? (
             <button
               type="button"
@@ -195,7 +197,7 @@ export function PanelFicha({
             Volver
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="ficha-contenido min-h-0 flex-1 overflow-y-auto">
           <header className="px-4 pt-3">
             {onComparar && comparado && (
               <p role="status" className="mb-2 text-sm text-cruz">
@@ -252,7 +254,7 @@ export function PanelFicha({
           <div
             role="tablist"
             aria-label="Información del producto"
-            className="sticky top-0 z-10 mt-2 flex gap-1 bg-white px-4 py-2"
+            className="ficha-pestanas sticky top-0 z-10 mt-2 flex gap-1 bg-white px-4 py-2"
           >
             {orden.map((p) => (
               <button
@@ -294,6 +296,12 @@ export function PanelFicha({
                 Esta es la posología oficial de la ficha técnica, no una pauta personalizada. La
                 dosis depende de la edad, el peso y la situación de cada persona: consulta a tu
                 médico o farmacéutico.
+              </p>
+            )}
+            {ficha && activa === 'dosis' && !ficha.reglaDosis && ficha.borradorDosis && (
+              <p className="text-sm text-tinta-suave">
+                Regla {ficha.borradorDosis.id}, versión {ficha.borradorDosis.version}, en borrador.
+                No habilita la calculadora.
               </p>
             )}
             {ficha && activa === 'dosis' && ficha.reglaDosis !== null && (
@@ -338,6 +346,7 @@ export function PanelFicha({
             </p>
           )}
           <p className="text-sm text-tinta-suave">{AVISO_LEGAL}</p>
+          <EnlaceInformacion nuevaPestana />
         </footer>
       </div>
     </section>

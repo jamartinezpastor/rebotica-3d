@@ -36,7 +36,7 @@ describe('foto oficial ampliable', () => {
           <FotoOficial foto="/media/miniaturas/ficticia.webp" ampliable alt="Foto CIMA de prueba" />
         </section>,
       );
-      const origen = screen.getByRole('button', { name: 'Ampliar foto del envase' });
+      const origen = screen.getByRole('button', { name: 'Foto CIMA: ampliar foto del envase' });
       origen.focus();
       fireEvent.click(origen);
       const dialogo = screen.getByRole('dialog', { name: 'Foto oficial del envase · CIMA' });
@@ -54,10 +54,10 @@ describe('foto oficial ampliable', () => {
   });
   it('permite cerrar la foto con su botón y con el fondo del diálogo', () => {
     render(<FotoOficial foto="/media/miniaturas/ficticia.webp" ampliable />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ampliar foto del envase' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Foto CIMA: ampliar foto del envase' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar foto ampliada' }));
     expect(screen.queryByRole('dialog')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Ampliar foto del envase' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Foto CIMA: ampliar foto del envase' }));
     fireEvent.click(screen.getByRole('dialog'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -68,6 +68,6 @@ describe('foto oficial ampliable', () => {
     fireEvent.error(screen.getByAltText('Foto de prueba'));
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('svg')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Ampliar foto del envase' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Foto CIMA: ampliar foto del envase' })).toBeNull();
   });
 });

@@ -11,7 +11,7 @@ export function registroVisible(raiz: HTMLElement | null, limiteSuperior = 0): s
   return (
     controles.find((el) => {
       const r = el.getBoundingClientRect();
-      return r.bottom > limiteSuperior && r.top < window.innerHeight;
+      return r.bottom > Math.max(0, limiteSuperior) && r.top < window.innerHeight;
     })?.dataset.registro ?? null
   );
 }

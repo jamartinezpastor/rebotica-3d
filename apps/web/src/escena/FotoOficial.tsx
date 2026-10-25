@@ -73,11 +73,11 @@ export function FotoOficial({
         ref={boton}
         type="button"
         onClick={() => setAbierta(true)}
-        aria-label="Ampliar foto del envase"
+        aria-label="Foto CIMA: ampliar foto del envase"
         className="shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
       >
         {miniatura}
-        <span className="mt-1 block text-xs font-semibold text-cruz">Foto CIMA +</span>
+        <span className="mt-1 block text-xs font-semibold text-cruz">Foto CIMA</span>
       </button>
       <dialog
         ref={dialogo}

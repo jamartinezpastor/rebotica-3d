@@ -117,7 +117,8 @@ describe('PanelFicha', () => {
   it('Tab y Mayús+Tab permanecen en la ficha modal sin entrar en pestañas inactivas', async () => {
     responder(ficha());
     render(<PanelFicha producto={resumen} modo="lista" onVolver={() => {}} />);
-    const ultimo = await screen.findByRole('link', { name: 'Ficha técnica oficial' });
+    await screen.findByRole('link', { name: 'Ficha técnica oficial' });
+    const ultimo = screen.getByRole('link', { name: 'Privacidad y fuentes' });
     const primero = screen.getByRole('button', { name: 'Volver al pasillo' });
     ultimo.focus();
     fireEvent.keyDown(ultimo, { key: 'Tab' });

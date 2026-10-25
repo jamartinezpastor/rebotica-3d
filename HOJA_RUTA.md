@@ -1,23 +1,23 @@
 # Rebotica 3D — próximos pasos
 
-Actualizada el 24/10/2026. Complementa el plan original y sus cambios de alcance; el recorrido
+Actualizada el 25/10/2026. Complementa el plan original y sus cambios de alcance; el recorrido
 principal es un catálogo informativo por dolencia. Los medicamentos con receta conservan su
 zona diferenciada y su ficha completa. Agrupar no elimina productos.
 
 Cada paso se implementa y verifica por separado, con `pnpm check` antes de cerrarlo. Las
 validaciones manuales se registran como pendientes hasta realizarlas.
 
-| Paso | Ticket        | Entrega y criterio de cierre                                                                                                                                                                                                                                                   | Estado                   |
-| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| 1    | F5-02         | JavaScript inicial inferior a 250 kB gzip; Lighthouse móvil ≥90 en CI; escenas reales con un número acotado de cajas; conteos agregados de consultas por dolencia, sin texto ni identificadores de personas.                                                                   | Completado               |
-| 2    | F1-06         | Estado verificable de sincronización y cobertura de indicaciones 4.1. Evaluar consultas conocidas, distinguir carga parcial de ausencia de coincidencias y documentar correspondencias textuales. No inferir indicaciones ni ampliar por principio activo.                     | Completado               |
-| 3    | F5-04         | Buscar por nombre o principio activo dentro del resultado; filtros explícitos por forma, laboratorio y genérico; contador y quitar filtros; conservar posición al volver de una ficha y entre vistas. Sin filtros iniciales ocultos.                                           | Completado               |
-| 4    | F2-08         | Saltar a un grupo, cargar solo cajas cercanas, reutilizar geometrías y materiales y adaptar calidad al dispositivo. Conservar acceso a todos los medicamentos y la separación de receta. Medir también consultas con muchos resultados.                                        | Completado               |
-| 5    | F5-05         | Mejorar jerarquía de nombres y principios activos, fotos oficiales ampliables, controles compactos, siluetas de carga y transiciones entre páginas. Distinguir la foto oficial de la representación 3D generada. Refinar luces, sombras y etiquetas sin sobrecargar la escena. | Completado               |
-| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Completado               |
-| 7    | F5-03         | Completar privacidad, uso de Gemini, fuentes y versiones de reglas en un lugar accesible. Conservar la portada limpia y describir el comportamiento real del almacenamiento y las métricas.                                                                                    | Pendiente                |
-| 8    | F5-01 / F2-06 | Comprobar lector de pantalla, teclado, zoom, instalación iOS/Android y movimiento reducido; medir fps en un móvil de referencia. Las pruebas automáticas no sustituyen estos resultados.                                                                                       | Pendiente de dispositivo |
-| 9    | F6-01 a F6-03 | Revisión y firma farmacéutica de reglas y protocolos que se activen, prueba con 5–8 personas y decisión documentada del alcance de lanzamiento. Sin regla validada y vigente no hay calculadora.                                                                               | Pendiente                |
+| Paso | Ticket        | Entrega y criterio de cierre                                                                                                                                                                                                                                                   | Estado                                  |
+| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| 1    | F5-02         | JavaScript inicial inferior a 250 kB gzip; Lighthouse móvil ≥90 en CI; escenas reales con un número acotado de cajas; conteos agregados de consultas por dolencia, sin texto ni identificadores de personas.                                                                   | Completado                              |
+| 2    | F1-06         | Estado verificable de sincronización y cobertura de indicaciones 4.1. Evaluar consultas conocidas, distinguir carga parcial de ausencia de coincidencias y documentar correspondencias textuales. No inferir indicaciones ni ampliar por principio activo.                     | Completado                              |
+| 3    | F5-04         | Buscar por nombre o principio activo dentro del resultado; filtros explícitos por forma, laboratorio y genérico; contador y quitar filtros; conservar posición al volver de una ficha y entre vistas. Sin filtros iniciales ocultos.                                           | Completado                              |
+| 4    | F2-08         | Saltar a un grupo, cargar solo cajas cercanas, reutilizar geometrías y materiales y adaptar calidad al dispositivo. Conservar acceso a todos los medicamentos y la separación de receta. Medir también consultas con muchos resultados.                                        | Completado                              |
+| 5    | F5-05         | Mejorar jerarquía de nombres y principios activos, fotos oficiales ampliables, controles compactos, siluetas de carga y transiciones entre páginas. Distinguir la foto oficial de la representación 3D generada. Refinar luces, sombras y etiquetas sin sobrecargar la escena. | Completado                              |
+| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Completado                              |
+| 7    | F5-03         | Información técnica de privacidad, uso de Gemini, fuentes y versiones de reglas en un lugar accesible. Conservar la portada limpia y describir el comportamiento real del almacenamiento y las métricas. Sin contacto público por decisión del usuario.                        | Completado                              |
+| 8    | F5-01 / F2-06 | Comprobar lector de pantalla, teclado, zoom, instalación iOS/Android y movimiento reducido; medir fps en un móvil de referencia. Las pruebas automáticas no sustituyen estos resultados.                                                                                       | Automático verificado; manual pendiente |
+| 9    | F6-01 a F6-03 | Revisión y firma farmacéutica de reglas y protocolos que se activen, prueba con 5–8 personas y decisión documentada del alcance de lanzamiento. Sin regla validada y vigente no hay calculadora.                                                                               | Pendiente                               |
 
 ## Base ya implementada
 
@@ -32,8 +32,10 @@ si se mantiene esa ampliación.
 
 ## Orden de trabajo
 
-F5-02, F1-06, F5-04, F2-08, F5-05 y F5-06 están implementados. El siguiente paso es F5-03:
-privacidad, uso de Gemini, fuentes y versiones de reglas. La
+F5-02, F1-06, F5-04, F2-08, F5-05, F5-06 y la información técnica de F5-03 están implementados.
+El usuario ha decidido publicar solo información técnica, sin responsable ni correo público.
+La revisión automática de la etapa 8 está implementada; siguen pendientes las comprobaciones
+en móviles físicos, con lector de pantalla y zoom real del navegador. La
 validación farmacéutica y las pruebas con personas requieren participantes reales; no se dan por
 completadas mediante código ni datos ficticios.
 
@@ -156,3 +158,46 @@ completadas mediante código ni datos ficticios.
 - Retirado el banner inferior «Catálogo informativo», incluido su desplegable de estado.
   Los diagnósticos de cobertura siguen disponibles mediante API y `pnpm cobertura`.
 - `pnpm check` correcto: 706 tests, formato, lint, tipos y build. JavaScript inicial: 115,94 kB gzip.
+
+## Verificación de F5-03 — 24/10/2026
+
+- `pnpm check` correcto: 716 tests, formato, lint, tipos y build. JavaScript inicial: 116,55 kB gzip.
+- Página `/informacion` cargada en diferido, con enlaces discretos desde portada, filtros,
+  fichas y comparación. La portada mantiene el input de tres líneas, sin reponer el aviso
+  sobre Gemini junto al formulario ni el banner inferior del catálogo.
+- Explicación del flujo de chips y texto, filtro local, Gemini, memoria de pestaña, preferencia
+  de vista, cachés, conteos diarios y registros técnicos. Retención de Google diferenciada de
+  la ausencia de almacenamiento del texto en la app, con enlaces a fuentes oficiales.
+- `GET /api/informacion` devuelve versiones reales de paquetes y correspondencias,
+  configuración de interpretación y estado local del catálogo. Sin secretos, consultas al
+  proveedor ni registros de solicitudes; salida validada y `no-store`. La página sigue legible
+  si el endpoint o la BD no están disponibles.
+- Id, versión, firma, fecha, cita y huella de las reglas validadas consultables antes de
+  rellenar la calculadora. Los metadatos de borradores se identifican sin habilitar cálculos.
+- Edad, peso, motivo, condiciones y confirmación de peso se limpian también en `pagehide`
+  y al restaurar desde bfcache. Los tests usan únicamente reglas y datos ficticios.
+- Revisada en Chrome a 320, 390, 768 y 1440 px, incluidos detalles abiertos: sin desbordamiento
+  horizontal. Acceso directo, errores de metadatos y navegación por teclado cubiertos por pruebas.
+- El usuario ha decidido el 25/10 publicar solo información técnica, sin responsable ni correo
+  público; la página no se presenta como aviso identificativo completo. La configuración
+  de retención del proyecto de Google y del alojamiento no se ha verificado desde el código.
+- Fuentes, alcance y datos tratados en [docs/PRIVACIDAD.md](docs/PRIVACIDAD.md). Las pruebas con
+  móviles físicos, lector de pantalla y personas, y la validación farmacéutica siguen pendientes.
+
+## Avance de F5-01 / F2-06 — 25/10/2026
+
+- `pnpm check` correcto: 717 tests, formato, lint, tipos y build. JavaScript inicial: 116,86 kB gzip.
+- `pnpm rendimiento` correcto: 99/100 en las tres mediciones Lighthouse móviles de la portada
+  compilada, con LCP entre 1,96 y 1,98 s. Son mediciones locales, no fps de un móvil físico.
+- Nuevo `pnpm validar:ui`: servidor de producción temporal sin BD ni credenciales, catálogo
+  ficticio, axe, recorridos de teclado, reflow, movimiento reducido y comprobaciones PWA.
+  Informes y capturas locales en `.local/validacion-ui/`, ignorados por Git.
+- 16 revisiones en Chrome sin incidencias automáticas. El informe conserva los casos que
+  axe no puede resolver y que requieren revisión manual; no es una certificación WCAG.
+- Corregidos los controles que tapaban productos en ventanas bajas, el desplazamiento
+  de fichas y comparaciones, la visibilidad del foco y el nombre accesible de las fotos.
+  Escape ya no retrocede por una entrada antigua cuando no hay ficha abierta.
+- Manifiesto e iconos disponibles; service worker controla la portada, que abre al recargar
+  sin red. Cache Storage no contiene rutas de datos `/api` ni `/media`.
+- Lector de pantalla real, zoom real, instalación iOS/Android y fps en móvil físico siguen
+  pendientes. Guion, evidencias automáticas y límites en [docs/VALIDACION_UI.md](docs/VALIDACION_UI.md).

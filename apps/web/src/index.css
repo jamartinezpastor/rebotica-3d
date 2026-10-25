@@ -12,12 +12,51 @@
 }
 
 html {
+  scroll-padding-block: 5rem;
   background-color: var(--color-papel);
   color: var(--color-tinta);
   -webkit-text-size-adjust: 100%;
   scrollbar-color: var(--color-cruz) var(--color-cruz-claro);
   scrollbar-width: auto;
   scrollbar-gutter: stable;
+}
+
+/* Reflow y paisaje: deja espacio para leer y enfocar el contenido con poca altura. */
+@media (max-height: 500px) {
+  [data-vista-catalogo='lista'] [data-herramientas-catalogo],
+  [data-vista-catalogo='lista'] .paginacion-catalogo,
+  [data-vista-catalogo='lista'] .barra-comparacion {
+    position: relative;
+    inset: auto;
+  }
+  .panel-ficha {
+    max-height: calc(100dvh - 0.5rem);
+    overflow-y: auto;
+    scroll-padding-top: 4rem;
+  }
+  .ficha-acciones {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: white;
+  }
+  .ficha-contenido,
+  .comparacion-contenido {
+    flex: none;
+    overflow: visible;
+  }
+  .ficha-pestanas {
+    position: static;
+  }
+  .comparacion-cuerpo {
+    overflow-y: auto;
+    scroll-padding-top: 9rem;
+  }
+  .comparacion-cabecera {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
 }
 
 /* Tirador verde ancho y con contraste, también en los paneles desplazables. */

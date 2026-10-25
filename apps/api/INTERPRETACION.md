@@ -85,7 +85,10 @@ no se haya revisado. No se han enviado datos reales durante la migración.
 
 Se silencia el logger de la ruta, también en errores de JSON y métodos incorrectos. No
 activar captura de cuerpos, cabeceras ni URLs de consultas en el proxy, APM o middleware.
-Los errores operativos expuestos son constantes. No se ha añadido analítica.
+Los errores operativos expuestos son constantes. Esta ruta no añade analítica. El recorrido de
+exploración conserva solo conteos diarios agregados por dolencia, sin texto ni identificadores de
+personas (F5-02); la información pública y sus límites se documentan en
+[Privacidad y fuentes](../../docs/PRIVACIDAD.md).
 
 ## Evaluación reproducible y estado
 
