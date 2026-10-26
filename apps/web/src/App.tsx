@@ -28,17 +28,9 @@ import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { paginaCatalogo, PRODUCTOS_POR_PAGINA } from './escena/paginaCatalogo';
 import { CargaVisual } from './escena/CargaVisual';
-import { BusquedaCatalogo } from './escena/BusquedaCatalogo';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
 import { EnlaceInformacion } from './EnlaceInformacion';
-import {
-  FILTROS_INICIALES,
-  filtrarCatalogo,
-  indiceBusqueda,
-  opcionesFiltros,
-  type FiltrosCatalogo,
-} from './escena/filtrosCatalogo';
 import {
   destinosGrupos,
   indiceDeRegistro,
@@ -152,7 +144,6 @@ function VistaEscena({
       window.removeEventListener('pageshow', restaurar);
     };
   }, []);
-  const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_INICIALES);
   const lista = useRef<HTMLDivElement>(null);
   const herramientas = useRef<HTMLDivElement>(null);
   const mirada = useRef<string | null>(null);
@@ -168,16 +159,7 @@ function VistaEscena({
     () => (!demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : []),
     [demo, remoto, baldasDemoMemo],
   );
-  const indice = useMemo(() => indiceBusqueda(fuente), [fuente]);
-  const opciones = useMemo(() => opcionesFiltros(fuente), [fuente]);
-  const filtradas = useMemo(
-    () => filtrarCatalogo(fuente, filtros, indice),
-    [fuente, filtros, indice],
-  );
-  const baldasAgrupadas = useMemo(
-    () => agruparBaldas(filtradas, agrupacion),
-    [filtradas, agrupacion],
-  );
+  const baldasAgrupadas = useMemo(() => agruparBaldas(fuente, agrupacion), [fuente, agrupacion]);
   const destinos = useMemo(() => destinosGrupos(baldasAgrupadas), [baldasAgrupadas]);
 
   const reiniciarRecorrido = () => {
@@ -196,7 +178,6 @@ function VistaEscena({
   }, [revision, vista]);
 
   let titulo = 'Pasillo de demostración';
-  const totalOriginal = fuente.reduce((n, b) => n + b.productos.length, 0);
   const totalCajas = baldasAgrupadas.reduce((n, b) => n + b.productos.length, 0);
   const paginas = Math.max(1, Math.ceil(totalCajas / PRODUCTOS_POR_PAGINA));
   const paginaActual = Math.min(pagina, paginas - 1);
@@ -298,25 +279,14 @@ function VistaEscena({
             setAgrupacion(valor);
             reiniciarRecorrido();
           }}
-        >
-          <BusquedaCatalogo
-            valor={filtros}
-            onCambiar={(valor) => {
-              setFiltros(valor);
-              reiniciarRecorrido();
-            }}
-            opciones={opciones}
-            coincidencias={totalCajas}
-            total={totalOriginal}
-          />
-        </SelectorAgrupacion>
+        />
       </div>
       {totalCajas === 0 && vista === '3d' ? (
         <p
           role="status"
           className={`mx-auto max-w-xl p-6 ${vista === '3d' ? 'absolute inset-x-0 top-72' : ''}`}
         >
-          No hay medicamentos que coincidan con estos filtros.
+          No hay medicamentos disponibles en este resultado.
         </p>
       ) : vista === '3d' ? (
         <Suspense fallback={<CargaVisual texto="Preparando la estantería…" />}>
@@ -387,7 +357,7 @@ function VistaEscena({
                 onQuitar={(registro) => {
                   if (comparados.length === 1)
                     herramientas.current
-                      ?.querySelector<HTMLInputElement>('input[type="search"]')
+                      ?.querySelector<HTMLSelectElement>('select')
                       ?.focus({ preventScroll: true });
                   setComparados((actual) => actual.filter((p) => p.nregistro !== registro));
                 }}

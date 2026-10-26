@@ -34,7 +34,7 @@ No sustituir celdas vacías por cero. Tiempos en segundos; indicar qué no pudo 
 
 - T3: producto/registro, posición al volver y resultado al cambiar de vista:
 - T4: documento oficial abierto y regreso; foto disponible/ampliada (adicional):
-- T5: agrupación, filtro aplicado, total original y total tras quitar filtros:
+- T5: agrupaciones elegidas, salto a grupo y total antes/después:
 - T6: condición de receta reconocida; interpretación espontánea del resultado y comparación:
 - B1/B2 adicionales, si se realizan (separados de tareas principales):
 - Repeticiones, si las hay (separadas de los primeros intentos):

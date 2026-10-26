@@ -116,7 +116,7 @@ export function VistaLista({
       </h1>
       {baldas.length === 0 && (
         <p role="status" className="mt-6">
-          No hay medicamentos que coincidan con estos filtros.
+          No hay medicamentos disponibles en este resultado.
         </p>
       )}
 

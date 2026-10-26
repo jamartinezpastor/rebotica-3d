@@ -198,7 +198,7 @@ export class ControlRiel {
       this.vx = 0.6 * this.vx + 0.4 * (paso / seg);
     } else {
       // Dedo arriba → la cámara baja (como al desplazar una página).
-      const filas = this.filaAlEmpezar - this.acumY / PX_POR_FILA;
+      const filas = this.filaAlEmpezar + this.acumY / PX_POR_FILA;
       this.fila = acotar(filas, -0.25, this.filas - 1 + 0.25);
       this.vy = 0.6 * this.vy + 0.4 * (dy / seg);
     }

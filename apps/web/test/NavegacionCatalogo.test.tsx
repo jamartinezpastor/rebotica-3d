@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as ModuloCapacidad from '../src/escena/capacidad';
 import type { EscenaProps } from '../src/escena/Escena';
@@ -68,21 +68,17 @@ function preparar(consulta = false) {
   vi.stubGlobal('fetch', peticiones);
   return { productos, peticiones };
 }
-const abrirFiltros = () => fireEvent.click(screen.getByText('Filtros', { selector: 'summary' }));
-describe('exploración con búsqueda y posición conservada', () => {
-  it('salta al inicio de un grupo en otra página, conserva la búsqueda y llega al mismo producto en 3D', async () => {
+describe('exploración por grupos y posición conservada', () => {
+  it('salta al inicio de un grupo en otra página y llega al mismo producto en 3D', async () => {
     preparar();
     render(<App />);
     await screen.findByText('1–36 de 80');
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'demostracion' } });
     fireEvent.click(screen.getByText('Grupos', { selector: 'summary' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Ir a grupo' }), {
       target: { value: 'demo-76' },
     });
     expect(screen.getByText('73–80 de 80')).toBeTruthy();
     expect(document.activeElement?.getAttribute('data-registro')).toBe('demo-76');
-    expect(screen.getByRole('searchbox')).toHaveProperty('value', 'demostracion');
-    // En jsdom no hay geometría de layout: simulamos el producto visible tras el salto.
     vi.spyOn(document.activeElement!, 'getBoundingClientRect').mockReturnValue({
       top: 300,
       bottom: 400,
@@ -90,48 +86,26 @@ describe('exploración con búsqueda y posición conservada', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
     expect((await screen.findByTestId('escena-prueba')).dataset.inicial).toBe('demo-76');
   });
-  it('busca en todas las páginas, combina filtros y quitar filtros devuelve el catálogo completo', async () => {
+  it('muestra todos los productos al agrupar, sin buscador ni filtros que oculten resultados', async () => {
     const { peticiones } = preparar();
     const { container } = render(<App />);
     await screen.findByText('1–36 de 80');
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    const input = screen.getByRole('searchbox', { name: 'Buscar medicamentos' });
-    input.focus();
-    fireEvent.change(input, { target: { value: 'demostracion 80' } });
-    expect(document.activeElement).toBe(input);
-    expect(screen.getByText('1 de 80 medicamentos')).toBeTruthy();
-    expect(container.querySelectorAll('[data-registro]')).toHaveLength(1);
-    expect(container.querySelector('[data-registro="demo-80"]')).toBeTruthy();
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(screen.queryByText('Filtros')).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
+      target: { value: 'forma' },
+    });
+    const registros = new Set<string>();
+    for (let pagina = 0; pagina < 3; pagina++) {
+      for (const el of container.querySelectorAll<HTMLElement>('[data-registro]'))
+        registros.add(el.dataset.registro!);
+      if (pagina < 2) fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    }
+    expect(registros.size).toBe(80);
+    expect(registros.has('demo-80')).toBe(true);
     expect(screen.getAllByText(/Requiere receta/).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
-    expect(screen.getByText('1–36 de 80')).toBeTruthy();
-    abrirFiltros();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Forma farmacéutica' }), {
-      target: { value: 'JARABE' },
-    });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Laboratorio' }), {
-      target: { value: 'Laboratorio ficticio B' },
-    });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Identificación EFG' }), {
-      target: { value: 'si' },
-    });
-    expect(screen.getByText('1 de 80 medicamentos')).toBeTruthy();
-    expect(container.querySelector('[data-registro="demo-22"]')).toBeTruthy();
     expect(peticiones).toHaveBeenCalledTimes(1);
-    expect(window.location.search).not.toMatch(/filtro|texto|demostracion/);
     expect(window.localStorage.length).toBe(0);
-  });
-  it('mantiene el foco al escribir una búsqueda vacía y recuperar resultados', async () => {
-    preparar();
-    render(<App />);
-    await screen.findByText('1–36 de 80');
-    const input = screen.getByRole('searchbox');
-    input.focus();
-    fireEvent.change(input, { target: { value: 'inexistente' } });
-    expect(screen.getByText('No hay medicamentos que coincidan con estos filtros.')).toBeTruthy();
-    fireEvent.change(input, { target: { value: 'demostracion' } });
-    expect(document.activeElement).toBe(input);
-    expect(screen.getByText('80 de 80 medicamentos')).toBeTruthy();
   });
   it('lleva a 3D el producto visible de una consulta larga y restaura el desplazamiento exacto al volver', async () => {
     preparar(true);
@@ -158,25 +132,24 @@ describe('exploración con búsqueda y posición conservada', () => {
     expect(document.activeElement?.getAttribute('data-registro')).toBe('demo-60');
     expect(scroll).toBe(900);
   });
-  it('vuelve al nuevo producto recorrido en 3D y mantiene los filtros elegidos', async () => {
-    preparar();
+  it('vuelve al nuevo producto recorrido en 3D y mantiene la agrupación elegida', async () => {
+    const { productos } = preparar(true);
     const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'demostracion' } });
-    abrirFiltros();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Forma farmacéutica' }), {
-      target: { value: 'JARABE' },
+    await screen.findByRole('heading', { name: 'Catálogo de prueba' });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
+      target: { value: 'forma' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Mirar PRODUCTO DE DEMOSTRACIÓN 62' }),
-    );
+    const escena = await screen.findByTestId('escena-prueba');
+    const destino = within(escena).getAllByRole('button').at(-1)!;
+    const registro = productos.find((p) => `Mirar ${p.nombre}` === destino.textContent)!.nregistro;
+    fireEvent.click(destino);
     fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
-    expect(document.activeElement?.getAttribute('data-registro')).toBe('demo-62');
-    expect(screen.getByRole('searchbox')).toHaveProperty('value', 'demostracion');
-    expect(container.querySelectorAll('[data-registro]')).toHaveLength(16);
+    expect(document.activeElement?.getAttribute('data-registro')).toBe(registro);
+    expect(screen.getByRole('combobox', { name: 'Agrupar por' })).toHaveProperty('value', 'forma');
+    expect(container.querySelectorAll('[data-registro]')).toHaveLength(80);
   });
-  it('abrir y cerrar una ficha conserva el filtro, la página, el foco y el desplazamiento', async () => {
+  it('abrir y cerrar una ficha conserva la página, el foco y el desplazamiento', async () => {
     preparar();
     let scroll = 500;
     vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scroll);
@@ -185,7 +158,6 @@ describe('exploración con búsqueda y posición conservada', () => {
     });
     const { container } = render(<App />);
     await screen.findByText('1–36 de 80');
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'demostracion' } });
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     scroll = 800;
     const objetivo = container.querySelector<HTMLButtonElement>('[data-registro="demo-60"]')!;
@@ -196,6 +168,5 @@ describe('exploración con búsqueda y posición conservada', () => {
     expect(document.activeElement).toBe(objetivo);
     expect(scroll).toBe(800);
     expect(screen.getByText('37–72 de 80')).toBeTruthy();
-    expect(screen.getByRole('searchbox')).toHaveProperty('value', 'demostracion');
   });
 });

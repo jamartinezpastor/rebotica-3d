@@ -122,7 +122,9 @@ describe('selección y comparación desde el catálogo', () => {
     expect(document.activeElement).toBe(boton);
     expect(screen.getByText('73–80 de 80')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'demostracion 2' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
+      target: { value: 'forma' },
+    });
     expect(screen.getByRole('button', { name: 'Comparar medicamentos' })).toHaveProperty(
       'disabled',
       false,
@@ -143,7 +145,7 @@ describe('selección y comparación desde el catálogo', () => {
       }),
     );
     expect(screen.queryByRole('button', { name: 'Comparar medicamentos' })).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole('searchbox'));
+    expect(document.activeElement).toBe(screen.getByRole('combobox', { name: 'Agrupar por' }));
     expect(window.localStorage.length).toBe(1);
     expect(window.localStorage.key(0)).toBe('rebotica.vista');
     expect(window.location.search).not.toContain('demo-');

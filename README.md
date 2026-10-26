@@ -278,14 +278,12 @@ la mano abierta.
   El modelo 3D generado está identificado y su encuadre deja margen durante todo el giro,
   también en móvil vertical. Volver y los enlaces oficiales permanecen accesibles mientras
   el contenido de una ficha larga se desplaza.
-- **Búsqueda y filtros (F5-04):** buscar por nombre o principio activo dentro de todos los
-  resultados, antes de paginar. La búsqueda ignora tildes y mayúsculas. «Filtros» permite elegir
-  forma farmacéutica, laboratorio e identificación EFG; el contador muestra las coincidencias
-  y «Quitar filtros» recupera el resultado completo. No se aplican filtros por defecto ni se
-  hacen peticiones adicionales. La separación de receta y la agrupación se conservan.
+- **Organización por grupos:** el selector reorganiza todos los medicamentos del resultado,
+  con salto directo a cada grupo. Por petición del usuario del 26/10/2026 se retiran el campo
+  de búsqueda y los filtros adicionales. Se conserva la separación de receta.
 - **Volver al mismo punto:** cerrar una ficha restaura el foco y el desplazamiento. Al alternar
-  lista y 3D, el medicamento visible determina la página y la posición del raíl. La búsqueda,
-  los filtros y esta posición solo viven en memoria; no se guardan en la URL ni en almacenamiento.
+  lista y 3D, el medicamento visible determina la página y la posición del raíl. La agrupación
+  elegida en la interfaz y esta posición solo viven en memoria; no se guardan en la URL ni en almacenamiento.
 - **Vista lista:** el mismo pasillo como lista de botones (baldas con sus productos, etiquetas de
   genérico y conducción); elegir un producto abre la misma ficha. El botón «Ver como lista» / «Ver
   en 3D» está siempre visible.
@@ -504,6 +502,7 @@ Producción: https://rebotica.martinezpastor.dev
 - Próximos pasos y criterios de cierre: [HOJA_RUTA.md](HOJA_RUTA.md).
 - Preparación de la revisión farmacéutica: [docs/REVISION_CLINICA.md](docs/REVISION_CLINICA.md).
 - Guion y plantillas del piloto móvil: [docs/USABILIDAD_MOVIL.md](docs/USABILIDAD_MOVIL.md).
+- Alcance de lanzamiento y análisis preliminar: [docs/ALCANCE_LANZAMIENTO.md](docs/ALCANCE_LANZAMIENTO.md).
 - Plan del proyecto: https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 - Reglas para agentes de código: [CLAUDE.md](CLAUDE.md)
 - Datos: [API REST de CIMA (AEMPS)](https://sede.aemps.gob.es/docs/CIMA-REST-API_1_19.pdf)

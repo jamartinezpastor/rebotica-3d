@@ -141,6 +141,23 @@ describe('ControlRiel · gesto horizontal', () => {
 });
 
 describe('ControlRiel · gesto vertical', () => {
+  it.each([-1, 1])(
+    'el contenido acompaña al dedo durante el arrastre vertical (%i) y mantiene el sentido al soltar',
+    (sentido) => {
+      const c = control({ filaInicial: 1 });
+      c.empezarArrastre();
+      c.moverArrastre(0, (sentido * PX_POR_FILA) / 2, 0.3);
+      // Filas y altura de cámara crecen hacia arriba; píxeles de pantalla crecen hacia abajo.
+      // La cámara baja al subir el dedo para que las cajas se desplacen hacia arriba.
+      expect(c.fila).toBeCloseTo(1 + sentido / 2);
+      const durante = c.fila;
+      c.terminarArrastre();
+      c.actualizar(1 / 60);
+      expect((c.fila - durante) * sentido).toBeGreaterThan(0);
+      reposar(c);
+      expect(c.fila).toBeCloseTo(1 + sentido, 3);
+    },
+  );
   it('dedo hacia arriba baja de balda y hacia abajo sube (como desplazar una página)', () => {
     const c = control({ filaInicial: 1 });
     arrastrarY(c, -PX_POR_FILA, 250);

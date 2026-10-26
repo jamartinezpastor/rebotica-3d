@@ -1,22 +1,18 @@
 import { AGRUPACIONES, esAgrupacion, type Agrupacion } from './agrupacion';
-import type { ReactNode } from 'react';
 
 export function SelectorAgrupacion({
   valor,
   onCambiar,
-  children,
   destinos = [],
   onIr,
 }: {
   valor: Agrupacion;
   onCambiar: (valor: Agrupacion) => void;
-  children?: ReactNode;
   destinos?: { registro: string; texto: string }[];
   onIr?: (registro: string) => void;
 }) {
   return (
     <div className="relative rounded-xl bg-white/95 p-3 shadow ring-1 ring-black/15">
-      {children}
       <div className="flex items-start gap-2">
         <label className="flex min-w-0 flex-1 items-center text-base font-semibold">
           <span className="sr-only">Agrupar por</span>

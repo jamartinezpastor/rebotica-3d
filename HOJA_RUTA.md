@@ -7,19 +7,19 @@ zona diferenciada y su ficha completa. Agrupar no elimina productos.
 Cada paso se implementa y verifica por separado, con `pnpm check` antes de cerrarlo. Las
 validaciones manuales se registran como pendientes hasta realizarlas.
 
-| Paso | Ticket        | Entrega y criterio de cierre                                                                                                                                                                                                                                                   | Estado                                               |
-| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| 1    | F5-02         | JavaScript inicial inferior a 250 kB gzip; Lighthouse móvil ≥90 en CI; escenas reales con un número acotado de cajas; conteos agregados de consultas por dolencia, sin texto ni identificadores de personas.                                                                   | Completado                                           |
-| 2    | F1-06         | Estado verificable de sincronización y cobertura de indicaciones 4.1. Evaluar consultas conocidas, distinguir carga parcial de ausencia de coincidencias y documentar correspondencias textuales. No inferir indicaciones ni ampliar por principio activo.                     | Completado                                           |
-| 3    | F5-04         | Buscar por nombre o principio activo dentro del resultado; filtros explícitos por forma, laboratorio y genérico; contador y quitar filtros; conservar posición al volver de una ficha y entre vistas. Sin filtros iniciales ocultos.                                           | Completado                                           |
-| 4    | F2-08         | Saltar a un grupo, cargar solo cajas cercanas, reutilizar geometrías y materiales y adaptar calidad al dispositivo. Conservar acceso a todos los medicamentos y la separación de receta. Medir también consultas con muchos resultados.                                        | Completado                                           |
-| 5    | F5-05         | Mejorar jerarquía de nombres y principios activos, fotos oficiales ampliables, controles compactos, siluetas de carga y transiciones entre páginas. Distinguir la foto oficial de la representación 3D generada. Refinar luces, sombras y etiquetas sin sobrecargar la escena. | Completado                                           |
-| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Completado                                           |
-| 7    | F5-03         | Información técnica de privacidad, uso de Gemini, fuentes y versiones de reglas en un lugar accesible. Conservar la portada limpia y describir el comportamiento real del almacenamiento y las métricas. Sin contacto público por decisión del usuario.                        | Completado                                           |
-| 8    | F5-01 / F2-06 | Comprobar lector de pantalla, teclado, zoom, instalación iOS/Android y movimiento reducido; medir fps en un móvil de referencia. Las pruebas automáticas no sustituyen estos resultados.                                                                                       | Automático verificado; manual pendiente              |
-| 9    | F6-01         | Revisión y firma farmacéutica de reglas y protocolos que se activen. Sin regla validada y vigente no hay calculadora.                                                                                                                                                          | Expediente preparado; revisión profesional pendiente |
-| 10   | F6-02         | Prueba de usabilidad móvil con 5–8 personas, hallazgos y decisiones documentadas.                                                                                                                                                                                              | Guion y plantillas preparados; sesiones pendientes   |
-| 11   | F6-03         | Decisión documentada del alcance de lanzamiento.                                                                                                                                                                                                                               | Pendiente                                            |
+| Paso | Ticket        | Entrega y criterio de cierre                                                                                                                                                                                                                                                   | Estado                                                  |
+| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| 1    | F5-02         | JavaScript inicial inferior a 250 kB gzip; Lighthouse móvil ≥90 en CI; escenas reales con un número acotado de cajas; conteos agregados de consultas por dolencia, sin texto ni identificadores de personas.                                                                   | Completado                                              |
+| 2    | F1-06         | Estado verificable de sincronización y cobertura de indicaciones 4.1. Evaluar consultas conocidas, distinguir carga parcial de ausencia de coincidencias y documentar correspondencias textuales. No inferir indicaciones ni ampliar por principio activo.                     | Completado                                              |
+| 3    | F5-04         | Organizar el resultado con el selector y salto de grupos, conservando todos los productos, posición y separación de receta. Búsqueda y filtros adicionales retirados por petición del 26/10/2026.                                                                              | Completado; alcance simplificado                        |
+| 4    | F2-08         | Saltar a un grupo, cargar solo cajas cercanas, reutilizar geometrías y materiales y adaptar calidad al dispositivo. Conservar acceso a todos los medicamentos y la separación de receta. Medir también consultas con muchos resultados.                                        | Completado                                              |
+| 5    | F5-05         | Mejorar jerarquía de nombres y principios activos, fotos oficiales ampliables, controles compactos, siluetas de carga y transiciones entre páginas. Distinguir la foto oficial de la representación 3D generada. Refinar luces, sombras y etiquetas sin sobrecargar la escena. | Completado                                              |
+| 6    | F5-06         | Comparar dos fichas con datos oficiales y su condición de receta. Sin rankings, equivalencias de dosis ni recomendaciones personalizadas.                                                                                                                                      | Completado                                              |
+| 7    | F5-03         | Información técnica de privacidad, uso de Gemini, fuentes y versiones de reglas en un lugar accesible. Conservar la portada limpia y describir el comportamiento real del almacenamiento y las métricas. Sin contacto público por decisión del usuario.                        | Completado                                              |
+| 8    | F5-01 / F2-06 | Comprobar lector de pantalla, teclado, zoom, instalación iOS/Android y movimiento reducido; medir fps en un móvil de referencia. Las pruebas automáticas no sustituyen estos resultados.                                                                                       | Automático verificado; manual pendiente                 |
+| 9    | F6-01         | Revisión y firma farmacéutica de reglas y protocolos que se activen. Sin regla validada y vigente no hay calculadora.                                                                                                                                                          | Expediente preparado; revisión profesional pendiente    |
+| 10   | F6-02         | Prueba de usabilidad móvil con 5–8 personas, hallazgos y decisiones documentadas.                                                                                                                                                                                              | Guion y plantillas preparados; sesiones pendientes      |
+| 11   | F6-03         | Decisión documentada del alcance de lanzamiento.                                                                                                                                                                                                                               | Análisis preparado; cualificación y decisión pendientes |
 
 ## Base ya implementada
 
@@ -46,7 +46,11 @@ huellas y tareas pendientes sin alterar reglas ni protocolos. La siguiente acci�
 es la revisión profesional descrita en [docs/REVISION_CLINICA.md](docs/REVISION_CLINICA.md).
 
 F6-02 tiene guion, criterios propuestos y plantillas en [docs/USABILIDAD_MOVIL.md](docs/USABILIDAD_MOVIL.md).
-La siguiente acción es realizar las sesiones en móviles con personas reales. F6-03 sigue pendiente.
+La siguiente acción es realizar las sesiones en móviles con personas reales.
+El análisis preliminar de F6-03 está en [docs/ALCANCE_LANZAMIENTO.md](docs/ALCANCE_LANZAMIENTO.md):
+la dirección de producto sigue siendo el catálogo informativo elegido, con cualificación y
+decisión de lanzamiento pendientes. Las capacidades clínicas y la instalación objetivo deben
+evaluarse expresamente; la existencia de los documentos no completa las validaciones humanas.
 
 ## Verificación de F5-02 — 24/10/2026
 
@@ -238,3 +242,32 @@ La siguiente acción es realizar las sesiones en móviles con personas reales. F
   ni registrado resultados. F6-02 sigue abierto; la preparación no sustituye el piloto real.
 - Enlaces locales comprobados y `pnpm check` correcto: 724 tests, formato, lint, tipos y build.
   JavaScript inicial: 116,86 kB gzip. Son comprobaciones técnicas, no resultados del piloto.
+
+## Preparación de F6-03 — 26/10/2026
+
+- Finalidad documental propuesta y matriz del comportamiento real: búsqueda local, clasificación,
+  alarmas, comparación, calculadora condicional y rutas clínicas registradas.
+- Comparación de los caminos A/B/C. La dirección funcional elegida sigue siendo B, sin dar por
+  acreditada la exclusión del MDR, asignar una clase o aprobar un lanzamiento.
+- Referencias primarias del MDR, MDCG 2019-11 rev.1 (junio de 2025) y AEMPS; cuestiones de
+  cualificación, dependencias entre módulos y estado de la instalación pendientes de revisión.
+- Análisis y registro de decisión final en [docs/ALCANCE_LANZAMIENTO.md](docs/ALCANCE_LANZAMIENTO.md).
+  F6-03 sigue abierto. No se modifican funciones, variables, contenido clínico ni despliegues.
+- Enlaces locales comprobados y `pnpm check` correcto: 724 tests, formato, lint, tipos y build.
+  JavaScript inicial: 116,86 kB gzip. Estas pruebas no acreditan cualificación ni conformidad legal.
+
+## Ajustes solicitados de grupos y arrastre — 26/10/2026 (F5-04 / F2-04)
+
+- Retirados el campo de búsqueda y los filtros adicionales. Se mantienen el selector de
+  agrupación y el salto a grupo, con todos los productos y la separación de receta. El código
+  y las pruebas exclusivos del filtrado se eliminan; el foco vuelve al selector al vaciar la comparación.
+- Corregido el sentido durante el arrastre vertical: el desplazamiento provisional usaba el
+  signo opuesto al ajuste al soltar. Ahora el contenido acompaña al dedo en ambos sentidos y
+  continúa hacia la balda correspondiente. Se conserva el comportamiento horizontal, rueda y teclado.
+- `pnpm check` correcto: 719 tests, formato, lint, tipos y build; 116,00 kB gzip iniciales.
+  El recuento elimina siete casos de la búsqueda/filtros retirados y añade dos regresiones del gesto.
+- `pnpm validar:ui`: 16 revisiones sin incidencias automáticas. Chrome con viewport móvil
+  y eventos táctiles: arrastre vertical arriba/abajo, ajuste al soltar y retorno a lista con
+  40 productos ficticios correctos, sin selección accidental. Capturas en `.local/gestos-movil/`.
+  Es emulación en escritorio; no completa la validación física de F5-01/F2-06.
+- Guion de usabilidad y documentación actualizados para organizar resultados solo con grupos.

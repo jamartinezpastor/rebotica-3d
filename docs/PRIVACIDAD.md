@@ -1,18 +1,18 @@
 # Privacidad y fuentes — F5-03
 
 Revisión técnica del 24/10/2026. La interfaz pública está en `/informacion`, con enlaces desde
-el pie de portada, fichas, comparación y filtros. Este documento describe el código y sus límites;
+el pie de portada, fichas y comparación. Este documento describe el código y sus límites;
 no verifica la configuración del alojamiento ni la cuenta de Google del despliegue.
 
 ## Recorridos y datos
 
-| Recorrido             | Datos enviados                                                                                        | Conservación en la app                                                                      |
-| --------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Consulta frecuente    | Identificador cerrado a `POST /api/explorar`                                                          | Conteo agregado por día UTC y dolencia si la respuesta es 200                               |
-| Texto libre           | JSON a `POST /api/interpretar`; texto a Gemini si pasa el filtro local y hay clasificador configurado | Sin guardar entrada o respuesta en BD ni logger de la ruta; respuestas `no-store`           |
-| Calculadora           | No envía edad, peso, motivo ni condiciones                                                            | Estado en memoria; se limpia al desmontar, `pagehide` y restaurar bfcache                   |
-| Filtros y comparación | La comparación solicita solo fichas públicas por registro                                             | Selección en memoria, sin URL ni almacenamiento persistente; comparación se limpia al salir |
-| Vista lista/3D        | Sin solicitud adicional                                                                               | Preferencia en `localStorage['rebotica.vista']`                                             |
+| Recorrido            | Datos enviados                                                                                        | Conservación en la app                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Consulta frecuente   | Identificador cerrado a `POST /api/explorar`                                                          | Conteo agregado por día UTC y dolencia si la respuesta es 200                               |
+| Texto libre          | JSON a `POST /api/interpretar`; texto a Gemini si pasa el filtro local y hay clasificador configurado | Sin guardar entrada o respuesta en BD ni logger de la ruta; respuestas `no-store`           |
+| Calculadora          | No envía edad, peso, motivo ni condiciones                                                            | Estado en memoria; se limpia al desmontar, `pagehide` y restaurar bfcache                   |
+| Grupos y comparación | La comparación solicita solo fichas públicas por registro                                             | Selección en memoria, sin URL ni almacenamiento persistente; comparación se limpia al salir |
+| Vista lista/3D       | Sin solicitud adicional                                                                               | Preferencia en `localStorage['rebotica.vista']`                                             |
 
 La PWA guarda archivos de la aplicación, con exclusión de rutas `/api` y `/media` de su fallback
 y sin caché de peticiones en ejecución. Los navegadores sí pueden guardar fichas públicas y

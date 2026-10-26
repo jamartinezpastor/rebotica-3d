@@ -108,7 +108,7 @@ export default function Informacion() {
             </li>
             <li>
               El borrador vive en la memoria de la pestaña y se borra al empezar una nueva consulta
-              o abandonar la página. Los filtros y la comparación también se mantienen en memoria;
+              o abandonar la página. La agrupación y la comparación también se mantienen en memoria;
               no se escriben en la URL ni en almacenamiento persistente.
             </li>
             <li>

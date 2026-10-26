@@ -31,7 +31,7 @@ personas repetidas ni tareas adicionales. Indicar tiempos solo para las observac
 - T1/T2: cantidad que abrió la primera ficha sin ayuda en hasta 60 s / intentos:
 - T3: identidad/posición conservadas y limitaciones de 3D observadas:
 - T4: acceso y retorno del prospecto; secciones ausentes o errores técnicos:
-- T5: distinción entre agrupación y filtro, totales antes/después:
+- T5: agrupaciones elegidas, salto a grupo y totales antes/después:
 - T6: comprensión de receta y alcance informativo; confusiones espontáneas y aclaraciones:
 - B1/B2, si se realizaron (con sus propios denominadores):
 

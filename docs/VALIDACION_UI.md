@@ -82,7 +82,7 @@ Una comprobación pendiente no se marca como correcta por analogía con Chrome d
 | Windows con NVDA                                      | Portada, chips, formulario, lista, ficha, pestañas, foto y comparación | Nombres anunciados, orden de lectura, retorno del foco y ausencia de trampas |
 | iPhone con Safari y VoiceOver                         | Mismo recorrido; teclado virtual, retrato y paisaje                    | Lectura y acciones accesibles sin depender del gesto de arrastre 3D          |
 | Android con Chrome y TalkBack                         | Mismo recorrido; teclado virtual y cambio lista/3D                     | Anuncios, objetivos táctiles, navegación y retorno a producto                |
-| Navegador de escritorio, zoom real 200% y 400%        | Filtros, ficha larga, receta y comparación                             | Contenido y foco accesibles sin scroll horizontal no esencial                |
+| Navegador de escritorio, zoom real 200% y 400%        | Grupos, ficha larga, receta y comparación                              | Contenido y foco accesibles sin scroll horizontal no esencial                |
 | iOS/Android, menos movimiento y contraste del sistema | Navegación, apertura de ficha y controles                              | Sin animación imprescindible y foco identificable                            |
 
 ### Instalación real
@@ -120,3 +120,17 @@ el equipo de desarrollo. Modelo de referencia, medidas y decisión de aceptació
 La parte automática y las correcciones están implementadas. Para cerrar F5-01/F2-06 faltan
 los resultados de lector de pantalla, zoom real, instalación móvil y fps en hardware físico.
 Las revisiones farmacéuticas y las pruebas con personas de F6 son una etapa posterior.
+
+## Comprobación tras simplificar controles — 26/10/2026
+
+Por petición del usuario se retiran búsqueda y filtros adicionales, manteniendo agrupación
+y salto a grupo. Se corrige el signo del arrastre vertical para que el contenido siga al dedo
+tanto durante el gesto como al soltar. La validación automática vuelve a pasar las 16 revisiones.
+
+Chrome con viewport de 390×844 y eventos táctiles: capturas revisadas de arrastre arriba/abajo
+y ajuste al soltar, sin selección accidental; al volver a lista se conservan los 40 productos
+de la demo explícita y no hay desbordamiento horizontal. Evidencia local en `.local/gestos-movil/`.
+Es una emulación de escritorio; no registra fps ni valida el comportamiento en un teléfono real.
+
+`pnpm check` correcto: 719 tests, formato, lint, tipos y build; JavaScript inicial de 116,00 kB gzip.
+Se retiran siete casos del filtrado eliminado y se añaden dos regresiones de dirección vertical.
