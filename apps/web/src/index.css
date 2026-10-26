@@ -21,6 +21,231 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* La farmacia queda lejos: solo esta capa se desenfoca, nunca las cajas ni la interfaz. */
+.fondo-farmacia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(180deg, #fcfdfb 10%, #edf2ec 48%, #ffffff 86%);
+  perspective: var(--perspectiva-farmacia, 1100px);
+}
+.camara-farmacia {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-style: preserve-3d;
+  transform: var(--camara-farmacia, translateZ(1100px));
+}
+.pared-farmacia {
+  position: absolute;
+  left: -1200px;
+  top: -900px;
+  width: 2400px;
+  height: 1800px;
+  backface-visibility: hidden;
+  background: linear-gradient(180deg, #fcfdfb, #edf2ec 55%, #fafbf9);
+  transform: rotateY(var(--giro-pared, 0deg)) translateZ(-1200px);
+}
+.pared-derecha {
+  --giro-pared: -90deg;
+}
+.pared-detras {
+  --giro-pared: -180deg;
+}
+.pared-izquierda {
+  --giro-pared: 90deg;
+}
+.pared-derecha .sanitario-a {
+  left: 33%;
+}
+.pared-derecha .sanitario-b {
+  right: 27%;
+}
+.pared-derecha .cliente-cruzando {
+  animation-delay: -6s;
+}
+.pared-izquierda .cliente-cruzando {
+  animation-delay: -19s;
+}
+.pared-detras .cliente-cruzando {
+  animation-delay: -3s;
+}
+.pared-derecha .cliente-b {
+  animation-delay: -22s;
+}
+.pared-izquierda .cliente-b {
+  animation-delay: -7s;
+}
+.pared-detras .cliente-b {
+  animation-delay: -16s;
+}
+.sanitario-c {
+  left: 58%;
+  top: 45%;
+}
+.sanitario-c .brazo-fondo {
+  animation-delay: -7s;
+}
+.farmacia-lejana {
+  position: absolute;
+  inset: 24% -10% 27%;
+  opacity: 0.5;
+  filter: blur(14px);
+  background:
+    linear-gradient(0deg, transparent 30%, #91ad9c 31%, #fbfcf8 35%, transparent 37%),
+    repeating-linear-gradient(90deg, #dae5dc 0 7%, #fafcf9 8% 18%, #e9e5d9 19% 20%);
+}
+.persona-fondo {
+  position: absolute;
+  width: 72px;
+  height: 175px;
+  opacity: 0.55;
+  filter: blur(9px);
+}
+.persona-fondo i,
+.envase-fondo {
+  position: absolute;
+  display: block;
+}
+.cabeza-fondo {
+  width: 22px;
+  height: 26px;
+  left: 25px;
+  top: 0;
+  border-radius: 48%;
+  background: #78877d;
+}
+.cuerpo-fondo {
+  width: 50px;
+  height: 79px;
+  left: 11px;
+  top: 25px;
+  border-radius: 18px 18px 7px 7px;
+  background: linear-gradient(90deg, #b8c9bd, #ffffff 35% 65%, #e1e7df);
+}
+.brazo-fondo {
+  width: 15px;
+  height: 62px;
+  left: 48px;
+  top: 31px;
+  border-radius: 12px;
+  background: #dde5dc;
+  transform-origin: 50% 8%;
+}
+.envase-fondo {
+  width: 12px;
+  height: 19px;
+  bottom: -8px;
+  left: 1px;
+  border-radius: 3px;
+  background: #e3d5a4;
+}
+.pierna-fondo {
+  width: 17px;
+  height: 71px;
+  top: 99px;
+  border-radius: 5px 5px 9px 9px;
+  background: #8a9691;
+  transform-origin: 50% 0;
+}
+.pierna-a {
+  left: 16px;
+}
+.pierna-b {
+  left: 40px;
+}
+.sanitario-a {
+  left: 24%;
+  top: 43%;
+}
+.sanitario-b {
+  right: 23%;
+  top: 46%;
+  opacity: 0.48;
+}
+.sanitario .brazo-fondo {
+  animation: recoger-envase 9s ease-in-out infinite;
+}
+.sanitario-b .brazo-fondo {
+  animation-delay: -4s;
+}
+.cliente-cruzando {
+  position: absolute;
+  top: 49%;
+  left: -85px;
+  width: 72px;
+  height: 175px;
+  animation: cruzar-farmacia 29s linear -12s infinite;
+}
+.cliente-b {
+  top: 42%;
+  animation-duration: 37s;
+  animation-delay: -27s;
+  animation-direction: reverse;
+}
+.cliente-fondo {
+  opacity: 0.48;
+  animation: paso-cliente 1.6s ease-in-out infinite;
+}
+.cliente-fondo .cuerpo-fondo {
+  background: #a4b3b7;
+}
+.cliente-fondo .brazo-fondo {
+  background: #a4b3b7;
+  transform: rotate(12deg);
+}
+.cliente-fondo .pierna-a {
+  animation: caminar-cliente 1.6s ease-in-out infinite alternate;
+}
+.cliente-fondo .pierna-b {
+  animation: caminar-cliente 1.6s ease-in-out -1.6s infinite alternate;
+}
+.fondo-farmacia[data-en-movimiento='false'] * {
+  animation-play-state: paused !important;
+}
+@keyframes recoger-envase {
+  0%,
+  20%,
+  100% {
+    transform: rotate(-12deg);
+  }
+  43%,
+  62% {
+    transform: rotate(-68deg);
+  }
+}
+@keyframes cruzar-farmacia {
+  from {
+    transform: translateX(-80px);
+  }
+  to {
+    transform: translateX(2570px);
+  }
+}
+@keyframes paso-cliente {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes caminar-cliente {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fondo-farmacia * {
+    animation: none !important;
+  }
+}
+
 /* Reflow y paisaje: deja espacio para leer y enfocar el contenido con poca altura. */
 @media (max-height: 500px) {
   [data-vista-catalogo='lista'] [data-herramientas-catalogo],

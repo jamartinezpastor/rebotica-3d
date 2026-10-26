@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { PerspectiveCamera } from 'three';
 import { ControlRiel, distanciaRiel, metrosPorPixel, puntoMasCercano } from './riel';
+import { marcoEnRiel, type EsquinaRiel } from './trayectoPasillo';
 
 /** Cuánto por encima del centro de la balda se coloca el ojo de la cámara. */
 const ELEVACION_OJO = 0.05;
@@ -37,6 +38,7 @@ export interface RielCamaraProps {
   puntos: readonly (readonly number[])[];
   /** Altura del centro de cada balda. */
   alturas: readonly number[];
+  esquina?: EsquinaRiel;
   /** Menos movimiento: la cámara salta al destino sin muelle. */
   instantaneo?: boolean;
   /** Con `false` el raíl ignora gestos y teclas (p. ej. mientras hay una ficha abierta). */
@@ -55,6 +57,7 @@ export interface RielCamaraProps {
 export function RielCamara({
   puntos,
   alturas,
+  esquina,
   instantaneo = false,
   activo = true,
   onActivar,
@@ -156,8 +159,13 @@ export function RielCamara({
     control.actualizar(delta);
 
     const y = alturaEnFila(alturas, control.fila);
-    camera.position.set(control.x, y + ELEVACION_OJO, distancia);
-    camera.lookAt(control.x, y, 0);
+    const marco = marcoEnRiel(control.x, esquina);
+    camera.position.set(
+      marco.x + Math.sin(marco.giro) * distancia,
+      y + ELEVACION_OJO,
+      marco.z + Math.cos(marco.giro) * distancia,
+    );
+    camera.lookAt(marco.x, y, marco.z);
     if (control.enMovimiento()) invalidar();
     const fila = Math.round(control.fila);
     const x = puntoMasCercano(control.puntosDe(fila), control.x);

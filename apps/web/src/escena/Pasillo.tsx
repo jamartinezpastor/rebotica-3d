@@ -31,6 +31,7 @@ import {
 import { Sombra } from './Sombra';
 import { ventanaEstanterias } from './ventanaEscena';
 import { usePrecargaEstanterias } from './usePrecargaEstanterias';
+import type { EsquinaRiel } from './trayectoPasillo';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
 export interface BaldaEscena {
@@ -50,6 +51,8 @@ interface ModeloEstanteria {
   receta: boolean;
   indice: number;
   posicion: [number, number, number];
+  rielX: number;
+  giroY: number;
   /** Desde dónde llega: alterna el fondo del pasillo y cada lateral. */
   origen: [number, number, number];
   baldas: { titulo: string; hueco: number }[];
@@ -82,12 +85,29 @@ export function modeloPasillo(
       BALDAS_POR_ESTANTERIA,
     ),
   ];
+  const sinReceta = grupos.filter((g) => !g[0]?.receta).length;
+  const hayEsquina = sinReceta > 0 && sinReceta < grupos.length;
+  const separacionEsquina = hayEsquina ? 0.6 : 0;
+  const ultimoSinReceta = (sinReceta - 1 - (grupos.length - 1) / 2) * SEPARACION_ESTANTERIAS;
+  const esquinaX =
+    sinReceta > 0
+      ? ultimoSinReceta + (SEPARACION_ESTANTERIAS + separacionEsquina) / 2
+      : (-(grupos.length - 1) / 2) * SEPARACION_ESTANTERIAS - SEPARACION_ESTANTERIAS / 2;
   return grupos.map((grupo, indice) => {
-    const x = (indice - (grupos.length - 1) / 2) * SEPARACION_ESTANTERIAS;
+    const receta = grupo[0]?.receta === true;
+    const rielX =
+      (indice - (grupos.length - 1) / 2) * SEPARACION_ESTANTERIAS +
+      (receta ? separacionEsquina : 0);
+    const giroY = receta ? -Math.PI / 2 : 0;
     // 0: del fondo; 1: del lateral izquierdo; 2: del fondo; 3: del lateral derecho…
     const lado = indice % 4 === 1 ? -1 : 1;
-    const origen: [number, number, number] =
+    const entrada: [number, number, number] =
       indice % 2 === 0 ? [0, 0, -DISTANCIA_FONDO] : [lado * DISTANCIA_LATERAL, 0, 0];
+    const origen: [number, number, number] = [
+      Math.cos(giroY) * entrada[0] + Math.sin(giroY) * entrada[2],
+      0,
+      -Math.sin(giroY) * entrada[0] + Math.cos(giroY) * entrada[2],
+    ];
     const cajas: CajaColocada<ProductoResumen>[] = [];
     grupo.forEach((balda, k) => {
       const hueco = geometria.huecos[k];
@@ -97,9 +117,11 @@ export function modeloPasillo(
       );
     });
     return {
-      receta: grupo[0]?.receta === true,
+      receta,
       indice,
-      posicion: [x, 0, 0],
+      rielX,
+      giroY,
+      posicion: receta ? [esquinaX, 0, rielX - esquinaX] : [rielX, 0, 0],
       origen,
       baldas: grupo.map((b, k) => ({ titulo: b.titulo, hueco: k })),
       cajas,
@@ -108,22 +130,34 @@ export function modeloPasillo(
 }
 
 /**
- * Destinos del raíl: la posición x de cada producto en cada balda, de todas las estanterías, y la
+ * Destinos del raíl: la coordenada lógica de cada producto en todas las estanterías, y la
  * altura del centro de cada balda. Una balda sin productos aporta una lista vacía.
  */
 export function datosRiel(
   modelo: readonly ModeloEstanteria[],
   geometria: GeometriaEstanteria,
-): { puntos: number[][]; alturas: number[] } {
+): { puntos: number[][]; alturas: number[]; esquina?: EsquinaRiel } {
   const puntos: number[][] = geometria.huecos.map(() => []);
   for (const est of modelo) {
     for (const caja of est.cajas) {
-      puntos[caja.balda]?.push(est.posicion[0] + caja.posicion[0]);
+      puntos[caja.balda]?.push(est.rielX + caja.posicion[0]);
     }
   }
   for (const fila of puntos) fila.sort((a, b) => a - b);
   const alturas = geometria.huecos.map((h) => h.centro[1] + h.alto * 0.45);
-  return { puntos, alturas };
+  const izquierdas = modelo.filter((e) => !e.receta);
+  const derechas = modelo.filter((e) => e.receta);
+  const primerasReceta = derechas.flatMap((e) => e.cajas.map((c) => e.rielX + c.posicion[0]));
+  const ultimasSinReceta = izquierdas.flatMap((e) => e.cajas.map((c) => e.rielX + c.posicion[0]));
+  const fin = primerasReceta.length ? Math.min(...primerasReceta) : 0;
+  const esquina = derechas.length
+    ? {
+        x: derechas[0]!.posicion[0],
+        inicio: ultimasSinReceta.length ? Math.max(...ultimasSinReceta) : fin,
+        fin,
+      }
+    : undefined;
+  return { puntos, alturas, ...(esquina ? { esquina } : {}) };
 }
 
 export interface PasilloProps {
@@ -163,7 +197,7 @@ export function Pasillo({
       modelo.flatMap((est) =>
         est.cajas.map((c) => ({
           balda: c.balda,
-          x: est.posicion[0] + c.posicion[0],
+          x: est.rielX + c.posicion[0],
           item: c.item,
           estanteria: est.indice,
         })),
@@ -377,7 +411,9 @@ export function Pasillo({
       volando.current.scale.setScalar(1 + (escala - 1) * e);
       // Gira solo cuando ya está en la ficha; al volver el giro se deshace con el vuelo.
       if (estado.u >= 1) giro.actualizar(delta, performance.now() / 1000);
-      volando.current.rotation.y = giro.angulo * e;
+      const origenY = modelo[lugar.i]?.giroY ?? 0;
+      const frenteCamara = Math.atan2(-direccion.x, -direccion.z);
+      volando.current.rotation.y = origenY * (1 - e) + frenteCamara * e + giro.angulo * e;
 
       velo.current.position.copy(camera.position).addScaledVector(direccion, DISTANCIA_VELO);
       velo.current.quaternion.copy(camera.quaternion);
@@ -420,6 +456,7 @@ export function Pasillo({
       <RielCamara
         puntos={riel.puntos}
         alturas={riel.alturas}
+        esquina={riel.esquina}
         instantaneo={menosMovimiento}
         activo={mostrada === null}
         onActivar={activarPorTeclado}
@@ -434,6 +471,7 @@ export function Pasillo({
         return (
           <group
             key={est.indice}
+            rotation-y={est.giroY}
             ref={(g) => {
               grupos.current[i] = g;
             }}

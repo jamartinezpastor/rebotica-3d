@@ -6,6 +6,8 @@ zona diferenciada y su ficha completa. Agrupar no elimina productos.
 
 Cambio del 26/10/2026: todos los resultados se muestran sin paginación en lista y en un pasillo
 3D continuo. La carga de estanterías cercanas acota los recursos, sin recortar el resultado.
+La zona de receta se dispone perpendicular al lateral sin receta, con puertas de cristal;
+el ambiente lejano incorpora siluetas desenfocadas con movimiento opcional.
 
 Cada paso se implementa y verifica por separado, con `pnpm check` antes de cerrarlo. Las
 validaciones manuales se registran como pendientes hasta realizarlas.
@@ -310,3 +312,34 @@ evaluarse expresamente; la existencia de los documentos no completa las validaci
 - Chrome instrumentado con 80 productos ficticios: preparación en segundo plano, pausa táctil,
   salto al final con reutilización y liberación al volver a lista correctos. Evidencia en
   `.local/precarga-gpu/`; no acredita fps o memoria real de un teléfono.
+
+## Ambiente y separación espacial — 26/10/2026 (F2-08 / F5-05)
+
+- Las estanterías sin receta y con receta forman una esquina de 90°. El raíl lógico conserva
+  todos los destinos; la cámara gira de forma continua entre ambas paredes y la caja seleccionada
+  vuela orientada hacia ella, también desde la vitrina. Se conserva la precarga por proximidad.
+- Vitrinas con dos puertas translúcidas, reflejos suaves, marco, tiradores y cierre ámbar.
+  Los elementos decorativos no interceptan los clics: todas las cajas conservan ficha y prospecto.
+- Ambiente lejano con siluetas de personal que recogen envases y clientes caminando.
+  Solo se desenfoca esta capa CSS, sin redibujar el lienzo de productos. Se detiene
+  con ficha abierta, pestaña oculta, menos movimiento o calidad ligera.
+- Ocho regresiones verifican orientación y separación, destinos completos, continuidad de la
+  curva, catálogos sin receta o solo de receta y colocación de puertas sin alterar los productos.
+- Revisión en Chrome con datos ficticios: movimiento y pausa, clic a través del cristal,
+  selección por teclado, ficha de receta y conservación de los 23 productos al pasar a lista.
+  Capturas de escritorio y viewport móvil en `.local/ambiente-esquina/`. Se simuló la capacidad
+  de GPU para revisar la animación con WebGL por software; no acredita rendimiento físico.
+- `pnpm check` correcto: 737 tests, formato, lint, tipos y build. JavaScript inicial: 115,63 kB
+  gzip. `pnpm validar:ui`: 16 revisiones y 0 incidencias automáticas.
+
+### Ajuste del ambiente solicitado después
+
+- Retirado el botón de pausa. El fondo también se anima en la landing, sin cargar WebGL;
+  las preferencias de menos movimiento y la pestaña oculta siguen deteniéndolo.
+- Ambiente envolvente con perspectiva y giro sincronizados con la cámara y paralaje suave.
+  Más personal y clientes, de mayor presencia visual, conservando el desenfoque.
+- Eliminado el suelo blanco opaco que cortaba las siluetas; se mantienen las sombras de contacto.
+- Chrome con datos ficticios: movimiento en landing, giro continuo hasta 90° y menos movimiento
+  comprobados. Capturas en `.local/fondo-envolvente/`, incluyendo portada móvil emulada.
+- Verificación final: `pnpm check` correcto (737 tests); `pnpm validar:ui`, 16 revisiones y
+  0 incidencias automáticas. JavaScript inicial: 116,11 kB gzip.

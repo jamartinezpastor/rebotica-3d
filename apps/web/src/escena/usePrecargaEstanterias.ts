@@ -20,13 +20,19 @@ export function usePrecargaEstanterias(
 ) {
   const cache = useCacheRecursos();
   const gl = useThree((s) => s.gl);
-  const actividad = useRef({ hasta: 0, tocando: false, x: NaN, y: NaN });
+  const actividad = useRef({ hasta: 0, tocando: false, x: NaN, y: NaN, z: NaN });
   useFrame(({ camera }, delta) => {
     const a = actividad.current;
-    if (a.x !== camera.position.x || a.y !== camera.position.y || (delta > 0.025 && delta < 0.25))
+    if (
+      a.x !== camera.position.x ||
+      a.y !== camera.position.y ||
+      a.z !== camera.position.z ||
+      (delta > 0.025 && delta < 0.25)
+    )
       a.hasta = performance.now() + 350;
     a.x = camera.position.x;
     a.y = camera.position.y;
+    a.z = camera.position.z;
   });
   const calidad = ligera ? 'ligera' : 'estanteria';
   const envases = useMemo(

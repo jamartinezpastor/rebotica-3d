@@ -65,7 +65,7 @@ export function escalaSegunEncuadre(
 }
 
 export interface CajaUbicada {
-  /** Balda (0 = la más baja) y posición x absoluta de la caja en el pasillo. */
+  /** Balda (0 = la más baja) y coordenada lógica de la caja sobre el raíl continuo. */
   balda: number;
   x: number;
 }

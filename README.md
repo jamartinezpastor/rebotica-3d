@@ -271,6 +271,16 @@ la mano abierta.
   Equipos de capacidad baja empiezan con texturas ligeras y DPR máximo 1; la lentitud sostenida
   también activa esa reducción. La ficha mantiene su resolución. `?fps=1` incluye las geometrías,
   texturas GPU y llamadas de dibujo para comprobar el coste durante el recorrido.
+- **Ambiente y vitrina:** las estanterías sin receta forman el lateral izquierdo y las de receta
+  el derecho, perpendicular, con giro continuo de la cámara en la esquina. Las vitrinas mantienen
+  la estructura oscura y la señalización ámbar, añadiendo dos puertas de cristal, reflejos,
+  tiradores y cierre. El cristal permite seleccionar las cajas y abrir su ficha completa.
+  Al fondo hay siluetas muy desenfocadas: personal que recoge envases y clientes que cruzan.
+  El ambiente CSS envuelve la escena y acompaña la orientación y perspectiva de la cámara,
+  con paralaje suave; conserva las sombras de contacto sin un suelo opaco que corte las siluetas.
+  También aparece en la portada sin cargar WebGL. No tiene botón de pausa; respeta menos
+  movimiento y pestaña oculta, y en 3D se detiene con ficha abierta o calidad ligera.
+  Los productos y controles permanecen nítidos.
 - **Precarga progresiva (F2-08):** las texturas de envases se preparan y suben a GPU por proximidad,
   una por turno libre. Se pausa al tocar, mover la cámara, abrir ficha u ocultar la pestaña.
   Los recursos existentes se reutilizan durante la precarga y al regresar. Se prepara el recorrido

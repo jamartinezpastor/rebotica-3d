@@ -26,6 +26,7 @@ import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
+import { FondoFarmacia } from './escena/FondoFarmacia';
 import { CargaVisual } from './escena/CargaVisual';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
@@ -480,38 +481,43 @@ export function App() {
     );
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-32">
-      <a className="saltar-contenido" href="#contenido">
-        Saltar al contenido
-      </a>
-      <header className="flex items-center gap-3">
-        <Cruz />
-        <h1 className="text-2xl font-semibold tracking-tight">Rebotica 3D</h1>
-      </header>
+    <div className="relative isolate min-h-dvh">
+      <div className="fixed inset-0 -z-10">
+        <FondoFarmacia />
+      </div>
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-papel/65 px-4 pt-[max(env(safe-area-inset-top),2rem)] pb-32">
+        <a className="saltar-contenido" href="#contenido">
+          Saltar al contenido
+        </a>
+        <header className="flex items-center gap-3">
+          <Cruz />
+          <h1 className="text-2xl font-semibold tracking-tight">Rebotica 3D</h1>
+        </header>
 
-      <main id="contenido" tabIndex={-1} className="mt-8 flex-1">
-        <ConsultaGuiada modo="informativo" onActiva={setActiva} onPasillo={setPasilloConsulta} />
-        {!activa && (
-          <>
-            <div className="mt-8 flex flex-col gap-3">
-              <a
-                href="/escena?vista=3d"
-                className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-              >
-                Explorar medicamentos
-              </a>
-            </div>
-          </>
-        )}
-      </main>
+        <main id="contenido" tabIndex={-1} className="mt-8 flex-1">
+          <ConsultaGuiada modo="informativo" onActiva={setActiva} onPasillo={setPasilloConsulta} />
+          {!activa && (
+            <>
+              <div className="mt-8 flex flex-col gap-3">
+                <a
+                  href="/escena?vista=3d"
+                  className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+                >
+                  Explorar medicamentos
+                </a>
+              </div>
+            </>
+          )}
+        </main>
 
-      <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">
-        <p>{AVISO_LEGAL}</p>
-        <EnlaceInformacion />
-        <div className="mt-3">
-          <EstadoServidor />
-        </div>
-      </footer>
+        <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">
+          <p>{AVISO_LEGAL}</p>
+          <EnlaceInformacion />
+          <div className="mt-3">
+            <EstadoServidor />
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
