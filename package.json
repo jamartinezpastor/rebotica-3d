@@ -9,6 +9,7 @@
   },
   "scripts": {
     "cobertura": "pnpm --filter @rebotica/api cobertura",
+    "revision:clinica": "pnpm --filter @rebotica/api revision:clinica",
     "dev": "pnpm --parallel --filter @rebotica/api --filter @rebotica/web dev",
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",

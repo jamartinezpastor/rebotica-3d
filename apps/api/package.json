@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "cobertura": "tsx scripts/cobertura.ts",
+    "revision:clinica": "tsx scripts/revision-clinica.ts",
     "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
     "build": "tsup",
     "start": "node --env-file-if-exists=../../.env dist/server.js",

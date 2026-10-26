@@ -370,6 +370,10 @@ pendiente de validación farmacéutica» en sus fichas, sin calculadora. Con Pos
 opcionalmente al arrancar mediante `REGLAS_DOSIS_DIR` (en Docker, `/app/reglas-dosis`), después
 de sincronizar el catálogo. Nunca sobrescriben versiones existentes. F6-01 sigue pendiente.
 
+Para preparar esa revisión, `pnpm revision:clinica` genera un inventario local con versiones,
+fuentes, huellas de archivos y tareas pendientes, sin red, BD ni carga de `.env`. No firma
+ni publica contenido. Expediente y procedimiento en [docs/REVISION_CLINICA.md](docs/REVISION_CLINICA.md).
+
 ## API de datos
 
 F4-02 incorpora `POST /api/interpretar`: filtro local de alarmas prioritario, clasificación
@@ -498,6 +502,8 @@ Producción: https://rebotica.martinezpastor.dev
 ## Documentación
 
 - Próximos pasos y criterios de cierre: [HOJA_RUTA.md](HOJA_RUTA.md).
+- Preparación de la revisión farmacéutica: [docs/REVISION_CLINICA.md](docs/REVISION_CLINICA.md).
+- Guion y plantillas del piloto móvil: [docs/USABILIDAD_MOVIL.md](docs/USABILIDAD_MOVIL.md).
 - Plan del proyecto: https://claude.ai/code/artifact/8a917b01-db4d-45a1-a901-83b044842fd7
 - Reglas para agentes de código: [CLAUDE.md](CLAUDE.md)
 - Datos: [API REST de CIMA (AEMPS)](https://sede.aemps.gob.es/docs/CIMA-REST-API_1_19.pdf)
