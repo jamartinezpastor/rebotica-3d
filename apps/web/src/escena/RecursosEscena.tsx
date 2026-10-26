@@ -6,9 +6,13 @@ export function RecursosEscena({ children }: { children: ReactNode }) {
   useEffect(() => cache.iniciar(), [cache]);
   return <ContextoRecursos value={cache}>{children}</ContextoRecursos>;
 }
-export function useRecurso<T extends RecursoLiberable>(clave: string, crear: () => T): T {
+export function useCacheRecursos(): CacheRecursos {
   const cache = useContext(ContextoRecursos);
   if (!cache) throw new Error('Los recursos gráficos requieren RecursosEscena');
+  return cache;
+}
+export function useRecurso<T extends RecursoLiberable>(clave: string, crear: () => T): T {
+  const cache = useCacheRecursos();
   const recurso = useMemo(() => cache.obtener(clave, crear), [cache, clave, crear]);
   useEffect(() => {
     cache.retener(clave);

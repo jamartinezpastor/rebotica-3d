@@ -26,7 +26,6 @@ import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
-import { paginaCatalogo, PRODUCTOS_POR_PAGINA } from './escena/paginaCatalogo';
 import { CargaVisual } from './escena/CargaVisual';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
@@ -79,7 +78,7 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
       {e
         ? `${e.fps.toFixed(0)} fps · p95 ${e.p95Ms.toFixed(0)} ms · máx ${e.maxMs.toFixed(0)} ms`
         : 'sin datos (mueve la cámara)'}
-      {` · ${cajas} productos en página`}
+      {` · ${cajas} productos en el recorrido`}
       {e?.recursos &&
         ` · ${e.recursos.geometrias} geometrías · ${e.recursos.texturas} texturas · ${e.recursos.llamadas} dibujos`}
     </p>
@@ -96,8 +95,6 @@ function VistaEscena({
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const pasillo = precargado?.id ?? params.get('pasillo');
   const demo = !precargado && !pasillo && params.get('demo') === '1';
-  const general = !precargado && !pasillo && !demo;
-  const [pagina, setPagina] = useState(0);
   const cajasDemo = Math.min(Math.max(Number(params.get('cajas')) || 36, 1), 200);
   const mostrarVitrinaDemo = params.get('vitrina') === '1';
   const midiendo = params.get('fps') === '1';
@@ -159,11 +156,10 @@ function VistaEscena({
     () => (!demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : []),
     [demo, remoto, baldasDemoMemo],
   );
-  const baldasAgrupadas = useMemo(() => agruparBaldas(fuente, agrupacion), [fuente, agrupacion]);
-  const destinos = useMemo(() => destinosGrupos(baldasAgrupadas), [baldasAgrupadas]);
+  const baldas = useMemo(() => agruparBaldas(fuente, agrupacion), [fuente, agrupacion]);
+  const destinos = useMemo(() => destinosGrupos(baldas), [baldas]);
 
   const reiniciarRecorrido = () => {
-    setPagina(0);
     setRegistroInicial(null);
     mirada.current = null;
     listaGuardada.current = null;
@@ -178,15 +174,8 @@ function VistaEscena({
   }, [revision, vista]);
 
   let titulo = 'Pasillo de demostración';
-  const totalCajas = baldasAgrupadas.reduce((n, b) => n + b.productos.length, 0);
-  const paginas = Math.max(1, Math.ceil(totalCajas / PRODUCTOS_POR_PAGINA));
-  const paginaActual = Math.min(pagina, paginas - 1);
-  // En 3D también se acotan las consultas grandes; la lista por dolencia conserva todo.
-  const paginado = !demo && paginas > 1 && (general || vista === '3d');
-  const baldas = useMemo(
-    () => (paginado ? paginaCatalogo(baldasAgrupadas, paginaActual) : baldasAgrupadas),
-    [paginado, baldasAgrupadas, paginaActual],
-  );
+  // Todos los resultados comparten recorrido; Pasillo monta solo las estanterías cercanas.
+  const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const cambiarVista = (siguiente: VistaElegida) => {
     if (vista === 'lista') {
       const registro =
@@ -199,8 +188,6 @@ function VistaEscena({
       listaGuardada.current = { registro, scrollY: window.scrollY };
       mirada.current = registro;
       setRegistroInicial(registro);
-      const i = indiceDeRegistro(baldasAgrupadas, registro);
-      if (i >= 0) setPagina(Math.floor(i / PRODUCTOS_POR_PAGINA));
       if (window.scrollY !== 0) window.scrollTo({ top: 0, behavior: 'instant' });
     } else {
       const registro = mirada.current ?? baldas[0]?.productos[0]?.nregistro ?? null;
@@ -212,19 +199,9 @@ function VistaEscena({
     guardarPreferencia(siguiente);
     setLento(false);
   };
-  const cambiarPagina = (siguiente: number) => {
-    setPagina(siguiente);
-    mirada.current = null;
-    listaGuardada.current = null;
-    setRegistroInicial(null);
-    setRetorno({
-      registro: paginaCatalogo(baldasAgrupadas, siguiente)[0]?.productos[0]?.nregistro ?? null,
-    });
-  };
   const irAGrupo = (registro: string) => {
-    const i = indiceDeRegistro(baldasAgrupadas, registro);
+    const i = indiceDeRegistro(baldas, registro);
     if (i < 0) return;
-    setPagina(Math.floor(i / PRODUCTOS_POR_PAGINA));
     setRegistroInicial(registro);
     mirada.current = registro;
     listaGuardada.current = null;
@@ -291,7 +268,7 @@ function VistaEscena({
       ) : vista === '3d' ? (
         <Suspense fallback={<CargaVisual texto="Preparando la estantería…" />}>
           <Escena
-            key={`${paginaActual}-${agrupacion}-${revision}`}
+            key={`${agrupacion}-${revision}`}
             baldas={baldas}
             seleccionada={seleccion.producto?.nregistro ?? null}
             onSeleccionar={seleccion.seleccionar}
@@ -310,7 +287,6 @@ function VistaEscena({
             onSeleccionar={seleccion.seleccionar}
             conHerramientas
             retorno={retorno}
-            pagina={paginaActual}
           />
         </div>
       )}
@@ -349,7 +325,7 @@ function VistaEscena({
         >
           {comparados.length > 0 && (
             <div
-              className={`barra-comparacion pointer-events-auto ${vista === 'lista' ? `fixed inset-x-3 z-10 mx-auto max-w-xl ${paginado ? 'bottom-20' : 'bottom-3'}` : ''}`}
+              className={`barra-comparacion pointer-events-auto ${vista === 'lista' ? 'fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl' : ''}`}
             >
               <BarraComparacion
                 productos={comparados}
@@ -363,33 +339,6 @@ function VistaEscena({
                 }}
               />
             </div>
-          )}
-          {paginado && (
-            <nav
-              aria-label="Páginas del catálogo"
-              className={`paginacion-catalogo pointer-events-auto flex items-center justify-between gap-2 rounded-xl bg-white p-2 shadow ${vista === 'lista' ? 'fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl' : ''}`}
-            >
-              <button
-                type="button"
-                disabled={paginaActual === 0}
-                onClick={() => cambiarPagina(paginaActual - 1)}
-                className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
-              >
-                Anterior
-              </button>
-              <p role="status" className="text-center text-sm">
-                {paginaActual * PRODUCTOS_POR_PAGINA + 1}–
-                {Math.min((paginaActual + 1) * PRODUCTOS_POR_PAGINA, totalCajas)} de {totalCajas}
-              </p>
-              <button
-                type="button"
-                disabled={paginaActual === paginas - 1}
-                onClick={() => cambiarPagina(paginaActual + 1)}
-                className="min-h-11 rounded-lg px-3 font-semibold text-cruz disabled:opacity-40"
-              >
-                Siguiente
-              </button>
-            </nav>
           )}
           {borrador && (
             <p

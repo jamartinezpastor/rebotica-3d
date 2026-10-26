@@ -1,7 +1,13 @@
 import { useThree } from '@react-three/fiber';
 import type { FormaCaja } from '@rebotica/shared';
 import { useEffect, useId } from 'react';
-import { CanvasTexture, LinearFilter, MeshStandardMaterial, SRGBColorSpace } from 'three';
+import {
+  CanvasTexture,
+  LinearFilter,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  type WebGLRenderer,
+} from 'three';
 import {
   dibujarCara,
   dibujarEnvolvente,
@@ -9,7 +15,8 @@ import {
   type Calidad,
   type DatosEnvase,
 } from './arteEnvase';
-import { crearGeometriaCaja, medidasCara } from './geometriaCaja';
+import { crearGeometriaCaja, medidasCara, ranurasCaja } from './geometriaCaja';
+import type { CacheRecursos } from './cacheRecursos';
 import { UMBRAL_TOQUE } from './seleccion';
 import { marcarMedicamento } from './cursorMedicamento';
 import { useRecurso } from './RecursosEscena';
@@ -52,11 +59,38 @@ function construirMateriales(
   );
   return {
     materiales,
+    texturas,
     liberar() {
       materiales.forEach((m) => m.dispose());
       texturas.forEach((t) => t.dispose());
     },
   };
+}
+
+export function claveEnvase(forma: FormaCaja, datos: DatosEnvase, calidad: Calidad): string {
+  return `envase:${forma}:${calidad}:${JSON.stringify(datos)}`;
+}
+
+/** Reserva compartida: el montaje posterior reutiliza también las texturas ya subidas a GPU. */
+export function precargarEnvase(
+  cache: CacheRecursos,
+  gl: WebGLRenderer,
+  forma: FormaCaja,
+  datos: DatosEnvase,
+  calidad: Calidad,
+): () => void {
+  const clave = claveEnvase(forma, datos, calidad);
+  const caja = cache.obtener(clave, () =>
+    construirMateriales(forma, ranurasCaja(forma), datos, calidad),
+  );
+  cache.retener(clave);
+  try {
+    caja.texturas.forEach((t) => gl.initTexture(t));
+  } catch (error) {
+    cache.soltar(clave);
+    throw error;
+  }
+  return () => cache.soltar(clave);
 }
 
 export interface CajaProps {
@@ -84,13 +118,13 @@ export function Caja({ forma, datos, calidad = 'estanteria', posicion, onSelecci
     [lienzo, idCursor, seleccionable],
   );
   // Los datos cambian de identidad en cada render del padre: se comparan por valor.
-  const clave = JSON.stringify(datos);
+  const clave = claveEnvase(forma, datos, calidad);
 
   const formaCompartida = useRecurso(`geometria:${forma}`, () => {
     const valor = crearGeometriaCaja(forma);
     return { ...valor, liberar: () => valor.geometria.dispose() };
   });
-  const caja = useRecurso(`envase:${forma}:${calidad}:${clave}`, () =>
+  const caja = useRecurso(clave, () =>
     construirMateriales(forma, formaCompartida.ranuras, datos, calidad),
   );
 

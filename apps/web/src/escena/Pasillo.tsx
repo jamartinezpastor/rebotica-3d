@@ -30,6 +30,7 @@ import {
 } from './seleccion';
 import { Sombra } from './Sombra';
 import { ventanaEstanterias } from './ventanaEscena';
+import { usePrecargaEstanterias } from './usePrecargaEstanterias';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
 export interface BaldaEscena {
@@ -206,6 +207,8 @@ export function Pasillo({
     setPrevia(seleccionada);
     if (seleccionada) setMostrada(seleccionada);
   }
+
+  usePrecargaEstanterias(modelo, centro, ligera, mostrada !== null);
 
   const indice = useMemo(() => {
     const mapa = new Map<string, { i: number; j: number }>();

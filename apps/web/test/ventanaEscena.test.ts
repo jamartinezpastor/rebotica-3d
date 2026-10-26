@@ -1,12 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { ventanaEstanterias } from '../src/escena/ventanaEscena';
 import { modeloPasillo, datosRiel } from '../src/escena/Pasillo';
-import { baldasDemo, vitrinaDemo } from '../src/escena/demo';
+import { baldasDemo, productosDemo, vitrinaDemo } from '../src/escena/demo';
 import { geometriaEstanteria } from '../src/escena/geometria';
 import { agruparBaldas } from '../src/escena/agrupacion';
 import { destinosGrupos } from '../src/escena/navegacionCatalogo';
 import { tamanoCara } from '../src/escena/arteEnvase';
 describe('ventana de estanterías y calidad', () => {
+  it('un resultado de 278 medicamentos mantiene todos los destinos con recursos próximos acotados', () => {
+    const productos = productosDemo(278).map((p, i) => ({ ...p, receta: i >= 30 }));
+    const baldas = agruparBaldas(
+      [
+        { titulo: 'Sin receta', productos: productos.slice(0, 30) },
+        { titulo: 'Con receta', receta: true, productos: productos.slice(30) },
+      ],
+      'original',
+    );
+    const geometria = geometriaEstanteria();
+    const modelo = modeloPasillo(baldas, geometria);
+    const alcanzables = new Set<string>();
+    expect(datosRiel(modelo, geometria).puntos.flat()).toHaveLength(278);
+    for (let centro = 0; centro < modelo.length; centro++) {
+      const ventana = ventanaEstanterias(modelo.length, centro, 2);
+      expect(ventana.length).toBeLessThanOrEqual(5);
+      const cajas = ventana.flatMap((i) => modelo[i]!.cajas);
+      expect(cajas.length).toBeLessThanOrEqual(90);
+      for (const caja of cajas) alcanzables.add(caja.item.nregistro);
+    }
+    expect(alcanzables.size).toBe(278);
+    expect(modelo.every((est) => est.cajas.every((c) => c.item.receta === est.receta))).toBe(true);
+  });
   it('acota los recursos en todas las posiciones sin hacer inaccesible ninguna caja o vitrina', () => {
     const geometria = geometriaEstanteria();
     const modelo = modeloPasillo([...baldasDemo(195), ...vitrinaDemo()], geometria);

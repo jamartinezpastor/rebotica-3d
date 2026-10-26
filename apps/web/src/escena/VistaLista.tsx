@@ -19,9 +19,7 @@ function revelarProducto(elemento: HTMLElement) {
       : 0,
   );
   let abajo = window.innerHeight;
-  for (const barra of document.querySelectorAll<HTMLElement>(
-    '.paginacion-catalogo, .barra-comparacion',
-  )) {
+  for (const barra of document.querySelectorAll<HTMLElement>('.barra-comparacion')) {
     if (getComputedStyle(barra).position === 'fixed')
       abajo = Math.min(abajo, barra.getBoundingClientRect().top);
   }
@@ -40,7 +38,6 @@ export interface VistaListaProps {
   onSeleccionar: (producto: ProductoResumen) => void;
   retorno?: RetornoLista;
   conHerramientas?: boolean;
-  pagina?: number;
 }
 
 /**
@@ -76,7 +73,6 @@ export function VistaLista({
   onSeleccionar,
   retorno,
   conHerramientas = false,
-  pagina = 0,
 }: VistaListaProps) {
   const cabecera = useRef<HTMLHeadingElement>(null);
   const raiz = useRef<HTMLElement>(null);
@@ -120,7 +116,7 @@ export function VistaLista({
         </p>
       )}
 
-      <div key={pagina} className="entrada-resultados">
+      <div className="entrada-resultados">
         {baldas.map((balda, i) => {
           const id = `balda-${i}`;
           return (

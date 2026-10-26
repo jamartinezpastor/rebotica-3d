@@ -69,15 +69,15 @@ function preparar(consulta = false) {
   return { productos, peticiones };
 }
 describe('exploración por grupos y posición conservada', () => {
-  it('salta al inicio de un grupo en otra página y llega al mismo producto en 3D', async () => {
+  it('salta a un grupo lejano y llega al mismo producto en 3D sin paginación', async () => {
     preparar();
     render(<App />);
-    await screen.findByText('1–36 de 80');
+    await screen.findByRole('heading', { name: 'Catálogo de prueba' });
     fireEvent.click(screen.getByText('Grupos', { selector: 'summary' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Ir a grupo' }), {
       target: { value: 'demo-76' },
     });
-    expect(screen.getByText('73–80 de 80')).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Páginas del catálogo' })).toBeNull();
     expect(document.activeElement?.getAttribute('data-registro')).toBe('demo-76');
     vi.spyOn(document.activeElement!, 'getBoundingClientRect').mockReturnValue({
       top: 300,
@@ -89,18 +89,15 @@ describe('exploración por grupos y posición conservada', () => {
   it('muestra todos los productos al agrupar, sin buscador ni filtros que oculten resultados', async () => {
     const { peticiones } = preparar();
     const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
+    await screen.findByRole('heading', { name: 'Catálogo de prueba' });
     expect(screen.queryByRole('searchbox')).toBeNull();
     expect(screen.queryByText('Filtros')).toBeNull();
     fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
       target: { value: 'forma' },
     });
     const registros = new Set<string>();
-    for (let pagina = 0; pagina < 3; pagina++) {
-      for (const el of container.querySelectorAll<HTMLElement>('[data-registro]'))
-        registros.add(el.dataset.registro!);
-      if (pagina < 2) fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    }
+    for (const el of container.querySelectorAll<HTMLElement>('[data-registro]'))
+      registros.add(el.dataset.registro!);
     expect(registros.size).toBe(80);
     expect(registros.has('demo-80')).toBe(true);
     expect(screen.getAllByText(/Requiere receta/).length).toBeGreaterThan(0);
@@ -125,7 +122,7 @@ describe('exploración por grupos y posición conservada', () => {
     } as DOMRect);
     fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
     expect((await screen.findByTestId('escena-prueba')).dataset.inicial).toBe('demo-60');
-    expect(screen.getByText('37–72 de 80')).toBeTruthy();
+    expect(within(screen.getByTestId('escena-prueba')).getAllByRole('button')).toHaveLength(80);
     expect(desplazar).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
     fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
     expect(container.querySelectorAll('[data-registro]')).toHaveLength(80);
@@ -149,7 +146,7 @@ describe('exploración por grupos y posición conservada', () => {
     expect(screen.getByRole('combobox', { name: 'Agrupar por' })).toHaveProperty('value', 'forma');
     expect(container.querySelectorAll('[data-registro]')).toHaveLength(80);
   });
-  it('abrir y cerrar una ficha conserva la página, el foco y el desplazamiento', async () => {
+  it('abrir y cerrar una ficha conserva el foco y el desplazamiento entre todos los resultados', async () => {
     preparar();
     let scroll = 500;
     vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scroll);
@@ -157,8 +154,7 @@ describe('exploración por grupos y posición conservada', () => {
       if (typeof opciones === 'object') scroll = opciones.top ?? 0;
     });
     const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await screen.findByRole('heading', { name: 'Catálogo de prueba' });
     scroll = 800;
     const objetivo = container.querySelector<HTMLButtonElement>('[data-registro="demo-60"]')!;
     fireEvent.click(objetivo);
@@ -167,6 +163,6 @@ describe('exploración por grupos y posición conservada', () => {
     act(() => window.dispatchEvent(new PopStateEvent('popstate')));
     expect(document.activeElement).toBe(objetivo);
     expect(scroll).toBe(800);
-    expect(screen.getByText('37–72 de 80')).toBeTruthy();
+    expect(container.querySelectorAll('[data-registro]')).toHaveLength(80);
   });
 });

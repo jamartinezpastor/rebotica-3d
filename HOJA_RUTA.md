@@ -4,6 +4,9 @@ Actualizada el 26/10/2026. Complementa el plan original y sus cambios de alcance
 principal es un catálogo informativo por dolencia. Los medicamentos con receta conservan su
 zona diferenciada y su ficha completa. Agrupar no elimina productos.
 
+Cambio del 26/10/2026: todos los resultados se muestran sin paginación en lista y en un pasillo
+3D continuo. La carga de estanterías cercanas acota los recursos, sin recortar el resultado.
+
 Cada paso se implementa y verifica por separado, con `pnpm check` antes de cerrarlo. Las
 validaciones manuales se registran como pendientes hasta realizarlas.
 
@@ -271,3 +274,39 @@ evaluarse expresamente; la existencia de los documentos no completa las validaci
   40 productos ficticios correctos, sin selección accidental. Capturas en `.local/gestos-movil/`.
   Es emulación en escritorio; no completa la validación física de F5-01/F2-06.
 - Guion de usabilidad y documentación actualizados para organizar resultados solo con grupos.
+
+## Catálogo sin paginación — 26/10/2026 (F2-08 / F5-02)
+
+- Retirada la división en tramos de 36 productos y sus controles Anterior/Siguiente, tanto del
+  catálogo general como de las consultas por dolencia, en lista y 3D. Todos los productos forman
+  un único recorrido con salto a grupo, conservación de identidad y regreso desde la ficha.
+- Se mantiene la ventana de estanterías cercanas: el modelo y el raíl conservan todos los destinos
+  y solo se montan los próximos. Una prueba con 278 productos verifica que ninguno desaparece,
+  que las estructuras no mezclan receta y que la ventana normal sin ficha no supera 90 cajas.
+- `pnpm check` correcto: 719 tests, formato, lint, tipos y build. Se retira el test de paginación
+  y se incorpora la regresión de recursos con 278 productos. Build final: 115,63 kB gzip iniciales.
+- `pnpm validar:ui`: 16 revisiones sin incidencias automáticas, con comprobación de colección
+  completa y ausencia de paginación. Chrome a 390×844 con 278 productos ficticios: agrupación,
+  salto a receta, selección del último producto desde el raíl y retorno al mismo en lista correctos.
+  Informe y capturas en `.local/catalogo-continuo/`; no sustituye mediciones en móvil físico.
+
+## Precarga progresiva del pasillo — 26/10/2026 (F2-08)
+
+- Preparación de envases por proximidad: uno por turno libre, subiendo sus texturas a GPU antes
+  de llegar. Se reutilizan los mismos recursos al montar la caja y al volver a una zona visitada.
+  La geometría y los destinos de todas las estanterías ya forman parte del modelo completo.
+- La cola cede al arrastre, movimiento de cámara, rueda, teclado, ficha abierta y pestaña oculta.
+  Los cambios de destino repriorizan las estanterías próximas; al cambiar de catálogo/calidad
+  o salir se cancelan los turnos y se sueltan las reservas compartidas.
+- Se prepara todo el recorrido cuando cabe en la reserva estimada; en catálogos grandes se
+  conserva la zona prioritaria dentro del presupuesto. Estimación de lienzo RGBA más GPU:
+  48 MiB hasta 2 GB declarados, 192 MiB hasta 4 GB o sin dato, 512 MiB por encima.
+  El presupuesto es de precarga, no una medición o límite total de memoria del navegador.
+- Se mantiene el dibujo de las estructuras cercanas y el acceso a todos los medicamentos sin
+  páginas. El contador de texturas GPU incluye también las reservas, aunque sus cajas estén lejos.
+- `pnpm check` correcto: 729 tests; lint, tipos, pruebas de recursos y build final comprobados.
+  JavaScript inicial: 115,63 kB gzip. Diez nuevos casos cubren orden, presupuesto, cesión de
+  turnos, cancelación, reutilización y liberación ante errores de GPU.
+- Chrome instrumentado con 80 productos ficticios: preparación en segundo plano, pausa táctil,
+  salto al final con reutilización y liberación al volver a lista correctos. Evidencia en
+  `.local/precarga-gpu/`; no acredita fps o memoria real de un teléfono.

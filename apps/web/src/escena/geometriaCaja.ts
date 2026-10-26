@@ -14,6 +14,12 @@ export interface GeometriaCaja {
 
 const LADOS_CILINDRO = 28;
 
+export function ranurasCaja(forma: FormaCaja): RanuraCaja[] {
+  return forma === 'cilindro'
+    ? ['lateral', 'superior', 'inferior']
+    : ['derecha', 'izquierda', 'superior', 'inferior', 'frente', 'trasera'];
+}
+
 /**
  * Geometría de la caja según la forma farmacéutica. La cara «frente» mira al pasillo (+z). El
  * cilindro gira media vuelta para que el centro de su lateral (donde va el frente) quede de cara.
@@ -24,14 +30,14 @@ export function crearGeometriaCaja(forma: FormaCaja): GeometriaCaja {
   if (forma === 'cilindro') {
     const geometria = new CylinderGeometry(d.ancho / 2, d.ancho / 2, d.alto, LADOS_CILINDRO, 1);
     geometria.rotateY(Math.PI);
-    return { geometria, ranuras: ['lateral', 'superior', 'inferior'] };
+    return { geometria, ranuras: ranurasCaja(forma) };
   }
 
   const geometria = new BoxGeometry(d.ancho, d.alto, d.fondo);
   // Orden de BoxGeometry: +x, −x, +y, −y, +z, −z.
   return {
     geometria,
-    ranuras: ['derecha', 'izquierda', 'superior', 'inferior', 'frente', 'trasera'],
+    ranuras: ranurasCaja(forma),
   };
 }
 

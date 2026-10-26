@@ -206,6 +206,10 @@ try {
     await page.setViewport({ width, height });
     await page.goto(`${origen}/escena?vista=lista`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('[data-registro]');
+    if ((await page.$$('[data-registro]')).length !== productosComparacion.length)
+      informe.errores.push(`La lista no contiene todos los resultados (${width}x${height}).`);
+    if (await page.$('nav[aria-label="Páginas del catálogo"]'))
+      informe.errores.push('El catálogo no debe tener paginación.');
     await revisar(page, `lista-${width}x${height}`);
     await page.keyboard.press('Tab');
     const registroFoco = await page.evaluate(() =>
@@ -253,10 +257,6 @@ try {
   await page.goto(`${origen}/escena?vista=lista`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('[data-registro]');
   for (const registro of ['demo-1', 'demo-76']) {
-    if (registro === 'demo-76') {
-      await page.click('nav button:last-child');
-      await page.click('nav button:last-child');
-    }
     await page.click(`[data-registro="${registro}"]`);
     await page.waitForSelector('section[role="dialog"] a[href^="https://cima.aemps.es"]');
     if (registro === 'demo-1') {

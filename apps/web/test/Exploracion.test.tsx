@@ -34,79 +34,54 @@ afterEach(() => {
 });
 
 describe('exploración agrupada', () => {
-  it('acota el 3D de consultas grandes y conserva todas las coincidencias en lista', async () => {
-    window.history.replaceState(null, '', '/escena?pasillo=prueba&vista=3d');
-    const productos = productosDemo(80);
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        Response.json({
-          id: 'prueba',
-          version: 1,
-          titulo: 'Dolencia de prueba',
-          estado: 'informativo',
-          baldas: [
-            { titulo: 'Grupo de prueba', principioActivo: 'Activo de prueba', orden: 1, productos },
-          ],
-          vitrina: [],
-          ocultasPorPerfil: 0,
-          consejos: [],
-          parafarmacia: [],
-        }),
-      ),
-    );
-    const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
-    expect(await screen.findAllByTestId('caja-3d')).toHaveLength(36);
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(screen.getByText('37–72 de 80')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
-    expect(container.querySelectorAll('button[data-cursor="medicamento"]')).toHaveLength(80);
-    expect(screen.queryByRole('navigation', { name: 'Páginas del catálogo' })).toBeNull();
-  });
-
-  it('el catálogo general limita las cajas simultáneas y permite recorrer todos los registros', async () => {
-    window.history.replaceState(null, '', '/escena?vista=3d');
-    const productos = productosDemo(80);
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        Response.json({
-          id: 'catalogo',
-          version: 1,
-          titulo: 'Catálogo de medicamentos',
-          estado: 'informativo',
-          baldas: [
-            { titulo: 'Grupo de prueba', principioActivo: 'Activo de prueba', orden: 1, productos },
-          ],
-          vitrina: [],
-          ocultasPorPerfil: 0,
-          consejos: [],
-          parafarmacia: [],
-        }),
-      ),
-    );
-    render(<App />);
-    await screen.findByRole('button', { name: 'Siguiente' });
-    const escena = await screen.findByTestId('escena-3d');
-    expect(within(escena).getAllByTestId('caja-3d')).toHaveLength(36);
-    expect(screen.getByText('1–36 de 80')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(screen.getByText('37–72 de 80')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(screen.getByText('73–80 de 80')).toBeTruthy();
-    expect(screen.getAllByTestId('caja-3d')).toHaveLength(8);
-    expect((screen.getByRole('button', { name: 'Siguiente' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
-    expect(screen.getAllByRole('button', { name: /PRODUCTO/ })).toHaveLength(8);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
-      target: { value: 'laboratorio' },
-    });
-    expect(screen.getByText('1–36 de 80')).toBeTruthy();
-  });
-
+  it.each([
+    { url: '/escena?pasillo=prueba&vista=3d', titulo: 'Dolencia de prueba' },
+    { url: '/escena?vista=3d', titulo: 'Catálogo de medicamentos' },
+  ])(
+    '$titulo muestra los 278 resultados en un solo recorrido 3D y lista',
+    async ({ url, titulo }) => {
+      window.history.replaceState(null, '', url);
+      const productos = productosDemo(278);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          Response.json({
+            id: 'prueba',
+            version: 1,
+            titulo,
+            estado: 'informativo',
+            baldas: [
+              {
+                titulo: 'Grupo de prueba',
+                principioActivo: 'Activo de prueba',
+                orden: 1,
+                productos,
+              },
+            ],
+            vitrina: [],
+            ocultasPorPerfil: 0,
+            consejos: [],
+            parafarmacia: [],
+          }),
+        ),
+      );
+      const { container } = render(<App />);
+      const escena = await screen.findByTestId('escena-3d');
+      expect(within(escena).getAllByTestId('caja-3d')).toHaveLength(278);
+      expect(screen.queryByRole('navigation', { name: 'Páginas del catálogo' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
+      expect(container.querySelectorAll('button[data-registro]')).toHaveLength(278);
+      expect(screen.queryByRole('button', { name: 'Siguiente' })).toBeNull();
+      fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
+        target: { value: 'laboratorio' },
+      });
+      expect(container.querySelectorAll('button[data-registro]')).toHaveLength(278);
+      fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
+      expect(within(await screen.findByTestId('escena-3d')).getAllByTestId('caja-3d')).toHaveLength(
+        278,
+      );
+    },
+  );
   it('la entrada pública y su URL anterior cargan el catálogo de API y no la demo', async () => {
     window.history.replaceState(null, '', '/escena?vitrina=1&vista=lista');
     const producto = {

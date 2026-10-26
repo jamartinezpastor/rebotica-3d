@@ -24,7 +24,6 @@ html {
 /* Reflow y paisaje: deja espacio para leer y enfocar el contenido con poca altura. */
 @media (max-height: 500px) {
   [data-vista-catalogo='lista'] [data-herramientas-catalogo],
-  [data-vista-catalogo='lista'] .paginacion-catalogo,
   [data-vista-catalogo='lista'] .barra-comparacion {
     position: relative;
     inset: auto;

@@ -70,10 +70,10 @@ async function volver() {
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 }
 describe('selección y comparación desde el catálogo', () => {
-  it('elige dos fichas entre páginas y vistas, mantiene receta y posición, y permite quitar y sustituir sin seleccionar un tercero', async () => {
+  it('elige dos fichas del resultado completo entre vistas, mantiene receta y posición, y permite quitar y sustituir sin seleccionar un tercero', async () => {
     const peticiones = preparar();
     const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
+    await screen.findByRole('heading', { name: catalogoComparacion.titulo });
     fireEvent.click(container.querySelector<HTMLButtonElement>('[data-registro="demo-1"]')!);
     await screen.findByText('Indicación oficial ficticia de demo-1.');
     fireEvent.click(screen.getByRole('button', { name: 'Añadir a comparación' }));
@@ -85,8 +85,6 @@ describe('selección y comparación desde el catálogo', () => {
       'disabled',
       true,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     fireEvent.click(container.querySelector<HTMLButtonElement>('[data-registro="demo-76"]')!);
     await screen.findByText('Indicación oficial ficticia de demo-76.');
     fireEvent.click(screen.getByRole('button', { name: 'Añadir a comparación' }));
@@ -120,7 +118,7 @@ describe('selección y comparación desde el catálogo', () => {
     fireEvent.click(within(modal).getByRole('button', { name: 'Volver al catálogo' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.activeElement).toBe(boton);
-    expect(screen.getByText('73–80 de 80')).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Páginas del catálogo' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Agrupar por' }), {
       target: { value: 'forma' },
@@ -154,11 +152,11 @@ describe('selección y comparación desde el catálogo', () => {
         ([url]) => url === '/api/catalogo' || String(url).startsWith('/api/productos/'),
       ),
     ).toBe(true);
-  });
+  }, 15000); // El recorrido completo ahora mantiene los 80 productos en el DOM de jsdom.
   it('borra la selección de comparación al abandonar la página, incluida la restauración de bfcache', async () => {
     preparar();
     const { container } = render(<App />);
-    await screen.findByText('1–36 de 80');
+    await screen.findByRole('heading', { name: catalogoComparacion.titulo });
     fireEvent.click(container.querySelector<HTMLButtonElement>('[data-registro="demo-1"]')!);
     await screen.findByText('Indicación oficial ficticia de demo-1.');
     fireEvent.click(screen.getByRole('button', { name: 'Añadir a comparación' }));

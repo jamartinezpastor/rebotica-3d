@@ -204,10 +204,10 @@ para pararlo.
 
 La portada y `/escena` abren el catálogo real de `/api/catalogo`: todos los medicamentos
 comercializados de la copia local, separados entre sin receta y con receta, con acceso a sus fichas.
-La exploración general se divide en páginas de 36 productos, tanto en 3D como en lista, para no
-cargar miles de cajas simultáneamente. Los botones Anterior y Siguiente permiten recorrerlos todos;
-agrupar vuelve a la primera página. Las consultas por dolencia conservan su colección completa
-en lista; en 3D también se recorren en páginas de 36 cajas para acotar el trabajo de la GPU.
+El catálogo general y las consultas por dolencia muestran todos sus resultados sin paginación,
+tanto en lista como en un único pasillo 3D continuo. El selector y el salto de grupos permiten
+organizar y alcanzar cualquier medicamento. Para acotar la carga de la GPU se montan solo las
+estanterías próximas a la cámara, conservando todos los destinos y la separación de receta.
 Si la API no está disponible se muestra un error; no se sustituyen por datos ficticios.
 
 Para las pruebas visuales, abre `http://localhost:5173/escena?demo=1`: productos ficticios. Con
@@ -257,7 +257,7 @@ la mano abierta.
 ### Vista lista y rendimiento
 
 - **Comparación (F5-06):** «Añadir a comparación» en una ficha permite elegir hasta dos
-  medicamentos. La barra conserva la selección entre páginas, filtros y vistas; «Comparar»
+  medicamentos. La barra conserva la selección entre grupos y vistas; «Comparar»
   abre sus datos oficiales en columnas en escritorio y por pares en móvil. Incluye textos
   completos disponibles de las secciones 4.1–4.7, enlaces oficiales y fotos ampliables, con
   la condición de receta diferenciada. Faltas de datos y errores se indican por separado.
@@ -265,14 +265,21 @@ la mano abierta.
   en esta vista. La selección vive solo en memoria y se borra al abandonar la página; no se
   escribe en URL ni almacenamiento. Se comprueba que cada ficha corresponde al registro pedido.
 - **Grupos y recursos 3D (F2-08):** «Grupos» abre el salto al inicio de cualquier grupo del
-  resultado, también en otras páginas. El raíl conserva todos los destinos y la GPU solo carga
+  resultado completo. El raíl conserva todos los destinos y la GPU solo carga
   las estanterías próximas; conserva el original de una ficha durante su vuelo de regreso.
   La escena comparte geometrías, materiales y sombra y libera los recursos al dejar de usarlos.
   Equipos de capacidad baja empiezan con texturas ligeras y DPR máximo 1; la lentitud sostenida
   también activa esa reducción. La ficha mantiene su resolución. `?fps=1` incluye las geometrías,
   texturas GPU y llamadas de dibujo para comprobar el coste durante el recorrido.
+- **Precarga progresiva (F2-08):** las texturas de envases se preparan y suben a GPU por proximidad,
+  una por turno libre. Se pausa al tocar, mover la cámara, abrir ficha u ocultar la pestaña.
+  Los recursos existentes se reutilizan durante la precarga y al regresar. Se prepara el recorrido
+  completo si cabe en el presupuesto estimado; en catálogos grandes se prioriza la zona actual.
+  La reserva estima lienzo RGBA y textura GPU: 48 MiB con memoria declarada de hasta 2 GB,
+  192 MiB hasta 4 GB o sin ese dato, y 512 MiB por encima. No es una medición de memoria real
+  ni un límite global del navegador. Las reservas se liberan al salir o cambiar de calidad/catálogo.
 - **Presentación y fotos (F5-05):** nombres y principios activos con jerarquía diferenciada,
-  siluetas durante la carga y transiciones de página que respetan menos movimiento. Las fotos
+  siluetas durante la carga y transiciones que respetan menos movimiento. Las fotos
   de CIMA se amplían desde la ficha, sin alterarlas ni aumentar su detalle; cerrar la foto
   devuelve el foco y mantiene la ficha abierta. Una foto fallida se sustituye por una silueta.
   El modelo 3D generado está identificado y su encuadre deja margen durante todo el giro,
@@ -282,7 +289,7 @@ la mano abierta.
   con salto directo a cada grupo. Por petición del usuario del 26/10/2026 se retiran el campo
   de búsqueda y los filtros adicionales. Se conserva la separación de receta.
 - **Volver al mismo punto:** cerrar una ficha restaura el foco y el desplazamiento. Al alternar
-  lista y 3D, el medicamento visible determina la página y la posición del raíl. La agrupación
+  lista y 3D, el medicamento visible determina la posición del raíl. La agrupación
   elegida en la interfaz y esta posición solo viven en memoria; no se guardan en la URL ni en almacenamiento.
 - **Vista lista:** el mismo pasillo como lista de botones (baldas con sus productos, etiquetas de
   genérico y conducción); elegir un producto abre la misma ficha. El botón «Ver como lista» / «Ver
@@ -460,10 +467,11 @@ búsqueda. Requiere Chrome instalado; si no se detecta automáticamente, indicar
 y guarda los informes como artefactos durante 14 días. Los informes locales quedan en
 `.lighthouseci/`, fuera de Git; no se publican en almacenamiento externo de Lighthouse.
 
-La exploración real 3D monta como máximo 36 productos de la colección por página. La vista lista
-por dolencia conserva todos sus resultados. El contador de fps indica las cajas de la página
-dibujada. La demostración explícita permite otras cantidades para medir en dispositivos; estos
-límites y Lighthouse no certifican por sí solos 60 fps en un móvil.
+La exploración 3D conserva todos los resultados en un recorrido continuo. Solo se montan las
+estanterías próximas: hasta cinco en calidad normal o tres en ligera, más la de una ficha durante
+su regreso si es necesario. El contador de fps indica el total de productos del recorrido;
+los recursos GPU medidos incluyen las texturas reservadas por la precarga. La demostración explícita permite otras
+cantidades para medir; estos límites y Lighthouse no certifican por sí solos 60 fps en un móvil.
 
 Cada respuesta correcta de `POST /api/explorar` incrementa un contador en `consulta_conteo`
 después de enviar la respuesta. Solo guarda `dia` (UTC), `protocolo_id` (dolencia del catálogo) y

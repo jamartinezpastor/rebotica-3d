@@ -134,3 +134,40 @@ Es una emulación de escritorio; no registra fps ni valida el comportamiento en 
 
 `pnpm check` correcto: 719 tests, formato, lint, tipos y build; JavaScript inicial de 116,00 kB gzip.
 Se retiran siete casos del filtrado eliminado y se añaden dos regresiones de dirección vertical.
+
+## Comprobación del recorrido sin páginas — 26/10/2026
+
+Retirada la paginación de lista y 3D. El validador comprueba ahora que todos los productos de
+su catálogo están presentes en lista y que no hay navegación de páginas. Las 16 revisiones pasan.
+
+En Chrome a 390×844, con un catálogo ficticio de 278 productos (30 sin receta y 248 con receta),
+la lista contiene los 278, agrupar conserva el total y el salto a receta coloca el mismo producto
+en 3D. Desde el raíl se abre la ficha del último registro y se regresa a ese registro en lista,
+sin desbordamiento horizontal. Informe y capturas: `.local/catalogo-continuo/`.
+
+La prueba de modelo y ventana de recursos conserva 278 destinos y acota las cajas próximas sin
+ficha abierta a 90 en calidad normal. No es una medición de fps de un dispositivo real.
+`pnpm check` correcto: 719 tests; build final con 115,63 kB gzip iniciales.
+
+## Precarga de envases — 26/10/2026
+
+Las cajas próximas siguen siendo las que se montan y dibujan. En reposo se preparan materiales
+y texturas por proximidad, con reserva compartida y presupuesto; cuando cabe el recorrido completo
+se prepara entero. En un catálogo mayor, la reserva se concentra en la zona de la cámara.
+La calidad de la ficha conserva su ciclo independiente. Presupuestos y límites en el README.
+
+Chrome de escritorio con 80 productos ficticios, viewport 390×844 y eventos táctiles:
+
+- Instrumentación de creación, operaciones de textura, eliminación y pérdida de contexto WebGL.
+  Las operaciones en turnos de reposo pasaron de 30 a 732 mientras la vista permanecía quieta.
+- Durante el gesto el contador de operaciones de fondo quedó en 30. Después retomó la cola.
+- El salto al final produjo cuatro operaciones de textura fuera de los turnos de reposo;
+  los envases preparados se reutilizaron. Son contadores de API, no tiempos ni bytes medidos.
+- Al salir del 3D, los handles vivos registrados pasaron de 441 a cero, incluida la liberación
+  del contexto. La lista conservó los 80 productos. No hubo errores de página.
+- Informe y captura en `.local/precarga-gpu/`. Los tests cubren además cancelar turnos,
+  mantener recursos compartidos y soltar la reserva si falla la inicialización GPU.
+
+`pnpm check` correcto: 729 tests; tipos, lint y build final correctos, con 115,63 kB gzip iniciales.
+La memoria de reserva se estima a partir de píxeles RGBA de lienzo y GPU; no es una medición real
+de memoria ni de fps en un móvil. Las pruebas físicas de F5-01/F2-06 siguen pendientes.
