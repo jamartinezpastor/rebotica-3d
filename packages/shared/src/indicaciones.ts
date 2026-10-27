@@ -49,3 +49,39 @@ export function consultasDeIndicacion(texto: string): { id: IdConsulta; titulo: 
     TERMINOS_INDICACIONES[c.id].some((t) => coincide(contenido, t)),
   ).map((c) => ({ id: c.id, titulo: c.etiqueta }));
 }
+
+const TERMINOS_GENERICOS = new Set([
+  'dolor',
+  'molestia',
+  'molestias',
+  'sintoma',
+  'sintomas',
+  'tratamiento',
+  'prevencion',
+  'enfermedad',
+  'enfermedades',
+  'infeccion',
+  'infecciones',
+  'paciente',
+  'pacientes',
+  'adulto',
+  'adultos',
+  'nino',
+  'ninos',
+  'medicamento',
+  'medicamentos',
+  'salud',
+]);
+
+/** Búsqueda literal acotada: no regex/SQL del modelo, ni términos genéricos como «tratamiento». */
+export function prepararBusquedaIndicaciones(
+  terminos: readonly string[],
+): (texto: string) => boolean {
+  const unicos = [...new Set(terminos.map(normalizar))];
+  if (!unicos.length || unicos.some((t) => t.length < 3 || TERMINOS_GENERICOS.has(t)))
+    throw new Error('Términos de búsqueda insuficientes');
+  return (texto) => {
+    const contenido = ` ${normalizar(texto)} `;
+    return unicos.some((t) => contenido.includes(` ${t} `));
+  };
+}

@@ -31,7 +31,8 @@ ni base de datos. Dentro se puede cambiar a la vista lista. El dictado está ret
 Cambio de alcance del 20/10/2026: un clic en un chip abre el catálogo relacionado. Al escribir,
 «Realizar consulta» valida hasta 2000 caracteres y envía el texto al filtro de alarmas y Gemini.
 Si se identifica una dolencia, se abre directamente el catálogo;
-si hay dudas se pide elegir una alternativa. Las alarmas sustituyen los productos por derivación.
+si hay dudas se pide elegir una alternativa o precisar el motivo en la misma pantalla.
+Las alarmas sustituyen los productos por derivación.
 No hay revisión intermedia ni cuestionario obligatorio en este recorrido informativo.
 
 `POST /api/explorar` recibe únicamente el id cerrado del tema y busca términos en la sección
@@ -40,6 +41,13 @@ por su nombre o por un protocolo en borrador. Solo incluye medicamentos comercia
 alfabéticamente por principio activo y separa los de receta en la vitrina. Una coincidencia
 documental no determina si un medicamento está indicado para una persona concreta. Este límite
 se explica en la información de fuentes; los resultados vacíos no inventan productos.
+
+Desde el 27/10/2026, el texto libre usa `{ texto, modo: "catalogo" }` en `/api/interpretar`.
+Para motivos fuera de los 14 chips, Gemini devuelve términos específicos de indicación y el
+servidor busca todas sus coincidencias en 4.1, devolviendo directamente el pasillo informativo.
+No se amplía el enum de protocolos clínicos ni se permite al cliente proporcionar los términos.
+La etiqueta libre del modelo no se publica: el resultado se titula «Medicamentos relacionados
+con la consulta». No se registran términos o temas nuevos en la analítica de protocolos.
 
 El estado `informativo` se distingue de un protocolo `validado` o un `borrador`: no autoriza
 tratamientos. Al pulsar un producto se conserva la ficha completa, fotos, caja 3D, pestañas Uso,
@@ -392,7 +400,8 @@ ni publica contenido. Expediente y procedimiento en [docs/REVISION_CLINICA.md](d
 ## API de datos
 
 F4-02 incorpora `POST /api/interpretar`: filtro local de alarmas prioritario, clasificación
-cerrada opcional con Gemini y validación de esquema. No decide tratamientos. La portada envía
+cerrada para triaje y búsqueda informativa abierta opcional con Gemini, con validación de esquema.
+No decide tratamientos. La portada envía
 el texto solo al pulsar Realizar consulta y navega al catálogo informativo. Configuración,
 privacidad, pruebas y resultado de la evaluación real en [Interpretación](apps/api/INTERPRETACION.md).
 F4-03 conserva las tarjetas y el [motor de triaje y derivación](apps/api/TRIAJE.md) para un futuro

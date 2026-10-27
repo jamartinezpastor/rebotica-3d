@@ -4,6 +4,7 @@ import {
   clasificadorDesdeEntorno,
   crearClasificadorGemini,
   ESQUEMA_CLASIFICACION,
+  ESQUEMA_CATALOGO,
   MODELO_INTERPRETACION,
 } from '../src/interpretacion/gemini';
 
@@ -45,6 +46,29 @@ function crear(respuesta = new Response(JSON.stringify(mensaje()))) {
 }
 
 describe('cliente Gemini con salida estructurada (transporte simulado)', () => {
+  it('en modo catálogo admite otros temas y solo solicita términos documentales, sin medicamentos', async () => {
+    const abierto = {
+      ...resultado,
+      protocoloId: null,
+      busqueda: { tema: 'Llagas en la boca', terminos: ['aftas'] },
+    };
+    const { clasificar, fetchImpl } = crear(
+      new Response(JSON.stringify(salida(JSON.stringify(abierto)))),
+    );
+    expect(
+      await clasificar(
+        'me ha salido una llaga en la boca',
+        new AbortController().signal,
+        'catalogo',
+      ),
+    ).toEqual(abierto);
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1]!.body as string);
+    expect(body.generationConfig.responseFormat.text.schema).toEqual(ESQUEMA_CATALOGO);
+    const prompt = body.systemInstruction.parts[0].text;
+    expect(prompt).toContain('La lista NO limita los temas admitidos');
+    expect(prompt).toContain('No incluyas nombres de medicamentos');
+    expect(prompt).not.toContain('Clasifica únicamente en este catálogo cerrado');
+  });
   it('usa generateContent, esquema cerrado y clave solo en cabecera del servidor', async () => {
     const { fetchImpl, clasificar } = crear();
     const texto = 'CANARIO_PRIVADO_FICTICIO';

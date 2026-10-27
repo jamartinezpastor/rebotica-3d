@@ -93,6 +93,50 @@ const enviarTexto = () => {
 };
 
 describe('recorrido informativo simplificado', () => {
+  it('un tema fuera de los chips abre el catálogo devuelto por el servidor y mantiene la ficha completa', async () => {
+    const original = peticiones.getMockImplementation()!;
+    peticiones.mockImplementation(async (url, opciones) =>
+      url === '/api/interpretar'
+        ? Response.json({
+            tipo: 'catalogo',
+            pasillo: { ...pasillo, id: 'consulta-texto', titulo: 'Llagas en la boca' },
+          })
+        : original(url, opciones),
+    );
+    render(<App />);
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'me ha salido una llaga en la boca' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Realizar consulta' }));
+    await screen.findByRole('heading', { name: 'Llagas en la boca' });
+    expect(
+      JSON.parse(
+        peticiones.mock.calls.find(([url]) => url === '/api/interpretar')![1]!.body as string,
+      ),
+    ).toEqual({ texto: 'me ha salido una llaga en la boca', modo: 'catalogo' });
+    expect(
+      peticiones.mock.calls.some(([url]) => /explorar|protocolos|triaje/.test(String(url))),
+    ).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: /PRODUCTO DE DEMOSTRACIÓN 1/ }));
+    await screen.findByText('Indicación ficticia de prueba');
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosis' }));
+    expect(screen.getByText('Posología ficticia de prueba')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Prospecto oficial en CIMA' })).toBeTruthy();
+  });
+  it('una aclaración sin alternativas permite precisar el motivo sin empezar de nuevo', async () => {
+    peticiones.mockImplementation(async (url) =>
+      Response.json(
+        url === '/api/health'
+          ? { status: 'ok', version: 'prueba', time: new Date().toISOString() }
+          : { tipo: 'aclaracion', confianza: 0.3, alternativas: [], datosExtraidos },
+      ),
+    );
+    render(<App />);
+    enviarTexto();
+    await screen.findByRole('heading', { name: '¿Te refieres a…?' });
+    expect(screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa' })).toBeTruthy();
+    expect(screen.getByText(/indica dónde te molesta/)).toBeTruthy();
+  });
   it('una copia completa sin indicaciones permite abrir el catálogo general y no anuncia una descarga', async () => {
     peticiones.mockImplementation(async (url) =>
       url === '/api/health'

@@ -5,6 +5,7 @@ import {
   ErrorTriaje,
   ExplorarRespuesta,
   InterpretarRespuesta,
+  InterpretarCatalogoRespuesta,
   ProtocoloTriajeRespuesta,
   TriajeRespuesta,
   type ConsultaMostrador,
@@ -110,7 +111,12 @@ async function solicitar(url: string, control: AbortController, body?: unknown) 
   });
   if (!r.ok) {
     if (r.status === 409) throw new ErrorConsulta('cambiado');
-    if (url.startsWith('/api/protocolos/') || url === '/api/triaje' || url === '/api/explorar') {
+    if (
+      url.startsWith('/api/protocolos/') ||
+      url === '/api/triaje' ||
+      url === '/api/explorar' ||
+      url === '/api/interpretar'
+    ) {
       const fallo = ErrorTriaje.safeParse(await r.json().catch(() => null));
       if (fallo.success && fallo.data.codigo === 'CATALOGO_NO_CONFIGURADO')
         throw new ErrorConsulta('catalogo');
@@ -233,8 +239,13 @@ export function ConsultaGuiada({
         await cargar(consulta.protocoloId, c);
         return;
       }
-      const r = InterpretarRespuesta.parse(
-        await solicitar('/api/interpretar', c, { texto: consulta.texto }),
+      const r = (
+        modo === 'informativo' ? InterpretarCatalogoRespuesta : InterpretarRespuesta
+      ).parse(
+        await solicitar('/api/interpretar', c, {
+          texto: consulta.texto,
+          ...(modo === 'informativo' ? { modo: 'catalogo' } : {}),
+        }),
       );
       if (c.signal.aborted) return;
       if (r.tipo === 'derivacion') {
@@ -243,6 +254,12 @@ export function ConsultaGuiada({
       }
       if (r.tipo === 'aclaracion') {
         setEstado({ tipo: 'aclaracion', alternativas: [...new Set(r.alternativas)] });
+        return;
+      }
+      if (r.tipo === 'catalogo') {
+        if (![...r.pasillo.baldas, ...r.pasillo.vitrina].some((g) => g.productos.length))
+          setEstado({ tipo: 'vacio', catalogo: r.pasillo.catalogo });
+        else onPasillo(r.pasillo);
         return;
       }
       // Los datos extraídos por la IA no se convierten en respuestas confirmadas.
@@ -330,10 +347,12 @@ export function ConsultaGuiada({
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">¿Te refieres a…?</h2>
           {estado.alternativas.length === 0 ? (
-            <p>
-              No hemos identificado el motivo con suficiente claridad. Empieza una nueva consulta o
-              habla con tu farmacéutico.
-            </p>
+            <>
+              <p>
+                Necesitamos un poco más de detalle: indica dónde te molesta o qué dificultad notas.
+              </p>
+              <Mostrador directo={modo === 'informativo'} onContinuar={continuar} />
+            </>
           ) : (
             estado.alternativas.map((id) => (
               <button

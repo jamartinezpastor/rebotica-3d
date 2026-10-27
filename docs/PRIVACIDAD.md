@@ -26,8 +26,11 @@ IP, fecha y URL; su configuración y plazos requieren comprobación en esa infra
 
 ## Gemini y sus condiciones
 
-El modelo clasifica en un catálogo cerrado y detecta alarmas; no selecciona medicamentos ni
-dosis. Una alarma local puede resolver la petición antes de contactar al proveedor. Los chips
+El modelo detecta alarmas y clasifica motivos conocidos. En el catálogo informativo también
+puede proponer términos específicos para buscar otras dolencias en indicaciones 4.1 locales;
+no selecciona medicamentos ni dosis. Los términos solo se usan durante esa petición, sin
+persistencia, métricas libres ni eco de la etiqueta del modelo en el cliente. Una alarma local
+puede resolver la petición antes de contactar al proveedor. Los chips
 no llaman al modelo. El cálculo de dosis se realiza con código determinista.
 
 La ausencia de almacenamiento del texto en Rebotica no implica retención cero en Google.

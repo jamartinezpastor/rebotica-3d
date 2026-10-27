@@ -64,7 +64,7 @@ export function buildApp({
   );
 
   registrarRutas(app, db);
-  registrarInterpretacion(app, interpretacion);
+  registrarInterpretacion(app, interpretacion, db);
   registrarTriaje(app, db);
   registrarExploracion(app, db);
   registrarInformacion(app, db, !!interpretacion?.clasificar);

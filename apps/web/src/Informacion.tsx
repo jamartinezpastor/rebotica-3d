@@ -56,7 +56,9 @@ export default function Informacion() {
             </p>
             <p>
               Gemini no elige medicamentos ni calcula dosis. Los resultados se buscan en las
-              indicaciones oficiales de la copia local de CIMA.
+              indicaciones oficiales de la copia local de CIMA. Para motivos fuera de las consultas
+              frecuentes, Gemini propone términos de búsqueda de la dolencia; el servidor busca sus
+              coincidencias en las indicaciones, sin seleccionar marcas o principios activos.
             </p>
             <p>
               No incluyas nombres, teléfonos, direcciones ni otros datos que identifiquen a una

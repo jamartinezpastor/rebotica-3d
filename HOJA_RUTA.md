@@ -353,3 +353,21 @@ evaluarse expresamente; la existencia de los documentos no completa las validaci
 - `pnpm check` correcto: 737 tests y 116,29 kB gzip iniciales. `pnpm validar:ui`: 16 revisiones,
   0 incidencias automáticas. Giro, reposo y menos movimiento revisados en Chrome; capturas
   en `.local/marca-landing/`, incluyendo viewport móvil emulado.
+
+## Texto libre fuera de las consultas frecuentes — 27/10/2026 (F4-02 / F1-06)
+
+- Causa del rechazo: el proveedor solo podía clasificar en los 14 motivos de los chips.
+  El modo informativo ahora acepta otros motivos comprensibles y términos específicos de
+  indicación. Gemini no elige medicamentos ni dosis; la API busca todas las coincidencias
+  en 4.1 local, conservando receta, fichas completas y estado de cobertura.
+- Se mantiene el contrato cerrado del futuro triaje, la prioridad de alarmas, los límites
+  de tiempo/concurrencia y la ausencia de registros de texto. El cliente no controla los términos
+  y no se publica la etiqueta libre del modelo ni se convierte en métrica o identificador.
+- Las aclaraciones sin alternativas permiten reformular en la misma pantalla. No se fuerza
+  una búsqueda amplia ni se sustituye un resultado vacío por fármacos de otro tema.
+- Gemini real: los ejemplos de llaga bucal y duración de erección, más hemorroides, devolvieron
+  búsquedas válidas. Informe sin claves en `.local/gemini-busqueda-real.json`. Es una comprobación
+  funcional puntual; la revisión clínica y evaluación ampliada de vocabulario siguen pendientes.
+- Verificación final: `pnpm check` correcto, 756 tests, formato, lint, tipos y build.
+  Diecinueve casos añadidos cubren contratos, búsquedas, alarmas, privacidad y recorrido web.
+  JavaScript inicial: 116,45 kB gzip. `pnpm validar:ui`: 16 revisiones, 0 incidencias automáticas.

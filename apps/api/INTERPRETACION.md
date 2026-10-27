@@ -1,7 +1,9 @@
 # Interpretación — F4-02
 
-`POST /api/interpretar` acepta exclusivamente JSON `{ "texto": "…" }` de 1 a 2000
-caracteres, sin query ni campos adicionales. Funciona sin base de datos; no consulta CIMA.
+`POST /api/interpretar` acepta JSON `{ "texto": "…" }` de 1 a 2000 caracteres, o
+`{ "texto": "…", "modo": "catalogo" }`, sin query ni otros campos. Sin modo mantiene
+la clasificación cerrada del triaje y funciona sin base de datos. El modo catálogo puede
+buscar en la copia local de CIMA; nunca consulta la API externa en la petición.
 El texto no se persiste, no se registra ni aparece en la respuesta. Todas las respuestas,
 incluidos errores y métodos incorrectos, llevan `Cache-Control: no-store`.
 
@@ -21,6 +23,13 @@ Los esquemas están en `packages/shared/src/interpretacion.ts`.
   clínicamente calibrada de seguridad.
 - `tipo: "aclaracion"`: hasta tres alternativas distintas del catálogo. Sin coincidencias
   puede devolver cero alternativas para solicitar reformulación, en lugar de inventarlas.
+- `tipo: "catalogo"` (solo en modo catálogo): pasillo informativo con todas las coincidencias
+  de términos de indicación específicos en 4.1 de medicamentos comercializados. Mantiene
+  baldas y vitrina separadas, con sus fichas completas. El clasificador puede entender motivos
+  fuera de los chips: no propone productos, marcas, activos o dosis. Las alarmas y la incertidumbre
+  tienen prioridad. El cliente no envía ni elige los términos; el filtro precede a la búsqueda.
+  El título y el identificador del pasillo son fijos, sin publicar etiquetas libres del modelo.
+  Términos demasiado genéricos, contratos inesperados o fallos no abren un catálogo alternativo.
 
 El filtro local normaliza tildes, mayúsculas, separadores, caracteres invisibles y algunas
 grafías adversarias. Bloquea antes de llamar a Gemini, incluso sin configuración o con el
@@ -129,3 +138,15 @@ y abre `POST /api/explorar` con el identificador del tema.
 Los chips cerrados omiten el modelo. No se exige revisión intermedia ni cuestionario para
 navegar por indicaciones oficiales; una alarma sigue sustituyendo el catálogo por derivación.
 El [triaje determinista](TRIAJE.md) se conserva para un futuro recorrido clínico independiente.
+
+Ampliación del 27/10/2026: se elimina el límite de 14 motivos para texto libre informativo.
+Los chips y sus correspondencias documentales mantienen su comportamiento. Los nuevos términos
+se normalizan y buscan como palabras/frases completas, sin regex o SQL procedente del modelo;
+no se amplían por activo ni se conservan en caché o analítica. La cobertura de los informes
+de 14 dolencias sigue refiriéndose solo a esas correspondencias, no al vocabulario abierto.
+La pantalla de aclaración permite precisar el motivo sin empezar de nuevo.
+
+Comprobación puntual real de Gemini con tres consultas sintéticas: llaga en la boca,
+duración de la erección y hemorroides; las tres produjeron búsquedas estructuradas válidas.
+No constituye una evaluación clínica ni sustituye el corpus de alarmas. Pruebas de transporte
+y de base ficticia cubren límites, privacidad, prioridad de alarmas y separación de receta.

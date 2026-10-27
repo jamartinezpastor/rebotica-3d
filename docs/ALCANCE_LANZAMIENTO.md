@@ -24,7 +24,8 @@ activación de reglas de dosis o protocolos necesita una decisión de alcance pr
 
 Permitir a usuarios de una web pública consultar y organizar información oficial de medicamentos
 de la copia CIMA mediante navegación 3D o lista y coincidencias textuales con una dolencia del
-catálogo cerrado. Mostrar la información oficial y sus límites de cobertura, sin seleccionar
+catálogo de entrada y otros motivos interpretados como términos de indicación (ampliación del
+27/10/2026). Mostrar la información oficial y sus límites de cobertura, sin seleccionar
 una pauta o un medicamento adecuado para una persona concreta.
 
 La aparición de un producto expresa una coincidencia documental, no idoneidad clínica, prioridad
@@ -38,14 +39,14 @@ consulta documental y que la revisión debe considerar.
 
 ## Funciones que contiene la versión revisada
 
-| Función                  | Comportamiento comprobado en código                                                                       | Implicación para delimitar el alcance                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Consulta frecuente       | Identificador cerrado a `/api/explorar`; busca en indicaciones 4.1 locales                                | No depende de un protocolo clínico firmado; la cobertura depende de los datos                                       |
-| Texto libre              | Filtro local de alarmas, Gemini opcional, clasificación o aclaración y posible derivación                 | Incluye interpretación de información de salud; no es solo recuperar un documento por nombre                        |
-| Resultados y comparación | Agrupa todos los resultados, separa receta y permite leer ambos prospectos                                | Revisar si el usuario interpreta la asociación como recomendación o ranking                                         |
-| Calculadora              | La API puede servir reglas validadas; el navegador comprueba fuente, cita y condiciones antes de calcular | Capacidad clínica condicional; que las semillas sean borradores no prueba que esté desactivada en una BD desplegada |
-| Triaje clínico           | Rutas registradas; exigen protocolo firmado y condiciones ejecutables                                     | No forma parte del recorrido principal, pero existe y debe inventariarse junto con sus accesos                      |
-| Demo explícita           | Escenario de prueba con productos ficticios                                                               | No demuestra cobertura ni funcionamiento del catálogo real                                                          |
+| Función                  | Comportamiento comprobado en código                                                                                           | Implicación para delimitar el alcance                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Consulta frecuente       | Identificador cerrado a `/api/explorar`; busca en indicaciones 4.1 locales                                                    | No depende de un protocolo clínico firmado; la cobertura depende de los datos                                       |
+| Texto libre              | Filtro local de alarmas, Gemini opcional, clasificación o términos específicos de indicación, aclaración y posible derivación | Incluye interpretación de información de salud; no es solo recuperar un documento por nombre                        |
+| Resultados y comparación | Agrupa todos los resultados, separa receta y permite leer ambos prospectos                                                    | Revisar si el usuario interpreta la asociación como recomendación o ranking                                         |
+| Calculadora              | La API puede servir reglas validadas; el navegador comprueba fuente, cita y condiciones antes de calcular                     | Capacidad clínica condicional; que las semillas sean borradores no prueba que esté desactivada en una BD desplegada |
+| Triaje clínico           | Rutas registradas; exigen protocolo firmado y condiciones ejecutables                                                         | No forma parte del recorrido principal, pero existe y debe inventariarse junto con sus accesos                      |
+| Demo explícita           | Escenario de prueba con productos ficticios                                                                                   | No demuestra cobertura ni funcionamiento del catálogo real                                                          |
 
 Evidencia técnica:
 [exploración](../apps/api/src/exploracion.ts),

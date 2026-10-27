@@ -1,7 +1,15 @@
-import { InterpretarEntrada } from '@rebotica/shared';
+import {
+  InterpretarEntrada,
+  InterpretarCatalogoRespuesta,
+  consultasDeIndicacion,
+  prepararBusquedaIndicaciones,
+} from '@rebotica/shared';
 import type { FastifyInstance } from 'fastify';
 import { detectarAlarmas, derivar } from './alarmas';
 import { interpretar, type Clasificador } from './interpretar';
+import { CatalogoNoSincronizado, crearCatalogo, type BaseDatos } from '../catalogo';
+import { pasilloInformativo } from '../pasilloInformativo';
+import { leerEstadoCatalogo } from '../cobertura';
 
 export interface OpcionesInterpretacion {
   clasificar?: Clasificador;
@@ -13,8 +21,10 @@ export interface OpcionesInterpretacion {
 export function registrarInterpretacion(
   app: FastifyInstance,
   { clasificar, plazoMs = 10000, maxEnCurso = 8 }: OpcionesInterpretacion = {},
+  db?: BaseDatos,
 ) {
   let enCurso = 0;
+  const catalogo = db ? crearCatalogo(db) : null;
   app.route({
     method: ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'TRACE'],
     url: '/api/interpretar',
@@ -71,8 +81,60 @@ export function registrarInterpretacion(
             reject(new Error('Plazo agotado'));
           }, plazoMs);
         });
-        return await Promise.race([interpretar(texto, clasificar, controlador.signal), limite]);
-      } catch {
+        const resolver = async () => {
+          const resultado = entrada.data.modo
+            ? await interpretar(texto, clasificar, controlador.signal, 'catalogo')
+            : await interpretar(texto, clasificar, controlador.signal);
+          if (resultado.tipo !== 'busqueda') return resultado;
+          if (controlador.signal.aborted) throw new Error('Consulta cancelada');
+          if (!catalogo)
+            return reply
+              .code(503)
+              .send({ error: 'Catálogo no disponible', codigo: 'CATALOGO_NO_CONFIGURADO' });
+          let coincide: (texto: string) => boolean;
+          try {
+            coincide = prepararBusquedaIndicaciones(resultado.busqueda.terminos);
+          } catch {
+            // Una búsqueda excesivamente amplia tampoco autoriza un catálogo indiscriminado.
+            return {
+              tipo: 'aclaracion',
+              confianza: 0,
+              alternativas: [],
+              datosExtraidos: {
+                paraQuien: 'desconocido',
+                grupo: null,
+                edad: null,
+                duracion: null,
+              },
+            };
+          }
+          const productos = await catalogo.buscarIndicaciones(coincide, consultasDeIndicacion);
+          if (controlador.signal.aborted) throw new Error('Consulta cancelada');
+          const estado = await leerEstadoCatalogo(db!);
+          return InterpretarCatalogoRespuesta.parse({
+            tipo: 'catalogo',
+            // Identificador fijo: no incluir texto ni términos del modelo en URL, métricas o logs.
+            pasillo: pasilloInformativo(
+              productos,
+              'consulta-texto',
+              // No publicar texto libre del modelo: ni consejos ni posibles ecos del paciente.
+              'Medicamentos relacionados con la consulta',
+              estado,
+            ),
+          });
+        };
+        return await Promise.race([resolver(), limite]);
+      } catch (error) {
+        if (error instanceof CatalogoNoSincronizado) {
+          const estado = db ? await leerEstadoCatalogo(db).catch(() => null) : null;
+          return reply.code(503).send({
+            error: 'Catálogo aún no disponible',
+            codigo:
+              estado?.estado === 'completo'
+                ? 'CATALOGO_SIN_INDICACIONES'
+                : 'CATALOGO_NO_SINCRONIZADO',
+          });
+        }
         // Sin fallback a un pasillo ni eco de la entrada o de errores del modelo.
         return reply
           .code(503)
