@@ -21,6 +21,74 @@ html {
   scrollbar-gutter: stable;
 }
 
+.cruz-marca {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  perspective: 160px;
+}
+.cruz-volumen {
+  position: relative;
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 2px;
+  transform-style: preserve-3d;
+  transform: rotateX(-12deg) rotateY(-16deg);
+  animation: girar-cruz 10s ease-in-out 10s infinite;
+}
+.cruz-cara,
+.cruz-canto {
+  position: absolute;
+  display: block;
+  backface-visibility: hidden;
+}
+.cruz-cara {
+  inset: 0;
+  clip-path: polygon(
+    33.333% 0,
+    66.667% 0,
+    66.667% 33.333%,
+    100% 33.333%,
+    100% 66.667%,
+    66.667% 66.667%,
+    66.667% 100%,
+    33.333% 100%,
+    33.333% 66.667%,
+    0 66.667%,
+    0 33.333%,
+    33.333% 33.333%
+  );
+  background: linear-gradient(135deg, #159653, #08773e 65%, #066435);
+}
+.cruz-frente {
+  transform: translateZ(3px);
+}
+.cruz-reverso {
+  transform: translateZ(-3px) rotateY(180deg);
+}
+.cruz-canto {
+  left: 0;
+  top: 0;
+  height: 6px;
+  transform-origin: 0 0;
+}
+@keyframes girar-cruz {
+  0% {
+    transform: rotateX(-12deg) rotateY(-16deg);
+  }
+  20%,
+  100% {
+    transform: rotateX(-12deg) rotateY(344deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cruz-volumen {
+    animation: none;
+  }
+}
+
 /* La farmacia queda lejos: solo esta capa se desenfoca, nunca las cajas ni la interfaz. */
 .fondo-farmacia {
   position: absolute;

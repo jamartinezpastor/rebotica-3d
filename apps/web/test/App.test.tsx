@@ -19,10 +19,8 @@ describe('App', () => {
   it('muestra el nombre y el aviso legal', () => {
     stubFetch(new Promise(() => {}));
     render(<App />);
-    expect(screen.getByRole('heading', { name: 'Rebotica 3D' })).toBeTruthy();
-    expect(
-      screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa o elige una consulta frecuente' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'REBOTICA' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa' })).toBeTruthy();
     expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
       '/escena?vista=3d',

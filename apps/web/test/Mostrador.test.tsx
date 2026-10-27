@@ -5,7 +5,7 @@ import { Mostrador } from '../src/mostrador/Mostrador';
 
 const entrada = () =>
   screen.getByRole('textbox', {
-    name: 'Cuéntanos qué te pasa o elige una consulta frecuente',
+    name: 'Cuéntanos qué te pasa',
   }) as HTMLTextAreaElement;
 const revisar = () =>
   screen.getByRole('button', { name: 'Realizar consulta' }) as HTMLButtonElement;

@@ -343,3 +343,13 @@ evaluarse expresamente; la existencia de los documentos no completa las validaci
   comprobados. Capturas en `.local/fondo-envolvente/`, incluyendo portada móvil emulada.
 - Verificación final: `pnpm check` correcto (737 tests); `pnpm validar:ui`, 16 revisiones y
   0 incidencias automáticas. JavaScript inicial: 116,11 kB gzip.
+
+## Identidad de la landing — 27/10/2026 (F5-05)
+
+- Cabecera «REBOTICA» y etiqueta «Cuéntanos qué te pasa», conservando las consultas frecuentes.
+- Cruz verde con frente, reverso y cantos extruidos en CSS, sin cargar WebGL en la portada.
+  Un giro completo sobre Y cada diez segundos, con reposo entre giros y sin animación al
+  activar menos movimiento.
+- `pnpm check` correcto: 737 tests y 116,29 kB gzip iniciales. `pnpm validar:ui`: 16 revisiones,
+  0 incidencias automáticas. Giro, reposo y menos movimiento revisados en Chrome; capturas
+  en `.local/marca-landing/`, incluyendo viewport móvil emulado.

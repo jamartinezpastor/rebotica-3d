@@ -152,7 +152,7 @@ export function Mostrador({
               htmlFor={`${id}-texto`}
               className="block text-base font-semibold"
             >
-              Cuéntanos qué te pasa o elige una consulta frecuente
+              Cuéntanos qué te pasa
             </label>
             <textarea
               ref={entrada}

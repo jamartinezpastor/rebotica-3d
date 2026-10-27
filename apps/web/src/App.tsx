@@ -27,6 +27,7 @@ import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacio
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { FondoFarmacia } from './escena/FondoFarmacia';
+import { CruzMarca } from './CruzMarca';
 import { CargaVisual } from './escena/CargaVisual';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
@@ -412,14 +413,6 @@ function VistaEscena({
   );
 }
 
-function Cruz() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-9 w-9 text-cruz">
-      <path fill="currentColor" d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z" />
-    </svg>
-  );
-}
-
 function EstadoServidor() {
   const estado = useEstadoApi();
   const texto =
@@ -490,8 +483,8 @@ export function App() {
           Saltar al contenido
         </a>
         <header className="flex items-center gap-3">
-          <Cruz />
-          <h1 className="text-2xl font-semibold tracking-tight">Rebotica 3D</h1>
+          <CruzMarca />
+          <h1 className="text-2xl font-semibold tracking-tight">REBOTICA</h1>
         </header>
 
         <main id="contenido" tabIndex={-1} className="mt-8 flex-1">

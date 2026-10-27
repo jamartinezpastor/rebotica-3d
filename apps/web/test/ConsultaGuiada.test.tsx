@@ -50,12 +50,9 @@ function mostrar() {
   return render(<ConsultaGuiada onActiva={vi.fn()} onPasillo={vi.fn()} />);
 }
 function revisarTexto(texto = 'Consulta sintética privada') {
-  fireEvent.change(
-    screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa o elige una consulta frecuente' }),
-    {
-      target: { value: texto },
-    },
-  );
+  fireEvent.change(screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa' }), {
+    target: { value: texto },
+  });
   fireEvent.click(screen.getByRole('button', { name: 'Realizar consulta' }));
 }
 function continuar() {
