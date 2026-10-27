@@ -96,6 +96,11 @@ export function VistaLista({
         window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
     }
   }, [retorno]);
+  let ordenEntrada = 0;
+  const origenEntrada = Math.max(
+    0,
+    baldas.flatMap((b) => b.productos).findIndex((p) => p.nregistro === retorno?.registro),
+  );
   return (
     <main
       ref={raiz}
@@ -147,45 +152,57 @@ export function VistaLista({
                 </p>
               ) : (
                 <ul className="mt-3 grid gap-2">
-                  {balda.productos.map((p) => (
-                    <li key={p.nregistro}>
-                      <button
-                        type="button"
-                        data-cursor="medicamento"
-                        data-registro={p.nregistro}
-                        onFocus={(e) => revelarProducto(e.currentTarget)}
-                        onClick={(e) => {
-                          e.currentTarget.focus({ preventScroll: true });
-                          onSeleccionar(p);
-                        }}
-                        className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left text-tinta ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+                  {balda.productos.map((p) => {
+                    const relativo = ordenEntrada++ - origenEntrada;
+                    const animado = relativo >= -1 && relativo <= 10;
+                    return (
+                      <li
+                        key={p.nregistro}
+                        className={animado ? 'entrada-farmaco' : undefined}
+                        style={
+                          animado
+                            ? { animationDelay: `${Math.max(relativo, 0) * 35}ms` }
+                            : undefined
+                        }
                       >
-                        <Miniatura producto={p} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-base leading-snug font-semibold break-words">
-                            {p.nombre}
-                          </span>
-                          {p.receta && (
-                            <span className="block text-base font-semibold text-amber-900">
-                              ⚠ Requiere receta médica
+                        <button
+                          type="button"
+                          data-cursor="medicamento"
+                          data-registro={p.nregistro}
+                          onFocus={(e) => revelarProducto(e.currentTarget)}
+                          onClick={(e) => {
+                            e.currentTarget.focus({ preventScroll: true });
+                            onSeleccionar(p);
+                          }}
+                          className="flex min-h-14 w-full items-center gap-3 rounded-xl bg-white p-3 text-left text-tinta ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
+                        >
+                          <Miniatura producto={p} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-base leading-snug font-semibold break-words">
+                              {p.nombre}
                             </span>
-                          )}
-                          <span className="mt-1 block text-sm font-medium text-cruz">
-                            {p.principioActivo}
-                          </span>
-                          {p.forma && (
-                            <span className="block text-sm text-tinta-suave">{p.forma}</span>
-                          )}
-                          {(p.generico || p.conduccion) && (
-                            <span className="mt-1 flex flex-wrap gap-1">
-                              {p.generico && <Etiqueta>Genérico</Etiqueta>}
-                              {p.conduccion && <Etiqueta>Puede afectar a la conducción</Etiqueta>}
+                            {p.receta && (
+                              <span className="block text-base font-semibold text-amber-900">
+                                ⚠ Requiere receta médica
+                              </span>
+                            )}
+                            <span className="mt-1 block text-sm font-medium text-cruz">
+                              {p.principioActivo}
                             </span>
-                          )}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                            {p.forma && (
+                              <span className="block text-sm text-tinta-suave">{p.forma}</span>
+                            )}
+                            {(p.generico || p.conduccion) && (
+                              <span className="mt-1 flex flex-wrap gap-1">
+                                {p.generico && <Etiqueta>Genérico</Etiqueta>}
+                                {p.conduccion && <Etiqueta>Puede afectar a la conducción</Etiqueta>}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

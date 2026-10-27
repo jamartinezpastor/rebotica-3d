@@ -23,7 +23,7 @@ describe('App', () => {
     expect(screen.getByRole('textbox', { name: 'Cuéntanos qué te pasa' })).toBeTruthy();
     expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
-      '/escena?vista=3d',
+      '/escena?vista=3d&entrada=1',
     );
     expect(screen.queryByRole('link', { name: 'Explorar como lista' })).toBeNull();
     expect(screen.queryByText(/utiliza productos ficticios/)).toBeNull();

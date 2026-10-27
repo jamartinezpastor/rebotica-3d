@@ -21,7 +21,7 @@ pnpm dev
 - Web: http://localhost:5173
 - API: http://localhost:3000/api/health
 
-La portada incluye un campo de texto de tres líneas y cuatro consultas frecuentes iniciales
+La portada incluye un campo de texto de dos líneas y cuatro consultas frecuentes iniciales
 (catorce al pulsar «Ver más consultas»). «Realizar consulta» aparece debajo del campo únicamente
 cuando contiene texto. «Explorar medicamentos» abre el pasillo ficticio con vitrina, sin necesitar catálogo sincronizado
 ni base de datos. Dentro se puede cambiar a la vista lista. El dictado está retirado de la interfaz.
@@ -279,6 +279,15 @@ la mano abierta.
   Equipos de capacidad baja empiezan con texturas ligeras y DPR máximo 1; la lentitud sostenida
   también activa esa reducción. La ficha mantiene su resolución. `?fps=1` incluye las geometrías,
   texturas GPU y llamadas de dibujo para comprobar el coste durante el recorrido.
+- **Entrada desde la portada (F5-05):** una panorámica de todas las estanterías se acerca durante
+  2,2 segundos al centro de la primera. El conjunto lejano usa una única malla instanciada con
+  estructuras y envases simplificados, sin texturas ni etiquetas; cerca se recupera el detalle.
+  Se puede interrumpir tocando, con rueda o teclado. No se repite al alternar vistas o grupos;
+  menos movimiento la omite. El parámetro transitorio `entrada=1` se consume al abrir el catálogo.
+  En lista, los medicamentos próximos a la posición de retorno aparecen escalonados, con un máximo
+  de 350 ms de espera y doce animaciones simultáneas; el resto del catálogo permanece disponible.
+  El foco y menos movimiento muestran el producto directamente.
+  La cruz y el nombre «REBOTICA» enlazan a la portada en ambas vistas y en la propia landing.
 - **Ambiente y vitrina:** las estanterías sin receta forman el lateral izquierdo y las de receta
   el derecho, perpendicular, con giro continuo de la cámara en la esquina. Las vitrinas mantienen
   la estructura oscura y la señalización ámbar, añadiendo dos puertas de cristal, reflejos,

@@ -7,6 +7,31 @@ import { VistaLista } from '../src/escena/VistaLista';
 afterEach(cleanup);
 
 describe('VistaLista', () => {
+  it('escalona solo el tramo de entrada y mantiene todos los productos en una lista larga', () => {
+    const { container } = render(
+      <VistaLista
+        titulo="Catálogo"
+        baldas={baldasDemo(278)}
+        retorno={{ registro: 'demo-120' }}
+        onSeleccionar={() => {}}
+      />,
+    );
+    expect(container.querySelectorAll('[data-registro]')).toHaveLength(278);
+    expect(container.querySelectorAll('.entrada-farmaco')).toHaveLength(12);
+    expect(
+      container.querySelector<HTMLElement>('[data-registro="demo-120"]')?.parentElement?.style
+        .animationDelay,
+    ).toBe('0ms');
+    expect(
+      container.querySelector<HTMLElement>('[data-registro="demo-121"]')?.parentElement?.style
+        .animationDelay,
+    ).toBe('35ms');
+    expect(
+      container
+        .querySelector<HTMLElement>('[data-registro="demo-200"]')
+        ?.parentElement?.classList.contains('entrada-farmaco'),
+    ).toBe(false);
+  });
   it('la vitrina muestra aviso y permite seleccionar sus productos como las demás baldas', () => {
     const onSeleccionar = vi.fn();
     const baldas = vitrinaDemo();

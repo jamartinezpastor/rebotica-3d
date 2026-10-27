@@ -158,7 +158,7 @@ export function Mostrador({
               ref={entrada}
               id={`${id}-texto`}
               value={borrador.texto}
-              rows={3}
+              rows={2}
               maxLength={LIMITE_CONSULTA}
               autoComplete="off"
               spellCheck={false}

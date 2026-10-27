@@ -27,7 +27,7 @@ import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacio
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { FondoFarmacia } from './escena/FondoFarmacia';
-import { CruzMarca } from './CruzMarca';
+import { MarcaInicio } from './MarcaInicio';
 import { CargaVisual } from './escena/CargaVisual';
 import { BarraComparacion } from './escena/BarraComparacion';
 import { alternarComparado } from './escena/seleccionComparacion';
@@ -93,7 +93,8 @@ function ContadorFps({ e, cajas }: { e: EstadisticasFps | null; cajas: number })
 function VistaEscena({
   precargado,
   onNueva,
-}: { precargado?: PasilloResponse; onNueva?: () => void } = {}) {
+  desdeLanding = false,
+}: { precargado?: PasilloResponse; onNueva?: () => void; desdeLanding?: boolean } = {}) {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const pasillo = precargado?.id ?? params.get('pasillo');
   const demo = !precargado && !pasillo && params.get('demo') === '1';
@@ -105,6 +106,16 @@ function VistaEscena({
   const [vista, setVista] = useState<VistaElegida>(() =>
     vistaInicial(params.get('vista'), leerPreferencia(), capacidad),
   );
+  const [introduccion, setIntroduccion] = useState(
+    () => vista === '3d' && (desdeLanding || params.get('entrada') === '1'),
+  );
+  const terminarIntroduccion = useCallback(() => setIntroduccion(false), []);
+  useEffect(() => {
+    if (!params.has('entrada')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('entrada');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [params]);
   const [lento, setLento] = useState(false);
   const botonVista = useRef<HTMLButtonElement>(null);
   const [fps, setFps] = useState<EstadisticasFps | null>(null);
@@ -162,6 +173,7 @@ function VistaEscena({
   const destinos = useMemo(() => destinosGrupos(baldas), [baldas]);
 
   const reiniciarRecorrido = () => {
+    terminarIntroduccion();
     setRegistroInicial(null);
     mirada.current = null;
     listaGuardada.current = null;
@@ -179,6 +191,7 @@ function VistaEscena({
   // Todos los resultados comparten recorrido; Pasillo monta solo las estanterías cercanas.
   const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const cambiarVista = (siguiente: VistaElegida) => {
+    terminarIntroduccion();
     if (vista === 'lista') {
       const registro =
         registroVisible(
@@ -202,6 +215,7 @@ function VistaEscena({
     setLento(false);
   };
   const irAGrupo = (registro: string) => {
+    terminarIntroduccion();
     const i = indiceDeRegistro(baldas, registro);
     if (i < 0) return;
     setRegistroInicial(registro);
@@ -279,6 +293,8 @@ function VistaEscena({
             registroInicial={registroInicial}
             onMirar={alMirar}
             calidadInicial={capacidad.nivel === 'bajo' ? 'ligera' : 'normal'}
+            introduccion={introduccion}
+            onIntroduccionTerminada={terminarIntroduccion}
           />
         </Suspense>
       ) : (
@@ -302,23 +318,12 @@ function VistaEscena({
         </p>
       )}
 
-      {!seleccion.producto &&
-        (onNueva ? (
-          <button
-            type="button"
-            onClick={onNueva}
-            className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15"
-          >
-            <span aria-hidden="true">←</span> Nueva consulta
-          </button>
-        ) : (
-          <a
-            href="/"
-            className="fixed top-3 left-3 z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-semibold shadow ring-1 ring-black/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
-          >
-            <span aria-hidden="true">←</span> Inicio
-          </a>
-        ))}
+      {!seleccion.producto && (
+        <MarcaInicio
+          onInicio={onNueva}
+          className="fixed top-3 left-3 z-10 bg-white pr-3 pl-2 text-sm font-semibold shadow ring-1 ring-black/15"
+        />
+      )}
 
       {
         <div
@@ -466,6 +471,7 @@ export function App() {
     return (
       <VistaEscena
         precargado={pasilloConsulta}
+        desdeLanding
         onNueva={() => {
           setPasilloConsulta(null);
           setActiva(false);
@@ -482,9 +488,10 @@ export function App() {
         <a className="saltar-contenido" href="#contenido">
           Saltar al contenido
         </a>
-        <header className="flex items-center gap-3">
-          <CruzMarca />
-          <h1 className="text-2xl font-semibold tracking-tight">REBOTICA</h1>
+        <header>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            <MarcaInicio />
+          </h1>
         </header>
 
         <main id="contenido" tabIndex={-1} className="mt-8 flex-1">
@@ -493,7 +500,7 @@ export function App() {
             <>
               <div className="mt-8 flex flex-col gap-3">
                 <a
-                  href="/escena?vista=3d"
+                  href="/escena?vista=3d&entrada=1"
                   className="inline-flex min-h-14 items-center justify-center rounded-xl bg-cruz px-5 py-3 text-center text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
                 >
                   Explorar medicamentos

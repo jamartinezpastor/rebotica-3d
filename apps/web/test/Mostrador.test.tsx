@@ -24,7 +24,7 @@ describe('Mostrador F4-01', () => {
     expect(screen.queryByRole('button', { name: 'Dictar consulta' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nueva consulta' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
-    expect(entrada().rows).toBe(3);
+    expect(entrada().rows).toBe(2);
     fireEvent.change(entrada(), { target: { value: '  ' } });
     expect(screen.queryByRole('button', { name: 'Realizar consulta' })).toBeNull();
     fireEvent.change(entrada(), { target: { value: 'Consulta ficticia' } });

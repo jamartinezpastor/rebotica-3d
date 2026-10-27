@@ -152,7 +152,7 @@ describe('recorrido informativo simplificado', () => {
       await screen.findByRole('heading', { name: 'Esta copia no permite buscar por dolencia' }),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Explorar medicamentos' }).getAttribute('href')).toBe(
-      '/escena?vista=3d',
+      '/escena?vista=3d&entrada=1',
     );
     expect(screen.queryByText('El catálogo de medicamentos se está preparando')).toBeNull();
   });
@@ -237,7 +237,7 @@ describe('recorrido informativo simplificado', () => {
       peticiones.mock.calls.some(([url]) => /interpretar|protocolos|triaje/.test(String(url))),
     ).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Volver al pasillo' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Nueva consulta' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'REBOTICA' }));
     expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('');
   });
   it('texto libre pasa por interpretación y abre el catálogo sin cuestionario ni persistencia', async () => {

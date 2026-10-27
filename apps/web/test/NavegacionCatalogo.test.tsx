@@ -12,8 +12,19 @@ vi.mock('../src/escena/capacidad', async (original) => ({
   evaluarCapacidad: () => ({ nivel: 'alto', motivos: [] }),
 }));
 vi.mock('../src/escena/Escena', () => ({
-  default: ({ baldas = [], registroInicial, onMirar }: EscenaProps) => (
-    <div data-testid="escena-prueba" data-inicial={registroInicial}>
+  default: ({
+    baldas = [],
+    registroInicial,
+    onMirar,
+    introduccion,
+    onIntroduccionTerminada,
+  }: EscenaProps) => (
+    <div
+      data-testid="escena-prueba"
+      data-inicial={registroInicial}
+      data-introduccion={introduccion}
+    >
+      {introduccion && <button onClick={onIntroduccionTerminada}>Terminar panorámica</button>}
       {baldas
         .flatMap((b) => b.productos)
         .map((p) => (
@@ -69,6 +80,19 @@ function preparar(consulta = false) {
   return { productos, peticiones };
 }
 describe('exploración por grupos y posición conservada', () => {
+  it('consume la entrada desde landing y no la repite al alternar entre lista y 3D', async () => {
+    preparar();
+    window.history.replaceState(null, '', '/escena?vista=3d&entrada=1');
+    render(<App />);
+    const escena = await screen.findByTestId('escena-prueba');
+    expect(escena.getAttribute('data-introduccion')).toBe('true');
+    expect(window.location.search).toBe('?vista=3d');
+    fireEvent.click(screen.getByRole('button', { name: 'Terminar panorámica' }));
+    expect(escena.getAttribute('data-introduccion')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }));
+    expect(screen.getByTestId('escena-prueba').getAttribute('data-introduccion')).toBe('false');
+  });
   it('salta a un grupo lejano y llega al mismo producto en 3D sin paginación', async () => {
     preparar();
     render(<App />);

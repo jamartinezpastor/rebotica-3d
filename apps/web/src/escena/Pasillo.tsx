@@ -32,6 +32,8 @@ import { Sombra } from './Sombra';
 import { ventanaEstanterias } from './ventanaEscena';
 import { usePrecargaEstanterias } from './usePrecargaEstanterias';
 import type { EsquinaRiel } from './trayectoPasillo';
+import { encuadreGeneral } from './entradaPanoramica';
+import { Panoramica } from './Panoramica';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
 export interface BaldaEscena {
@@ -47,7 +49,7 @@ export const BALDAS_POR_ESTANTERIA = 3;
 /** Separación entre estanterías contiguas, de centro a centro. */
 export const SEPARACION_ESTANTERIAS = 1.4;
 
-interface ModeloEstanteria {
+export interface ModeloEstanteria {
   receta: boolean;
   indice: number;
   posicion: [number, number, number];
@@ -169,6 +171,8 @@ export interface PasilloProps {
   registroInicial?: string | null;
   onMirar?: (registro: string) => void;
   ligera?: boolean;
+  introduccion?: boolean;
+  onIntroduccionTerminada?: () => void;
 }
 
 /**
@@ -183,6 +187,8 @@ export function Pasillo({
   registroInicial,
   onMirar,
   ligera = false,
+  introduccion = false,
+  onIntroduccionTerminada,
 }: PasilloProps) {
   const invalidar = useThree((s) => s.invalidate);
   const camera = useThree((s) => s.camera);
@@ -190,6 +196,10 @@ export function Pasillo({
   const menosMovimiento = useMenosMovimiento();
   const geometria = useMemo(() => geometriaEstanteria(), []);
   const modelo = useMemo(() => modeloPasillo(baldas, geometria), [baldas, geometria]);
+  const general = useMemo(() => encuadreGeneral(modelo), [modelo]);
+  const [sinEntrada] = useState(introduccion);
+  const [detalleEntrada, setDetalleEntrada] = useState(false);
+  const acercarEntrada = useCallback(() => setDetalleEntrada(true), []);
   const plan = useMemo(() => planificarEntrada(modelo.map((m) => m.cajas.length)), [modelo]);
   const riel = useMemo(() => datosRiel(modelo, geometria), [modelo, geometria]);
   const ubicadas = useMemo(
@@ -205,9 +215,19 @@ export function Pasillo({
     [modelo],
   );
   const inicio = useMemo(() => {
-    const caja = ubicadas.find((c) => c.item.nregistro === registroInicial);
+    const caja =
+      ubicadas.find((c) => c.item.nregistro === registroInicial) ??
+      (sinEntrada
+        ? ubicadas
+            .filter((c) => c.estanteria === 0)
+            .sort(
+              (a, b) =>
+                Math.abs(a.balda - 1) - Math.abs(b.balda - 1) ||
+                Math.abs(a.x - modelo[0]!.rielX) - Math.abs(b.x - modelo[0]!.rielX),
+            )[0]
+        : undefined);
     return caja ? { x: caja.x, fila: caja.balda } : undefined;
-  }, [ubicadas, registroInicial]);
+  }, [ubicadas, registroInicial, modelo, sinEntrada]);
   const [centro, setCentro] = useState(
     () => ubicadas.find((c) => c.item.nregistro === registroInicial)?.estanteria ?? 0,
   );
@@ -228,10 +248,10 @@ export function Pasillo({
 
   const t0 = useRef<number | null>(null);
   const reloj = useCallback(() => {
-    if (menosMovimiento || modelo.length > (ligera ? 3 : 5)) return 1e6;
+    if (sinEntrada || menosMovimiento || modelo.length > (ligera ? 3 : 5)) return 1e6;
     if (t0.current === null) t0.current = performance.now();
     return (performance.now() - t0.current) / 1000;
-  }, [menosMovimiento, modelo.length, ligera]);
+  }, [menosMovimiento, modelo.length, ligera, sinEntrada]);
 
   // Producto que se está mostrando en la ficha. Se conserva mientras dura el vuelo de vuelta,
   // aunque `seleccionada` ya sea null, y se limpia cuando la caja ha regresado a su balda.
@@ -242,7 +262,7 @@ export function Pasillo({
     if (seleccionada) setMostrada(seleccionada);
   }
 
-  usePrecargaEstanterias(modelo, centro, ligera, mostrada !== null);
+  usePrecargaEstanterias(modelo, centro, ligera, mostrada !== null || introduccion);
 
   const indice = useMemo(() => {
     const mapa = new Map<string, { i: number; j: number }>();
@@ -462,99 +482,107 @@ export function Pasillo({
         onActivar={activarPorTeclado}
         inicio={inicio}
         onMirar={alMirar}
+        vistaGeneral={introduccion ? general : undefined}
+        onIntroduccionTerminada={onIntroduccionTerminada}
+        onAcercar={acercarEntrada}
       />
-      {visibles.map((i) => {
-        const est = modelo[i];
-        if (!est) return null;
-        const tramo = plan.estanterias[i];
-        const horizontal = est.origen[0] !== 0;
-        return (
-          <group
-            key={est.indice}
-            rotation-y={est.giroY}
-            ref={(g) => {
-              grupos.current[i] = g;
-            }}
-            position={[
-              est.posicion[0] + est.origen[0],
-              est.posicion[1],
-              est.posicion[2] + est.origen[2],
-            ]}
-            visible={menosMovimiento}
-          >
-            <Estanteria geometria={geometria} receta={est.receta} />
-            {est.receta && (
-              <Letrero
-                texto="⚠ VITRINA · REQUIERE RECETA"
-                receta
-                reloj={reloj}
-                inicio={0}
-                duracion={0.1}
-                posicion={[0, 1.34, 0.19]}
-              />
-            )}
-            <Sombra ancho={ESTANTERIA_POR_DEFECTO.ancho} fondo={ESTANTERIA_POR_DEFECTO.fondo} />
-
+      {introduccion && !detalleEntrada && <Panoramica modelo={modelo} geometria={geometria} />}
+      <group visible={!introduccion || detalleEntrada}>
+        {visibles.map((i) => {
+          const est = modelo[i];
+          if (!est) return null;
+          const tramo = plan.estanterias[i];
+          const horizontal = est.origen[0] !== 0;
+          return (
             <group
+              key={est.indice}
+              rotation-y={est.giroY}
               ref={(g) => {
-                estelas.current[i] = g;
+                grupos.current[i] = g;
               }}
-              visible={false}
+              position={[
+                est.posicion[0] + est.origen[0],
+                est.posicion[1],
+                est.posicion[2] + est.origen[2],
+              ]}
+              visible={menosMovimiento}
             >
-              {[0.35, 0.95, 1.5].map((y) => (
-                <mesh
-                  key={y}
-                  position={horizontal ? [Math.sign(est.origen[0]) * 1.2, y, 0.05] : [0, y, -1.4]}
-                  scale={horizontal ? [2.4, 0.012, 0.012] : [0.012, 0.012, 2.4]}
+              <Estanteria geometria={geometria} receta={est.receta} />
+              {est.receta && (
+                <Letrero
+                  texto="⚠ VITRINA · REQUIERE RECETA"
+                  receta
+                  reloj={reloj}
+                  inicio={0}
+                  duracion={0.1}
+                  posicion={[0, 1.34, 0.19]}
+                />
+              )}
+              <Sombra ancho={ESTANTERIA_POR_DEFECTO.ancho} fondo={ESTANTERIA_POR_DEFECTO.fondo} />
+
+              <group
+                ref={(g) => {
+                  estelas.current[i] = g;
+                }}
+                visible={false}
+              >
+                {[0.35, 0.95, 1.5].map((y) => (
+                  <mesh
+                    key={y}
+                    position={horizontal ? [Math.sign(est.origen[0]) * 1.2, y, 0.05] : [0, y, -1.4]}
+                    scale={horizontal ? [2.4, 0.012, 0.012] : [0.012, 0.012, 2.4]}
+                  >
+                    <boxGeometry args={[1, 1, 1]} />
+                    <meshBasicMaterial color="#0f8a4b" transparent opacity={0} depthWrite={false} />
+                  </mesh>
+                ))}
+              </group>
+
+              {est.baldas.map((b) => {
+                const hueco = geometria.huecos[b.hueco];
+                if (!hueco || !tramo) return null;
+                return (
+                  <Letrero
+                    receta={est.receta}
+                    key={b.hueco}
+                    texto={b.titulo}
+                    reloj={reloj}
+                    // Se descifra mientras la estantería frena y acaba cuando se detiene.
+                    inicio={tramo.inicio + tramo.duracion * 0.25}
+                    duracion={tramo.duracion * 0.75}
+                    posicion={[
+                      hueco.centro[0],
+                      hueco.centro[1] + hueco.alto - LETRERO_ALTO / 2 - 0.02,
+                      hueco.centro[2] + hueco.fondo / 2 - 0.02,
+                    ]}
+                  />
+                );
+              })}
+
+              {est.cajas.map((c, j) => (
+                <group
+                  key={c.item.nregistro}
+                  ref={(g) => {
+                    (cajas.current[i] ??= [])[j] = g;
+                  }}
+                  position={c.posicion}
+                  visible={menosMovimiento}
                 >
-                  <boxGeometry args={[1, 1, 1]} />
-                  <meshBasicMaterial color="#0f8a4b" transparent opacity={0} depthWrite={false} />
-                </mesh>
+                  <Caja
+                    forma={c.forma}
+                    datos={datosEnvase(c.item)}
+                    calidad={ligera ? 'ligera' : 'estanteria'}
+                    posicion={[0, 0, 0]}
+                    onSeleccionar={
+                      !introduccion && mostrada === null ? () => onSeleccionar?.(c.item) : undefined
+                    }
+                  />
+                </group>
               ))}
             </group>
-
-            {est.baldas.map((b) => {
-              const hueco = geometria.huecos[b.hueco];
-              if (!hueco || !tramo) return null;
-              return (
-                <Letrero
-                  receta={est.receta}
-                  key={b.hueco}
-                  texto={b.titulo}
-                  reloj={reloj}
-                  // Se descifra mientras la estantería frena y acaba cuando se detiene.
-                  inicio={tramo.inicio + tramo.duracion * 0.25}
-                  duracion={tramo.duracion * 0.75}
-                  posicion={[
-                    hueco.centro[0],
-                    hueco.centro[1] + hueco.alto - LETRERO_ALTO / 2 - 0.02,
-                    hueco.centro[2] + hueco.fondo / 2 - 0.02,
-                  ]}
-                />
-              );
-            })}
-
-            {est.cajas.map((c, j) => (
-              <group
-                key={c.item.nregistro}
-                ref={(g) => {
-                  (cajas.current[i] ??= [])[j] = g;
-                }}
-                position={c.posicion}
-                visible={menosMovimiento}
-              >
-                <Caja
-                  forma={c.forma}
-                  datos={datosEnvase(c.item)}
-                  calidad={ligera ? 'ligera' : 'estanteria'}
-                  posicion={[0, 0, 0]}
-                  onSeleccionar={mostrada === null ? () => onSeleccionar?.(c.item) : undefined}
-                />
-              </group>
-            ))}
-          </group>
-        );
-      })}
+          );
+        })}
+      </group>
       {cajaMostrada && (
         <group ref={volando}>
           <Caja

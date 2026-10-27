@@ -387,8 +387,27 @@ body {
 .entrada-resultados {
   animation: entrada-resultados 160ms ease-out;
 }
+.entrada-farmaco {
+  animation: aparecer-farmaco 220ms ease-out both;
+}
+.entrada-farmaco:focus-within {
+  animation: none;
+}
+@keyframes aparecer-farmaco {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .entrada-resultados {
+    animation: none;
+  }
+  .entrada-farmaco {
     animation: none;
   }
 }

@@ -371,3 +371,25 @@ evaluarse expresamente; la existencia de los documentos no completa las validaci
 - Verificación final: `pnpm check` correcto, 756 tests, formato, lint, tipos y build.
   Diecinueve casos añadidos cubren contratos, búsquedas, alarmas, privacidad y recorrido web.
   JavaScript inicial: 116,45 kB gzip. `pnpm validar:ui`: 16 revisiones, 0 incidencias automáticas.
+
+## Entrada al catálogo y navegación de marca — 27/10/2026 (F2-08 / F5-05)
+
+- Al pasar de la landing al 3D, vista general del conjunto completo y acercamiento de 2,2 s
+  al centro de la primera estantería. Un único conjunto instanciado representa temporalmente
+  todas las estructuras y cajas sin texturas; al final se recuperan las estanterías detalladas
+  cercanas. Se conserva la esquina de receta y el fondo acompaña a la cámara.
+- Entrada interrumpible por toque, teclado o rueda; se omite con menos movimiento y no se repite
+  al cambiar de vista o grupo. La marca transitoria de navegación no guarda texto de consulta.
+- Aparición escalonada de medicamentos en lista desde el producto de retorno, sin retrasos
+  acumulados en catálogos grandes: máximo 350 ms y doce tarjetas animadas. El resto permanece
+  disponible. El foco revela el producto inmediatamente.
+- Cruz y nombre enlazados a la landing en las vistas 3D/lista; el recorrido de consulta puede
+  volver sin recargar el documento. Campo principal de dos líneas por defecto.
+- Chrome: conjunto de 80 productos y 6 estructuras, llegada al detalle, cambio de vista,
+  enlaces de marca y menos movimiento comprobados. Capturas en `.local/entradas-catalogo/`.
+  Reloj controlado para inspeccionar la transición y GPU simulada sobre WebGL por software;
+  no constituye una medición física de fps ni sustituye las pruebas con móviles reales.
+- Verificación final: `pnpm check` correcto, 764 tests, formato, lint, tipos y build.
+  Ocho regresiones añadidas cubren encuadre completo, llegada, navegación y escalonado acotado.
+  La integración de 278 productos conserva sus comprobaciones con un plazo de 10 s para jsdom.
+  JavaScript inicial: 116,74 kB gzip. `pnpm validar:ui`: 16 revisiones, 0 incidencias automáticas.

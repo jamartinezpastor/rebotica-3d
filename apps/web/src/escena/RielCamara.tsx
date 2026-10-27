@@ -1,8 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { PerspectiveCamera } from 'three';
 import { ControlRiel, distanciaRiel, metrosPorPixel, puntoMasCercano } from './riel';
 import { marcoEnRiel, type EsquinaRiel } from './trayectoPasillo';
+import { DURACION_PANORAMICA, posePanoramica, type EncuadreGeneral } from './entradaPanoramica';
 
 /** Cuánto por encima del centro de la balda se coloca el ojo de la cámara. */
 const ELEVACION_OJO = 0.05;
@@ -47,6 +48,9 @@ export interface RielCamaraProps {
   onActivar?: (x: number, fila: number) => void;
   inicio?: { x: number; fila: number };
   onMirar?: (x: number, fila: number) => void;
+  vistaGeneral?: EncuadreGeneral;
+  onIntroduccionTerminada?: () => void;
+  onAcercar?: () => void;
 }
 
 /**
@@ -63,11 +67,21 @@ export function RielCamara({
   onActivar,
   inicio,
   onMirar,
+  vistaGeneral,
+  onIntroduccionTerminada,
+  onAcercar,
 }: RielCamaraProps) {
-  const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const size = useThree((s) => s.size);
   const invalidar = useThree((s) => s.invalidate);
+  const panorama = useRef({ inicio: null as number | null, terminada: false, detalle: false });
+  const finalizar = useCallback(() => {
+    if (!vistaGeneral || panorama.current.terminada) return false;
+    panorama.current.terminada = true;
+    onIntroduccionTerminada?.();
+    invalidar();
+    return true;
+  }, [vistaGeneral, onIntroduccionTerminada, invalidar]);
 
   const control = useMemo(
     () =>
@@ -95,6 +109,7 @@ export function RielCamara({
 
     const abajo = (e: PointerEvent) => {
       if (!activo || !e.isPrimary || puntero !== null) return;
+      if (finalizar()) return;
       puntero = e.pointerId;
       el.setPointerCapture(e.pointerId);
       cursorLienzo(el, 'grabbing');
@@ -118,6 +133,15 @@ export function RielCamara({
     };
     const tecla = (e: KeyboardEvent) => {
       if (!activo || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (
+        ['Enter', ' ', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
+          e.key,
+        ) &&
+        finalizar()
+      ) {
+        e.preventDefault();
+        return;
+      }
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         onActivar?.(control.destinoActual(), control.filaObjetivo);
@@ -131,6 +155,7 @@ export function RielCamara({
     const rueda = (e: WheelEvent) => {
       if (!activo) return;
       e.preventDefault();
+      if (finalizar()) return;
       control.rueda(e.deltaX, e.deltaY, e.timeStamp);
       invalidar();
     };
@@ -150,9 +175,9 @@ export function RielCamara({
       el.removeEventListener('keydown', tecla);
       el.removeEventListener('wheel', rueda);
     };
-  }, [gl, control, invalidar, activo, onActivar]);
+  }, [gl, control, invalidar, activo, onActivar, finalizar]);
 
-  useFrame((_, delta) => {
+  useFrame(({ camera }, delta) => {
     const perspectiva = camera as PerspectiveCamera;
     const distancia = distanciaRiel(perspectiva.fov, size.width / size.height);
     control.encuadrar(metrosPorPixel(perspectiva.fov, distancia, size.height));
@@ -165,12 +190,43 @@ export function RielCamara({
       y + ELEVACION_OJO,
       marco.z + Math.cos(marco.giro) * distancia,
     );
-    camera.lookAt(marco.x, y, marco.z);
+    let lejano = 60;
+    if (vistaGeneral && !panorama.current.terminada) {
+      const ahora = performance.now();
+      panorama.current.inicio ??= ahora;
+      const transcurrido = ahora - panorama.current.inicio;
+      if (transcurrido < DURACION_PANORAMICA) {
+        const pose = posePanoramica(
+          vistaGeneral,
+          [camera.position.x, camera.position.y, camera.position.z],
+          [marco.x, y, marco.z],
+          perspectiva.fov,
+          size.width / size.height,
+          transcurrido,
+        );
+        camera.position.set(...pose.posicion);
+        camera.lookAt(...pose.objetivo);
+        lejano = pose.lejano;
+        if (transcurrido >= DURACION_PANORAMICA * 0.9 && !panorama.current.detalle) {
+          panorama.current.detalle = true;
+          onAcercar?.();
+        }
+        invalidar();
+      } else {
+        finalizar();
+        camera.lookAt(marco.x, y, marco.z);
+      }
+    } else camera.lookAt(marco.x, y, marco.z);
+    if (perspectiva.far !== lejano) {
+      perspectiva.far = lejano;
+      perspectiva.updateProjectionMatrix();
+    }
     if (control.enMovimiento()) invalidar();
     const fila = Math.round(control.fila);
     const x = puntoMasCercano(control.puntosDe(fila), control.x);
     if (
       activo &&
+      (!vistaGeneral || panorama.current.terminada) &&
       (ultimaMirada.current?.control !== control ||
         ultimaMirada.current.x !== x ||
         ultimaMirada.current.fila !== fila)

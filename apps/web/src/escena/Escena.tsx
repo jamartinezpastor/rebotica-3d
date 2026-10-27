@@ -4,7 +4,7 @@ import type { EstadisticasFps } from './medidorFps';
 import { Pasillo, type BaldaEscena } from './Pasillo';
 import { Rendimiento } from './Rendimiento';
 import { Cursor3D } from './Cursor3D';
-import { useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Vector3, type PerspectiveCamera } from 'three';
 import { RecursosEscena } from './RecursosEscena';
 import { FondoFarmacia } from './FondoFarmacia';
@@ -49,6 +49,8 @@ export interface EscenaProps {
   registroInicial?: string | null;
   onMirar?: (registro: string) => void;
   calidadInicial?: 'normal' | 'ligera';
+  introduccion?: boolean;
+  onIntroduccionTerminada?: () => void;
 }
 
 /**
@@ -66,13 +68,21 @@ export default function Escena({
   registroInicial,
   onMirar,
   calidadInicial = 'normal',
+  introduccion = false,
+  onIntroduccionTerminada,
 }: EscenaProps) {
   const [reducida, setReducida] = useState(calidadInicial === 'ligera');
   const menosMovimiento = useMenosMovimiento();
   const fondo = useRef<HTMLDivElement>(null);
   const permiteAmbiente = !reducida && !menosMovimiento && !seleccionada;
+  useEffect(() => {
+    if (introduccion && menosMovimiento) onIntroduccionTerminada?.();
+  }, [introduccion, menosMovimiento, onIntroduccionTerminada]);
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div
+      className="relative h-full w-full overflow-hidden"
+      data-panoramica={introduccion && !menosMovimiento}
+    >
       <FondoFarmacia animado={permiteAmbiente} referencia={fondo} />
       <Canvas
         className="entrada-resultados"
@@ -104,6 +114,8 @@ export default function Escena({
             registroInicial={registroInicial}
             onMirar={onMirar}
             ligera={reducida}
+            introduccion={introduccion && !menosMovimiento}
+            onIntroduccionTerminada={onIntroduccionTerminada}
           />
         </RecursosEscena>
         <SincronizarFondo referencia={fondo} />

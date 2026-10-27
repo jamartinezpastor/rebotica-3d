@@ -81,6 +81,8 @@ describe('exploración agrupada', () => {
         278,
       );
     },
+    // Varias reconstrucciones de 278 tarjetas en jsdom; no mide el rendimiento del navegador.
+    10000,
   );
   it('la entrada pública y su URL anterior cargan el catálogo de API y no la demo', async () => {
     window.history.replaceState(null, '', '/escena?vitrina=1&vista=lista');

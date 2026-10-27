@@ -429,7 +429,7 @@ export function ConsultaGuiada({
           <p>{MENSAJES_ERROR[estado.motivo].texto}</p>
           {estado.motivo === 'indicaciones' && (
             <a
-              href="/escena?vista=3d"
+              href="/escena?vista=3d&entrada=1"
               className="inline-flex min-h-12 items-center rounded-xl bg-cruz px-4 font-semibold text-white"
             >
               Explorar medicamentos
