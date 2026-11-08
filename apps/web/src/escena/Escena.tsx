@@ -47,6 +47,7 @@ export interface EscenaProps {
   /** Aviso único cuando la escena va por debajo de 24 fps sostenidos. */
   onLento?: () => void;
   registroInicial?: string | null;
+  destino?: { registro: string };
   onMirar?: (registro: string) => void;
   calidadInicial?: 'normal' | 'ligera';
   introduccion?: boolean;
@@ -66,6 +67,7 @@ export default function Escena({
   onFps,
   onLento,
   registroInicial,
+  destino,
   onMirar,
   calidadInicial = 'normal',
   introduccion = false,
@@ -112,6 +114,7 @@ export default function Escena({
             seleccionada={seleccionada}
             onSeleccionar={onSeleccionar}
             registroInicial={registroInicial}
+            destino={destino}
             onMirar={onMirar}
             ligera={reducida}
             introduccion={introduccion && !menosMovimiento}

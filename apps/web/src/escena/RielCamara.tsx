@@ -48,6 +48,7 @@ export interface RielCamaraProps {
   /** Enter o espacio: el producto que la cámara tiene delante (posición x y balda). */
   onActivar?: (x: number, fila: number) => void;
   inicio?: { x: number; fila: number };
+  destino?: { x: number; fila: number };
   onMirar?: (x: number, fila: number) => void;
   vistaGeneral?: EncuadreGeneral;
   onIntroduccionTerminada?: () => void;
@@ -67,6 +68,7 @@ export function RielCamara({
   activo = true,
   onActivar,
   inicio,
+  destino,
   onMirar,
   vistaGeneral,
   onIntroduccionTerminada,
@@ -98,10 +100,21 @@ export function RielCamara({
     [puntos, esquina, instantaneo, inicio],
   );
   const ultimaMirada = useRef<{ control: ControlRiel; x: number; fila: number } | null>(null);
+  const saltoAplicado = useRef<{ control: ControlRiel; destino: typeof destino } | null>(null);
 
   useLayoutEffect(() => {
     invalidar();
   }, [control, invalidar]);
+
+  useLayoutEffect(() => {
+    if (!activo || !destino) return;
+    if (saltoAplicado.current?.control === control && saltoAplicado.current.destino === destino)
+      return;
+    saltoAplicado.current = { control, destino };
+    finalizar();
+    control.irA(destino.x, destino.fila);
+    invalidar();
+  }, [activo, destino, control, finalizar, invalidar]);
 
   useEffect(() => {
     const el = gl.domElement;

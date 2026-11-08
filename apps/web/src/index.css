@@ -433,6 +433,48 @@ body {
   transform: none;
 }
 
+.dial-estanterias-control {
+  appearance: none;
+  margin: 0;
+  background: transparent;
+  touch-action: pan-y;
+  --color-dial: #0f8a4b;
+}
+
+.dial-estanterias[data-receta='true'] .dial-estanterias-control {
+  --color-dial: #b45309;
+}
+
+.dial-estanterias-control::-webkit-slider-runnable-track {
+  height: 44px;
+  background: transparent;
+}
+
+.dial-estanterias-control::-webkit-slider-thumb {
+  appearance: none;
+  width: 4px;
+  height: 36px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--color-dial);
+  box-shadow: 0 0 0 3px white;
+}
+
+.dial-estanterias-control::-moz-range-track {
+  height: 44px;
+  background: transparent;
+}
+
+.dial-estanterias-control::-moz-range-thumb {
+  width: 4px;
+  height: 36px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--color-dial);
+  box-shadow: 0 0 0 3px white;
+}
+
 /* El punto acompaña al ratón fuera de la mano 3D y no intercepta clics ni gestos. */
 html.cursor-punto-activo,
 html.cursor-punto-activo * {

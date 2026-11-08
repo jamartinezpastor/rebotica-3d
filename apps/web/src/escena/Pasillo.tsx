@@ -34,6 +34,7 @@ import { usePrecargaEstanterias } from './usePrecargaEstanterias';
 import type { EsquinaRiel } from './trayectoPasillo';
 import { encuadreGeneral } from './entradaPanoramica';
 import { Panoramica } from './Panoramica';
+import { agruparEstanterias } from './estanterias';
 
 /** Una balda del pasillo: su título (principio activo) y los productos que lleva. */
 export interface BaldaEscena {
@@ -45,7 +46,7 @@ export interface BaldaEscena {
 }
 
 /** Baldas por estantería: el plan usa estanterías de tres baldas. */
-export const BALDAS_POR_ESTANTERIA = 3;
+export { BALDAS_POR_ESTANTERIA } from './estanterias';
 /** Separación entre estanterías contiguas, de centro a centro. */
 export const SEPARACION_ESTANTERIAS = 1.4;
 
@@ -65,28 +66,13 @@ const DISTANCIA_FONDO = 9;
 const DISTANCIA_LATERAL = 7;
 const ALTURA_CAIDA = 0.35;
 
-function trocear<T>(lista: readonly T[], n: number): T[][] {
-  const trozos: T[][] = [];
-  for (let i = 0; i < lista.length; i += n) trozos.push(lista.slice(i, i + n));
-  return trozos;
-}
-
 /** Posiciones de reposo y orígenes de entrada de todas las estanterías. */
 export function modeloPasillo(
   baldas: readonly BaldaEscena[],
   geometria: GeometriaEstanteria,
 ): ModeloEstanteria[] {
   // La vitrina tiene su propia estructura: nunca compartir estantería con las baldas sin receta.
-  const grupos = [
-    ...trocear(
-      baldas.filter((b) => !b.receta),
-      BALDAS_POR_ESTANTERIA,
-    ),
-    ...trocear(
-      baldas.filter((b) => b.receta),
-      BALDAS_POR_ESTANTERIA,
-    ),
-  ];
+  const grupos = agruparEstanterias(baldas);
   const sinReceta = grupos.filter((g) => !g[0]?.receta).length;
   const hayEsquina = sinReceta > 0 && sinReceta < grupos.length;
   const separacionEsquina = hayEsquina ? 0.6 : 0;
@@ -169,6 +155,7 @@ export interface PasilloProps {
   /** Se llama al tocar una caja (con el producto) o al elegirla con el teclado. */
   onSeleccionar?: (producto: ProductoResumen) => void;
   registroInicial?: string | null;
+  destino?: { registro: string };
   onMirar?: (registro: string) => void;
   ligera?: boolean;
   introduccion?: boolean;
@@ -185,6 +172,7 @@ export function Pasillo({
   seleccionada = null,
   onSeleccionar,
   registroInicial,
+  destino: destinoNavegacion,
   onMirar,
   ligera = false,
   introduccion = false,
@@ -228,6 +216,10 @@ export function Pasillo({
         : undefined);
     return caja ? { x: caja.x, fila: caja.balda } : undefined;
   }, [ubicadas, registroInicial, modelo, sinEntrada]);
+  const salto = useMemo(() => {
+    const caja = ubicadas.find((c) => c.item.nregistro === destinoNavegacion?.registro);
+    return caja ? { x: caja.x, fila: caja.balda } : undefined;
+  }, [ubicadas, destinoNavegacion]);
   const [centro, setCentro] = useState(
     () => ubicadas.find((c) => c.item.nregistro === registroInicial)?.estanteria ?? 0,
   );
@@ -481,6 +473,7 @@ export function Pasillo({
         activo={mostrada === null}
         onActivar={activarPorTeclado}
         inicio={inicio}
+        destino={salto}
         onMirar={alMirar}
         vistaGeneral={introduccion ? general : undefined}
         onIntroduccionTerminada={onIntroduccionTerminada}

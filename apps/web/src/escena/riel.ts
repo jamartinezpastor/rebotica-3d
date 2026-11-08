@@ -323,6 +323,19 @@ export class ControlRiel {
     }
   }
 
+  /** Salta directamente a un destino válido y cancela cualquier inercia previa. */
+  irA(x: number, fila: number): void {
+    this.arrastrando = false;
+    this.eje = null;
+    this.filaObjetivo = acotar(Math.round(fila), 0, this.filas - 1);
+    this.objetivoX = puntoMasCercano(this.puntosDe(this.filaObjetivo), x);
+    // Un salto del dial no recorre todas las estanterías intermedias.
+    this.x = this.objetivoX;
+    this.fila = this.filaObjetivo;
+    this.vx = 0;
+    this.vFila = 0;
+  }
+
   /** Cambia de balda y reajusta la posición al producto más cercano de la nueva balda. */
   irAFila(fila: number): void {
     this.filaObjetivo = acotar(Math.round(fila), 0, this.filas - 1);

@@ -25,6 +25,8 @@ import { VistaLista } from './escena/VistaLista';
 import { useEstadoApi } from './useEstadoApi';
 import { agruparBaldas, esAgrupacion, type Agrupacion } from './escena/agrupacion';
 import { SelectorAgrupacion } from './escena/SelectorAgrupacion';
+import { DialEstanterias } from './escena/DialEstanterias';
+import { destinosEstanterias } from './escena/estanterias';
 import { ConsultaGuiada } from './mostrador/ConsultaGuiada';
 import { FondoFarmacia } from './escena/FondoFarmacia';
 import { MarcaInicio } from './MarcaInicio';
@@ -162,19 +164,35 @@ function VistaEscena({
   const [registroInicial, setRegistroInicial] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const recolocar = useRef(false);
-  const alMirar = useCallback((registro: string) => {
-    mirada.current = registro;
-  }, []);
+  const [estanteriaActual, setEstanteriaActual] = useState(0);
+  const [destinoEstanteria, setDestinoEstanteria] = useState<{ registro: string }>();
   const fuente = useMemo(
     () => (!demo && remoto.tipo === 'listo' ? remoto.baldas : demo ? baldasDemoMemo : []),
     [demo, remoto, baldasDemoMemo],
   );
   const baldas = useMemo(() => agruparBaldas(fuente, agrupacion), [fuente, agrupacion]);
   const destinos = useMemo(() => destinosGrupos(baldas), [baldas]);
+  const estanterias = useMemo(() => destinosEstanterias(baldas), [baldas]);
+  const estanteriaPorRegistro = useMemo(
+    () =>
+      new Map(
+        estanterias.flatMap((est, i) => est.registros.map((registro) => [registro, i] as const)),
+      ),
+    [estanterias],
+  );
+  const alMirar = useCallback(
+    (registro: string) => {
+      mirada.current = registro;
+      setEstanteriaActual(estanteriaPorRegistro.get(registro) ?? 0);
+    },
+    [estanteriaPorRegistro],
+  );
 
   const reiniciarRecorrido = () => {
     terminarIntroduccion();
     setRegistroInicial(null);
+    setDestinoEstanteria(undefined);
+    setEstanteriaActual(0);
     mirada.current = null;
     listaGuardada.current = null;
     setRevision((n) => n + 1);
@@ -192,6 +210,7 @@ function VistaEscena({
   const totalCajas = baldas.reduce((n, b) => n + b.productos.length, 0);
   const cambiarVista = (siguiente: VistaElegida) => {
     terminarIntroduccion();
+    setDestinoEstanteria(undefined);
     if (vista === 'lista') {
       const registro =
         registroVisible(
@@ -216,6 +235,7 @@ function VistaEscena({
   };
   const irAGrupo = (registro: string) => {
     terminarIntroduccion();
+    setDestinoEstanteria(undefined);
     const i = indiceDeRegistro(baldas, registro);
     if (i < 0) return;
     setRegistroInicial(registro);
@@ -291,6 +311,7 @@ function VistaEscena({
             onFps={midiendo ? setFps : undefined}
             onLento={() => setLento(true)}
             registroInicial={registroInicial}
+            destino={destinoEstanteria}
             onMirar={alMirar}
             calidadInicial={capacidad.nivel === 'bajo' ? 'ligera' : 'normal'}
             introduccion={introduccion}
@@ -328,7 +349,7 @@ function VistaEscena({
       {
         <div
           inert={!!seleccion.producto}
-          className={`${seleccion.producto ? 'invisible' : ''} z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3' : ''}`}
+          className={`${seleccion.producto ? 'invisible' : ''} z-10 space-y-2 p-3 ${vista === '3d' ? 'pointer-events-none absolute inset-x-0 bottom-3 pb-[max(12px,env(safe-area-inset-bottom))]' : ''}`}
         >
           {comparados.length > 0 && (
             <div
@@ -354,6 +375,19 @@ function VistaEscena({
             >
               Demostración: pendiente de validación farmacéutica
             </p>
+          )}
+          {vista === '3d' && !introduccion && (
+            <DialEstanterias
+              estanterias={estanterias}
+              actual={estanteriaActual}
+              onIr={(indice) => {
+                const registro = estanterias[indice]?.registro;
+                if (!registro) return;
+                setEstanteriaActual(indice);
+                mirada.current = registro;
+                setDestinoEstanteria({ registro });
+              }}
+            />
           )}
         </div>
       }

@@ -15,6 +15,7 @@ vi.mock('../src/escena/Escena', () => ({
   default: ({
     baldas = [],
     registroInicial,
+    destino,
     onMirar,
     introduccion,
     onIntroduccionTerminada,
@@ -22,6 +23,7 @@ vi.mock('../src/escena/Escena', () => ({
     <div
       data-testid="escena-prueba"
       data-inicial={registroInicial}
+      data-destino={destino?.registro}
       data-introduccion={introduccion}
     >
       {introduccion && <button onClick={onIntroduccionTerminada}>Terminar panorámica</button>}
@@ -80,6 +82,27 @@ function preparar(consulta = false) {
   return { productos, peticiones };
 }
 describe('exploración por grupos y posición conservada', () => {
+  it('el dial salta a la vitrina sin remontar la escena, sigue el recorrido y conserva el destino al pasar a lista', async () => {
+    const { productos, peticiones } = preparar();
+    window.history.replaceState(null, '', '/escena?vista=3d');
+    render(<App />);
+    const escena = await screen.findByTestId('escena-prueba');
+    const dial = screen.getByRole('slider', { name: 'Ir a estantería' });
+    expect(dial).toHaveProperty('max', '5');
+    fireEvent.change(dial, { target: { value: '5' } });
+    expect(screen.getByTestId('escena-prueba')).toBe(escena);
+    expect(escena.dataset.destino).toBe('demo-76');
+    expect(dial.getAttribute('aria-valuetext')).toContain('Con receta');
+    fireEvent.click(within(escena).getByRole('button', { name: `Mirar ${productos[0]!.nombre}` }));
+    expect(dial).toHaveProperty('value', '0');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Elegir estantería' }), {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ver como lista' }));
+    expect(document.activeElement?.getAttribute('data-registro')).toBe('demo-76');
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(peticiones).toHaveBeenCalledTimes(1);
+  });
   it('consume la entrada desde landing y no la repite al alternar entre lista y 3D', async () => {
     preparar();
     window.history.replaceState(null, '', '/escena?vista=3d&entrada=1');

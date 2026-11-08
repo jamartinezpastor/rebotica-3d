@@ -424,7 +424,7 @@ describe('PanelFicha', () => {
     expect(screen.getByText('Código nacional: 123456')).toBeTruthy();
     expect(screen.getByText('Sin fecha de fin prevista.')).toBeTruthy();
     expect(screen.getByText('Observación ficticia de la AEMPS.')).toBeTruthy();
-    expect(screen.getByText(/No indica existencias en farmacias/)).toBeTruthy();
+    expect(screen.queryByText(/No indica existencias en farmacias/)).toBeNull();
     expect(screen.getByText(/más de 48 horas/)).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Seguridad: notas de seguridad' }));
     expect(screen.getByText('Aviso de seguridad ficticio')).toBeTruthy();

@@ -64,6 +64,27 @@ describe('pasoMuelle', () => {
 });
 
 describe('puntos del raíl', () => {
+  it('salta a una estantería lejana, cancela la inercia y permite seguir navegando desde ella', () => {
+    const c = new ControlRiel({
+      puntos: [
+        [0, 1, 200, 201],
+        [0.5, 200.5],
+      ],
+    });
+    c.encuadrar(0.002);
+    c.empezarArrastre();
+    c.moverArrastre(-100, 0, 0.1);
+    c.irA(200.5, 1);
+    c.terminarArrastre();
+    expect(c.x).toBe(200.5);
+    expect(c.fila).toBe(1);
+    expect(c.enMovimiento()).toBe(false);
+    c.teclado('ArrowDown');
+    c.teclado('ArrowRight');
+    reposar(c);
+    expect(c.x).toBeCloseTo(201);
+    expect(c.fila).toBeCloseTo(0);
+  });
   it('restaura la balda y la posición de un producto, ajustada a un destino válido', () => {
     const c = new ControlRiel({ puntos: PUNTOS, filaInicial: 2, xInicial: 0.44 });
     expect(c.fila).toBe(2);

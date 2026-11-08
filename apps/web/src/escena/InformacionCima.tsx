@@ -24,10 +24,6 @@ export function Suministro({ ficha }: { ficha: ProductoResponse }) {
   return (
     <>
       <h3 className="text-base font-semibold">Suministro</h3>
-      <p className="text-sm text-tinta-suave">
-        Incidencias notificadas en España. No indica existencias en farmacias ni disponibilidad por
-        comunidad autónoma.
-      </p>
       {!datos ? (
         <p role="status">
           {ficha.problemaSuministro
