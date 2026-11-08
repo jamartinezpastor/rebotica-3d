@@ -4,9 +4,111 @@ import { modeloPasillo, datosRiel } from '../src/escena/Pasillo';
 import { baldasDemo, vitrinaDemo } from '../src/escena/demo';
 import { geometriaEstanteria } from '../src/escena/geometria';
 import { geometriaVitrina } from '../src/escena/vitrina';
+import { ControlRiel } from '../src/escena/riel';
 
 const geometria = geometriaEstanteria();
+function arrastrarEsquina(control: ControlRiel, pixeles: number) {
+  control.empezarArrastre();
+  for (let i = 0; i < 20; i++) control.moverArrastre(pixeles / 20, 0, 0.05);
+  control.terminarArrastre();
+  for (let i = 0; i < 180; i++) control.actualizar(1 / 60);
+}
+
 describe('esquina entre sin receta y vitrina', () => {
+  it('permite continuar por teclado si se interrumpe el movimiento dentro de la esquina', () => {
+    const control = new ControlRiel({
+      puntos: [
+        [-0.2, 0],
+        [1.5, 1.7],
+      ],
+      esquina: { inicio: 0, fin: 1.5, x: 1 },
+      instantaneo: true,
+    });
+    control.x = 0.7;
+    control.empezarArrastre();
+    control.terminarArrastre();
+    control.teclado('ArrowRight');
+    control.actualizar(1 / 60);
+    expect(control.x).toBe(1.5);
+    expect(control.fila).toBe(1);
+  });
+  it.each([0, 1, 2])(
+    'un arrastre moderado cruza desde la fila %i aunque la vitrina solo tenga una balda',
+    (fila) => {
+      const riel = datosRiel(
+        modeloPasillo([...baldasDemo(36), ...vitrinaDemo()], geometria),
+        geometria,
+      );
+      const esquina = riel.esquina!;
+      const ultimo = riel.puntos[fila]!.filter((x) => x <= esquina.inicio).at(-1)!;
+      const control = new ControlRiel({ ...riel, filaInicial: fila, xInicial: ultimo });
+      control.encuadrar(0.002);
+      arrastrarEsquina(control, -160);
+      expect(control.x).toBeGreaterThanOrEqual(esquina.fin - 1e-6);
+      expect(control.fila).toBeCloseTo(0);
+      expect(control.enMovimiento()).toBe(false);
+      arrastrarEsquina(control, 160);
+      expect(control.x).toBeLessThanOrEqual(esquina.inicio + 1e-6);
+      expect(control.enMovimiento()).toBe(false);
+    },
+  );
+
+  it('el teclado permite entrar desde una altura sin productos en la pared siguiente', () => {
+    const riel = datosRiel(
+      modeloPasillo([...baldasDemo(36), ...vitrinaDemo()], geometria),
+      geometria,
+    );
+    const ultimo = riel.puntos[1]!.at(-1)!;
+    const control = new ControlRiel({
+      ...riel,
+      filaInicial: 1,
+      xInicial: ultimo,
+      instantaneo: true,
+    });
+    control.teclado('ArrowRight');
+    control.actualizar(1 / 60);
+    expect(control.x).toBeGreaterThanOrEqual(riel.esquina!.fin);
+    expect(control.fila).toBe(0);
+  });
+  it.each([0.8, 1, 1.4])('cruza con un gesto moderado en ambos sentidos y con zoom %s', (zoom) => {
+    const control = new ControlRiel({
+      puntos: [
+        [-0.2, 0],
+        [1.5, 1.7],
+      ],
+      esquina: { inicio: 0, fin: 1.5, x: 1 },
+    });
+    control.encuadrar(0.002 * zoom);
+    control.teclado('End');
+    for (let i = 0; i < 180; i++) control.actualizar(1 / 60);
+    arrastrarEsquina(control, -160);
+    expect(control.x).toBeCloseTo(1.5);
+    expect(control.fila).toBeCloseTo(1);
+    arrastrarEsquina(control, 160);
+    expect(control.x).toBeCloseTo(0);
+    expect(control.fila).toBeCloseTo(0);
+  });
+  it('no cruza con un roce corto y permite volver con teclado desde una fila sin continuidad', () => {
+    const control = new ControlRiel({
+      puntos: [
+        [-0.2, 0],
+        [1.5, 1.7],
+      ],
+      xInicial: 0,
+      instantaneo: true,
+      esquina: { inicio: 0, fin: 1.5, x: 1 },
+    });
+    control.encuadrar(0.002);
+    arrastrarEsquina(control, -20);
+    expect(control.x).toBe(0);
+    control.teclado('ArrowRight');
+    control.actualizar(1 / 60);
+    expect(control.x).toBe(1.5);
+    control.teclado('ArrowLeft');
+    control.actualizar(1 / 60);
+    expect(control.x).toBe(0);
+    expect(control.fila).toBe(0);
+  });
   it('coloca la vitrina perpendicular a las baldas abiertas, sin mezclar productos', () => {
     const modelo = modeloPasillo([...baldasDemo(36), ...vitrinaDemo()], geometria);
     const normales = modelo.filter((e) => !e.receta);

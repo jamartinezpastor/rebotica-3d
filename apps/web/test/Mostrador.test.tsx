@@ -19,6 +19,32 @@ afterEach(() => {
 });
 
 describe('Mostrador F4-01', () => {
+  it('Enter envía una consulta válida una sola vez y evita el salto de línea', () => {
+    const onContinuar = vi.fn();
+    render(<Mostrador directo onContinuar={onContinuar} />);
+    fireEvent.change(entrada(), { target: { value: 'Consulta ficticia' } });
+    expect(fireEvent.keyDown(entrada(), { key: 'Enter' })).toBe(false);
+    expect(onContinuar).toHaveBeenCalledExactlyOnceWith({
+      origen: 'texto',
+      texto: 'Consulta ficticia',
+    });
+    fireEvent.keyDown(entrada(), { key: 'Enter', repeat: true });
+    expect(onContinuar).toHaveBeenCalledTimes(1);
+    expect(entrada().value).toBe('Consulta ficticia');
+  });
+
+  it('Enter respeta la composición del teclado y valida las consultas vacías', () => {
+    const onContinuar = vi.fn();
+    render(<Mostrador directo onContinuar={onContinuar} />);
+    fireEvent.change(entrada(), { target: { value: 'Consulta ficticia' } });
+    fireEvent.keyDown(entrada(), { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(entrada(), { key: 'Enter', keyCode: 229 });
+    expect(onContinuar).not.toHaveBeenCalled();
+    fireEvent.change(entrada(), { target: { value: '  ' } });
+    fireEvent.keyDown(entrada(), { key: 'Enter' });
+    expect(onContinuar).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('Escribe una consulta');
+  });
   it('permite escribir sin dictado y muestra 4 chips iniciales y los 14 al desplegar', () => {
     render(<Mostrador />);
     expect(screen.queryByRole('button', { name: 'Dictar consulta' })).toBeNull();

@@ -1,9 +1,10 @@
 import { medicamento, syncEstado, type Db } from '@rebotica/db';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { ClienteCima } from './cliente';
 import { urlFichaTecnica, urlMedicamento, urlRegistroCambios } from './cima';
 import { Detalle, PaginaCambios, SeccionesFT } from './esquemas';
 import { guardarMedicamento, sincronizar, type BaseDatos, type Informe } from './sync';
+import { obtenerInformacionCima } from './seguridad';
 
 const CLAVE_ULTIMA = 'cima.ultima_sincronizacion';
 const CLAVE_CARGA = 'cima.carga_completa_desde';
@@ -11,7 +12,14 @@ const DIA_MS = 24 * 60 * 60 * 1000;
 const MAX_ERRORES_INFORME = 50;
 
 /** Cambios de CIMA que obligan a releer un medicamento que ya tenemos. */
-const CAMBIOS_RELEVANTES = new Set(['ft', 'estado', 'comerc', 'psum']);
+const CAMBIOS_RELEVANTES = new Set([
+  'ft',
+  'estado',
+  'comerc',
+  'psum',
+  'notasSeguridad',
+  'informacionCima',
+]);
 
 export interface InformeCambios {
   desde: string;
@@ -59,7 +67,7 @@ export async function sincronizarCambios(
   db: BaseDatos,
   cliente: ClienteCima,
   desde: Date,
-  opciones: { log?: (mensaje: string) => void } = {},
+  opciones: { log?: (mensaje: string) => void; completarInformacion?: boolean } = {},
 ): Promise<InformeCambios> {
   const inicio = Date.now();
   const log = opciones.log ?? (() => {});
@@ -101,6 +109,32 @@ export async function sincronizarCambios(
       cambios.set(c.nregistro, previo);
     }
     if (pagina * datos.tamanioPagina >= datos.totalFilas) break;
+  }
+
+  // Completa la copia existente tras desplegar esta función y reintenta consultas fallidas.
+  if (opciones.completarInformacion) {
+    const pendientes = await conexion
+      .select({ nregistro: medicamento.nregistro })
+      .from(medicamento)
+      .where(
+        and(
+          eq(medicamento.comerc, true),
+          sql`(
+        ${medicamento.informacionCima} IS NULL OR
+        ${medicamento.informacionCima}->>'suministro' IS NULL OR
+        ${medicamento.informacionCima}->>'seguridad' IS NULL
+      )`,
+        ),
+      );
+    for (const { nregistro } of pendientes) {
+      const cambio = cambios.get(nregistro) ?? {
+        alta: false,
+        baja: false,
+        campos: new Set<string>(),
+      };
+      cambio.campos.add('informacionCima');
+      cambios.set(nregistro, cambio);
+    }
   }
 
   // 2. Releer los conocidos y las altas o cambios de estado de ambos catálogos.
@@ -153,7 +187,10 @@ export async function sincronizarCambios(
         if (anterior && !anterior.receta) informe.ahoraConReceta++;
       }
       const secciones = (await cliente.obtener(urlFichaTecnica(nregistro), SeccionesFT)) ?? [];
-      const resultado = await guardarMedicamento(conexion, detalle, secciones);
+      const informacion = await obtenerInformacionCima(cliente, detalle, (contexto, error) =>
+        log(`información adicional pendiente en ${contexto}: ${String(error)}`),
+      );
+      const resultado = await guardarMedicamento(conexion, detalle, secciones, informacion);
       informe.reglasARevisar += resultado.reglasARevisar;
       if (esConocido) informe.releidos++;
       else informe.nuevos++;
@@ -232,6 +269,7 @@ export async function sincronizacionDiaria(
 
   const informe = await sincronizarCambios(db, cliente, new Date(ultima.getTime() - DIA_MS), {
     log: opciones.log,
+    completarInformacion: true,
   });
   if (informe.errores.length === 0) await guardarUltimaSincronizacion(db, arranque);
   return { modo: 'cambios', informe };

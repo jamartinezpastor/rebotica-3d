@@ -71,3 +71,9 @@ export function urlRegistroCambios(desde: Date, pagina?: number): URL {
 export function urlProblemasSuministro(codigoNacional: string): URL {
   return new URL(`psuministro/${encodeURIComponent(codigoNacional)}`, CIMA_BASE);
 }
+
+export function urlNotasSeguridad(nregistro: string): URL {
+  const url = new URL('notas', CIMA_BASE);
+  url.searchParams.set('nregistro', nregistro);
+  return url;
+}

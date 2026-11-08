@@ -389,6 +389,53 @@ describe('GET /api/pasillos/:id', () => {
 });
 
 describe('GET /api/productos/:nregistro', () => {
+  it('sirve la información de CIMA desde la copia local y rechaza datos guardados inválidos', async () => {
+    const informacionCima = {
+      suministro: {
+        consultadoEn: '2026-01-01T12:00:00.000Z',
+        incidencias: [
+          {
+            cn: '100101',
+            nombre: 'Envase ficticio',
+            inicio: null,
+            finPrevisto: null,
+            observaciones: 'Incidencia ficticia',
+          },
+        ],
+      },
+      seguridad: {
+        consultadoEn: '2026-01-01T12:00:00.000Z',
+        notas: [
+          {
+            referencia: 'FICTICIA',
+            asunto: 'Nota ficticia',
+            fecha: null,
+            url: 'https://www.aemps.gob.es/nota-ficticia',
+          },
+        ],
+      },
+    };
+    try {
+      await db
+        .update(medicamento)
+        .set({ informacionCima })
+        .where(eq(medicamento.nregistro, '1001'));
+      const respuesta = ProductoResponse.parse((await get('/api/productos/1001')).json());
+      expect(respuesta.informacionCima).toEqual(informacionCima);
+      await db
+        .update(medicamento)
+        .set({ informacionCima: { seguridad: 'dato inválido' } })
+        .where(eq(medicamento.nregistro, '1001'));
+      expect(
+        ProductoResponse.parse((await get('/api/productos/1001')).json()).informacionCima,
+      ).toBeNull();
+    } finally {
+      await db
+        .update(medicamento)
+        .set({ informacionCima: null })
+        .where(eq(medicamento.nregistro, '1001'));
+    }
+  });
   it('devuelve la ficha con secciones, presentaciones comercializadas y regla vigente', async () => {
     const res = await get('/api/productos/1001');
     expect(res.statusCode).toBe(200);

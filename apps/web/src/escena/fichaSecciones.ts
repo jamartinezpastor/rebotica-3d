@@ -80,3 +80,19 @@ export function esEnlaceCima(url: string): boolean {
     return false;
   }
 }
+
+export function esEnlaceAemps(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === 'https:' &&
+      !u.username &&
+      !u.password &&
+      (u.hostname === 'aemps.gob.es' ||
+        u.hostname.endsWith('.aemps.gob.es') ||
+        u.hostname === 'cima.aemps.es')
+    );
+  } catch {
+    return false;
+  }
+}

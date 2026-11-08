@@ -1,4 +1,4 @@
-import { AVISO_LEGAL, type ProductoResumen } from '@rebotica/shared';
+import { AVISO_FICHA, type ProductoResumen } from '@rebotica/shared';
 import { lazy, Suspense, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { esEnlaceCima, pestanasDe, type IdPestana, type SeccionMostrada } from './fichaSecciones';
 import { useFicha } from './useFicha';
@@ -6,7 +6,9 @@ import { AvisoReceta } from './AvisoReceta';
 import { instalarCierreExterior } from './cierreExterior';
 import { FotoOficial } from './FotoOficial';
 import { CargaVisual } from './CargaVisual';
-import { EnlaceInformacion } from '../EnlaceInformacion';
+import { NotasSeguridad, Suministro } from './InformacionCima';
+import { IconoFicha } from './IconoFicha';
+type PestanaFicha = IdPestana | 'suministro' | 'seguridad';
 const CalculadoraDosis = lazy(() => import('./CalculadoraDosis'));
 
 export interface PanelFichaProps {
@@ -31,10 +33,12 @@ function Parrafos({ lista }: { lista: string[] }) {
   );
 }
 
-function Seccion({ seccion, abierta }: { seccion: SeccionMostrada; abierta: boolean }) {
+function Seccion({ seccion }: { seccion: SeccionMostrada }) {
   return (
-    <details open={abierta} className="rounded-xl bg-black/[0.03] p-3">
-      <summary className="min-h-8 cursor-pointer text-base font-semibold">{seccion.titulo}</summary>
+    <details className="rounded-xl bg-black/[0.03] p-3">
+      <summary className="min-h-11 cursor-pointer content-center text-base font-semibold">
+        {seccion.titulo}
+      </summary>
       <div className="mt-2 space-y-3">
         {seccion.resumenLlano && (
           <div>
@@ -79,7 +83,13 @@ export function PanelFicha({
   const panel = useRef<HTMLDivElement>(null);
   const id = useId();
   const estado = useFicha(producto.nregistro);
-  const [activa, setActiva] = useState<IdPestana>('uso');
+  const [activa, setActiva] = useState<PestanaFicha>('uso');
+  const [apertura, setApertura] = useState(0);
+  const abrirPestana = (pestana: PestanaFicha) => {
+    setActiva(pestana);
+    // También reinicia los desplegables al volver a pulsar el icono activo.
+    setApertura((valor) => valor + 1);
+  };
 
   // Al abrir la ficha el foco pasa a ella: el lector de pantalla anuncia su título.
   useEffect(() => {
@@ -96,23 +106,32 @@ export function PanelFicha({
   }, [onVolver]);
 
   const pestanas = estado.tipo === 'listo' ? pestanasDe(estado.ficha) : [];
-  const orden: IdPestana[] = ['uso', 'precauciones', 'dosis'];
-  const etiquetas: Record<IdPestana, string> = {
+  const orden: PestanaFicha[] = ['uso', 'precauciones', 'dosis', 'suministro', 'seguridad'];
+  const etiquetas: Record<PestanaFicha, string> = {
     uso: 'Uso',
-    precauciones: 'Precauciones',
+    precauciones: 'Avisos y precauciones',
     dosis: 'Dosis',
+    suministro: 'Suministro',
+    seguridad: 'Seguridad: notas de seguridad',
+  };
+  const etiquetasBreves: Record<PestanaFicha, string> = {
+    uso: 'Uso',
+    precauciones: 'Avisos',
+    dosis: 'Dosis',
+    suministro: 'Suministro',
+    seguridad: 'Seguridad',
   };
 
   const alTeclear = (e: KeyboardEvent<HTMLButtonElement>) => {
     const i = orden.indexOf(activa);
-    let siguiente: IdPestana | null = null;
+    let siguiente: PestanaFicha | null = null;
     if (e.key === 'ArrowRight') siguiente = orden[(i + 1) % orden.length] ?? null;
     if (e.key === 'ArrowLeft') siguiente = orden[(i + orden.length - 1) % orden.length] ?? null;
     if (e.key === 'Home') siguiente = orden[0] ?? null;
     if (e.key === 'End') siguiente = orden.at(-1) ?? null;
     if (!siguiente) return;
     e.preventDefault();
-    setActiva(siguiente);
+    abrirPestana(siguiente);
     document.getElementById(`${id}-tab-${siguiente}`)?.focus();
   };
 
@@ -246,7 +265,7 @@ export function PanelFicha({
                 role="status"
                 className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-aviso ring-1 ring-amber-200"
               >
-                Hay problemas de suministro de este medicamento: puede que no lo encuentres.
+                Hay problemas de suministro notificados. Consulta la pestaña Suministro.
               </p>
             )}
           </header>
@@ -254,7 +273,7 @@ export function PanelFicha({
           <div
             role="tablist"
             aria-label="Información del producto"
-            className="ficha-pestanas sticky top-0 z-10 mt-2 flex gap-1 bg-white px-4 py-2"
+            className="ficha-pestanas sticky top-0 z-10 mt-2 grid grid-cols-5 gap-1 bg-white px-4 py-2"
           >
             {orden.map((p) => (
               <button
@@ -262,21 +281,25 @@ export function PanelFicha({
                 id={`${id}-tab-${p}`}
                 type="button"
                 role="tab"
+                aria-label={etiquetas[p]}
+                title={etiquetas[p]}
                 aria-selected={activa === p}
                 aria-controls={`${id}-panel`}
                 tabIndex={activa === p ? 0 : -1}
-                onClick={() => setActiva(p)}
+                onClick={() => abrirPestana(p)}
                 onKeyDown={alTeclear}
-                className={`min-h-11 flex-1 rounded-lg px-2 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz ${
+                className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-lg py-2 text-[11px] leading-tight font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz ${
                   activa === p ? 'bg-cruz text-white' : 'bg-black/5 text-tinta'
                 }`}
               >
-                {etiquetas[p]}
+                <IconoFicha tipo={p} />
+                <span>{etiquetasBreves[p]}</span>
               </button>
             ))}
           </div>
 
           <div
+            key={`${producto.nregistro}-${activa}-${apertura}`}
             id={`${id}-panel`}
             role="tabpanel"
             aria-labelledby={`${id}-tab-${activa}`}
@@ -291,6 +314,8 @@ export function PanelFicha({
                   : 'No se pudo cargar la ficha de este producto. Inténtalo de nuevo en unos minutos.'}
               </p>
             )}
+            {ficha && activa === 'suministro' && <Suministro ficha={ficha} />}
+            {ficha && activa === 'seguridad' && <NotasSeguridad ficha={ficha} />}
             {ficha && activa === 'dosis' && !ficha.reglaDosis && (
               <p className="rounded-lg bg-cruz-claro px-3 py-2 text-sm text-tinta">
                 Esta es la posología oficial de la ficha técnica, no una pauta personalizada. La
@@ -305,17 +330,24 @@ export function PanelFicha({
               </p>
             )}
             {ficha && activa === 'dosis' && ficha.reglaDosis !== null && (
-              <Suspense fallback={<p role="status">Preparando la calculadora…</p>}>
-                <CalculadoraDosis ficha={ficha} />
-              </Suspense>
+              <details className="rounded-xl bg-black/[0.03] p-3">
+                <summary className="min-h-11 cursor-pointer content-center text-base font-semibold">
+                  Calculadora de dosis
+                </summary>
+                <div className="mt-2">
+                  <Suspense fallback={<p role="status">Preparando la calculadora…</p>}>
+                    <CalculadoraDosis ficha={ficha} />
+                  </Suspense>
+                </div>
+              </details>
             )}
             {ficha && pestanaActiva && pestanaActiva.secciones.length === 0 && (
               <p className="text-base text-tinta-suave">
                 No hay información de este apartado. Consulta el prospecto oficial.
               </p>
             )}
-            {pestanaActiva?.secciones.map((s, i) => (
-              <Seccion key={s.seccion} seccion={s} abierta={i === 0} />
+            {pestanaActiva?.secciones.map((s) => (
+              <Seccion key={s.seccion} seccion={s} />
             ))}
           </div>
         </div>
@@ -345,8 +377,7 @@ export function PanelFicha({
               )}
             </p>
           )}
-          <p className="text-sm text-tinta-suave">{AVISO_LEGAL}</p>
-          <EnlaceInformacion nuevaPestana />
+          <p className="text-sm text-tinta-suave">{AVISO_FICHA}</p>
         </footer>
       </div>
     </section>

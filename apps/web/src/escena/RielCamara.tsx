@@ -4,6 +4,7 @@ import type { PerspectiveCamera } from 'three';
 import { ControlRiel, distanciaRiel, metrosPorPixel, puntoMasCercano } from './riel';
 import { marcoEnRiel, type EsquinaRiel } from './trayectoPasillo';
 import { DURACION_PANORAMICA, posePanoramica, type EncuadreGeneral } from './entradaPanoramica';
+import { instalarPellizco, ZoomEstanterias } from './zoomEstanterias';
 
 /** Cuánto por encima del centro de la balda se coloca el ojo de la cámara. */
 const ELEVACION_OJO = 0.05;
@@ -26,7 +27,7 @@ function prepararLienzo(el: HTMLCanvasElement): void {
   el.setAttribute('role', 'application');
   el.setAttribute(
     'aria-label',
-    'Estanterías en 3D. Flechas izquierda y derecha: cambiar de producto. Flechas arriba y abajo: cambiar de balda.',
+    'Estanterías en 3D. Flechas izquierda y derecha: cambiar de producto. Flechas arriba y abajo: cambiar de balda. Rueda o pellizco con dos dedos: acercar y alejar. Teclas más y menos: zoom. Cero: restablecer la vista.',
   );
 }
 
@@ -55,7 +56,7 @@ export interface RielCamaraProps {
 
 /**
  * Cámara sobre raíl: el gesto horizontal la desplaza con inercia y se ajusta a cada producto, el
- * vertical cambia de balda y en escritorio funcionan las flechas y la rueda. No hay cámara libre.
+ * vertical cambia de balda; la rueda y el pellizco ajustan la distancia. No hay cámara libre.
  * Conecta los eventos del lienzo con `ControlRiel` y lo aplica a la cámara en cada fotograma.
  */
 export function RielCamara({
@@ -75,6 +76,7 @@ export function RielCamara({
   const size = useThree((s) => s.size);
   const invalidar = useThree((s) => s.invalidate);
   const panorama = useRef({ inicio: null as number | null, terminada: false, detalle: false });
+  const zoom = useRef(new ZoomEstanterias());
   const finalizar = useCallback(() => {
     if (!vistaGeneral || panorama.current.terminada) return false;
     panorama.current.terminada = true;
@@ -87,12 +89,13 @@ export function RielCamara({
     () =>
       new ControlRiel({
         puntos,
+        esquina,
         instantaneo,
         // Se empieza a la altura de los ojos: la balda del medio si hay tres.
         filaInicial: inicio?.fila ?? Math.min(1, Math.max(0, puntos.length - 1)),
         xInicial: inicio?.x,
       }),
-    [puntos, instantaneo, inicio],
+    [puntos, esquina, instantaneo, inicio],
   );
   const ultimaMirada = useRef<{ control: ControlRiel; x: number; fila: number } | null>(null);
 
@@ -133,6 +136,14 @@ export function RielCamara({
     };
     const tecla = (e: KeyboardEvent) => {
       if (!activo || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (['+', '=', '-', '0'].includes(e.key)) {
+        e.preventDefault();
+        if (finalizar()) return;
+        if (e.key === '0') zoom.current.restablecer();
+        else zoom.current.ajustar(e.key === '-' ? 1.1 : 1 / 1.1);
+        invalidar();
+        return;
+      }
       if (
         ['Enter', ' ', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
           e.key,
@@ -156,9 +167,32 @@ export function RielCamara({
       if (!activo) return;
       e.preventDefault();
       if (finalizar()) return;
-      control.rueda(e.deltaX, e.deltaY, e.timeStamp);
+      if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        control.rueda(e.deltaX, 0, e.timeStamp);
+      } else {
+        zoom.current.rueda(e.deltaY, e.deltaMode, size.height);
+      }
       invalidar();
     };
+
+    const quitarPellizco = activo
+      ? instalarPellizco(
+          el,
+          () => {
+            finalizar();
+            puntero = null;
+            // Descarta la velocidad del arrastre de un dedo al empezar el gesto de dos.
+            control.empezarArrastre();
+            control.terminarArrastre();
+            cursorLienzo(el, 'grab');
+            invalidar();
+          },
+          (proporcion) => {
+            zoom.current.ajustar(proporcion);
+            invalidar();
+          },
+        )
+      : undefined;
 
     el.addEventListener('pointerdown', abajo);
     el.addEventListener('pointermove', mover);
@@ -168,6 +202,11 @@ export function RielCamara({
     // No pasivo: la rueda no debe desplazar la página mientras se recorre el pasillo.
     el.addEventListener('wheel', rueda, { passive: false });
     return () => {
+      quitarPellizco?.();
+      if (puntero !== null) {
+        control.terminarArrastre();
+        if (el.hasPointerCapture(puntero)) el.releasePointerCapture(puntero);
+      }
       el.removeEventListener('pointerdown', abajo);
       el.removeEventListener('pointermove', mover);
       el.removeEventListener('pointerup', soltar);
@@ -175,11 +214,13 @@ export function RielCamara({
       el.removeEventListener('keydown', tecla);
       el.removeEventListener('wheel', rueda);
     };
-  }, [gl, control, invalidar, activo, onActivar, finalizar]);
+  }, [gl, control, invalidar, activo, onActivar, finalizar, size.height]);
 
   useFrame(({ camera }, delta) => {
     const perspectiva = camera as PerspectiveCamera;
-    const distancia = distanciaRiel(perspectiva.fov, size.width / size.height);
+    const zoomEnMovimiento = zoom.current.actualizar(delta, instantaneo);
+    const distancia =
+      distanciaRiel(perspectiva.fov, size.width / size.height) * zoom.current.factor;
     control.encuadrar(metrosPorPixel(perspectiva.fov, distancia, size.height));
     control.actualizar(delta);
 
@@ -221,7 +262,7 @@ export function RielCamara({
       perspectiva.far = lejano;
       perspectiva.updateProjectionMatrix();
     }
-    if (control.enMovimiento()) invalidar();
+    if (control.enMovimiento() || zoomEnMovimiento) invalidar();
     const fila = Math.round(control.fila);
     const x = puntoMasCercano(control.puntosDe(fila), control.x);
     if (

@@ -163,11 +163,17 @@ export function Mostrador({
               autoComplete="off"
               spellCheck={false}
               autoCapitalize="sentences"
+              enterKeyHint="send"
               aria-describedby={`${id}-limite${borrador.mensaje ? ` ${id}-error` : ''}`}
               aria-invalid={!!borrador.mensaje}
               placeholder="Por ejemplo: me duele la garganta desde ayer."
               onChange={(e) => {
                 setBorrador({ texto: e.target.value, chip: null, mensaje: null });
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                e.preventDefault();
+                if (!e.repeat) e.currentTarget.form?.requestSubmit();
               }}
               className="mt-2 w-full resize-y rounded-2xl border border-cruz/40 bg-white p-4 text-lg placeholder:text-tinta-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cruz"
             />

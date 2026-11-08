@@ -12,6 +12,7 @@ import {
 import {
   formaCajaDesde,
   grupoAtc,
+  InformacionCima,
   type AssetCajaPublico,
   type ProductoResponse,
   type ProductoResumen,
@@ -351,6 +352,7 @@ export function crearCatalogo(db: BaseDatos, { ttlMs = 60_000 }: OpcionesCatalog
         conduccion: m.conduc,
         triangulo: m.triangulo,
         problemaSuministro: m.psum || presentaciones.some((p) => p.psum),
+        informacionCima: InformacionCima.safeParse(m.informacionCima).data ?? null,
         asset: aspectoDe(asset?.colorDominante, asset?.paleta, asset?.foto),
         presentaciones: presentaciones.map((p) => ({
           cn: p.cn,

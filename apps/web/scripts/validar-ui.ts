@@ -176,7 +176,39 @@ try {
     }
     if (url.pathname.startsWith('/api/productos/')) {
       const p = productosComparacion.find((p) => url.pathname.endsWith('/' + p.nregistro));
-      void responder(p ? fichaComparacion(p) : {}, p ? 200 : 404);
+      void responder(
+        p
+          ? {
+              ...fichaComparacion(p),
+              informacionCima: {
+                suministro: {
+                  consultadoEn: new Date().toISOString(),
+                  incidencias: [
+                    {
+                      cn: '000001',
+                      nombre: 'Envase ficticio para validación',
+                      inicio: '2026-01-01T12:00:00.000Z',
+                      finPrevisto: null,
+                      observaciones: 'Observación ficticia de suministro.',
+                    },
+                  ],
+                },
+                seguridad: {
+                  consultadoEn: new Date().toISOString(),
+                  notas: [
+                    {
+                      referencia: 'FICTICIA',
+                      asunto: 'Nota de seguridad ficticia para validación',
+                      fecha: '2026-01-01T12:00:00.000Z',
+                      url: 'https://www.aemps.gob.es/nota-ficticia',
+                    },
+                  ],
+                },
+              },
+            }
+          : {},
+        p ? 200 : 404,
+      );
       return;
     }
     if (url.pathname === '/media/miniaturas/validacion.svg') {
@@ -195,6 +227,12 @@ try {
   await page.goto(origen, { waitUntil: 'networkidle0' });
   await page.waitForSelector('textarea');
   await revisar(page, 'portada');
+  if (
+    await page.evaluate(() =>
+      /Servidor en marcha|Comprobando servidor/.test(document.body.innerText),
+    )
+  )
+    informe.errores.push('La portada de producción muestra el estado técnico del servidor.');
   await page.goto(`${origen}/informacion`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('dl');
   await revisar(page, 'informacion');
@@ -228,7 +266,7 @@ try {
     const focoFinal = await page.evaluate(() => document.activeElement?.textContent);
     if (!(await focoVisible(page)))
       informe.errores.push(`El último control de la ficha queda tapado (${width}x${height}).`);
-    if (focoFinal !== 'Privacidad y fuentes')
+    if (focoFinal !== 'Ficha técnica oficial')
       informe.errores.push(`La ficha no contiene el foco con Mayús+Tab (${width}x${height}).`);
     await page.keyboard.press('Tab');
     const focoInicio = await page.evaluate(() => document.activeElement?.textContent);
@@ -238,6 +276,20 @@ try {
       informe.errores.push(
         `La ficha no devuelve el foco a su primer control (${width}x${height}).`,
       );
+    for (const pestana of ['uso', 'precauciones', 'dosis', 'suministro', 'seguridad']) {
+      await page.click(`button[role="tab"][id$="-tab-${pestana}"]`);
+      if (await page.$('[role="tabpanel"] details[open]'))
+        informe.errores.push(`La sección ${pestana} abre subsecciones automáticamente.`);
+      await revisar(page, `ficha-${pestana}-${width}x${height}`);
+      const desplegable = await page.$('[role="tabpanel"] summary');
+      if (desplegable) {
+        await desplegable.click();
+        await page.waitForSelector('[role="tabpanel"] details[open]');
+        await page.click(`button[role="tab"][id$="-tab-${pestana}"]`);
+        if (await page.$('[role="tabpanel"] details[open]'))
+          informe.errores.push(`Repetir el icono de ${pestana} no cierra las subsecciones.`);
+      }
+    }
     await page.keyboard.press('Escape');
     await page.waitForSelector('section[role="dialog"]', { hidden: true });
     const devuelto = await page.evaluate(() =>
@@ -287,7 +339,113 @@ try {
   );
   informe.revisiones.push({ nombre: 'menos-movimiento', animacion });
   if (animacion !== 'none') informe.errores.push('La transición no respeta menos movimiento.');
-  await page.setViewport({ width: 390, height: 844 });
+  await page.setViewport({ width: 390, height: 844, hasTouch: true });
+  await page.goto(`${origen}/escena?vista=3d`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('canvas[role="application"]');
+  const leerCamara = () =>
+    page.$eval('.fondo-farmacia', (el) =>
+      (el as HTMLElement).style.getPropertyValue('--camara-farmacia'),
+    );
+  await page.waitForFunction(
+    () =>
+      !!(document.querySelector('.fondo-farmacia') as HTMLElement)?.style.getPropertyValue(
+        '--camara-farmacia',
+      ),
+  );
+  const camaraInicial = await leerCamara();
+  const esperarCambio = (anterior: string) =>
+    page.waitForFunction(
+      (valor) =>
+        (document.querySelector('.fondo-farmacia') as HTMLElement).style.getPropertyValue(
+          '--camara-farmacia',
+        ) !== valor,
+      {},
+      anterior,
+    );
+  await page.mouse.move(195, 380);
+  await page.mouse.wheel({ deltaY: 120 });
+  await esperarCambio(camaraInicial);
+  const camaraRueda = await leerCamara();
+  await page.focus('canvas[role="application"]');
+  await page.keyboard.press('0');
+  await page.waitForFunction(
+    (valor) =>
+      (document.querySelector('.fondo-farmacia') as HTMLElement).style.getPropertyValue(
+        '--camara-farmacia',
+      ) === valor,
+    {},
+    camaraInicial,
+  );
+  const cdp = await page.createCDPSession();
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: 150, y: 380, id: 1 }],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      { x: 150, y: 380, id: 1 },
+      { x: 240, y: 380, id: 2 },
+    ],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [
+      { x: 110, y: 380, id: 1 },
+      { x: 280, y: 380, id: 2 },
+    ],
+  });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await esperarCambio(camaraInicial);
+  const camaraPellizco = await leerCamara();
+  if (await page.$('section[role="dialog"]'))
+    informe.errores.push('El pellizco abrió una ficha accidentalmente.');
+  await cdp.detach();
+  informe.revisiones.push({
+    nombre: 'zoom-3d-rueda-y-pellizco',
+    camaraInicial,
+    camaraRueda,
+    camaraPellizco,
+  });
+  await page.screenshot({ path: resolve(salida, 'zoom-3d.png') });
+  await page.focus('canvas[role="application"]');
+  await page.keyboard.press('0');
+  const antesDeEsquina = await leerCamara();
+  // La fila central del catálogo de prueba no tiene productos con receta.
+  await page.keyboard.press('End');
+  await esperarCambio(antesDeEsquina);
+  const arrastrarEsquina = async (inicio: number, fin: number) => {
+    await page.mouse.move(inicio, 380);
+    await page.mouse.down();
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(inicio + ((fin - inicio) * i) / 20, 380);
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    await page.mouse.up();
+  };
+  const esperarGiro = (giro: number) =>
+    page.waitForFunction(
+      (objetivo) => {
+        const transformacion = (
+          document.querySelector('.fondo-farmacia') as HTMLElement
+        ).style.getPropertyValue('--camara-farmacia');
+        const valor = Number(transformacion.match(/rotateY\(([^)]+)rad\)/)?.[1]);
+        return Math.abs(valor - objetivo) < 0.001;
+      },
+      {},
+      giro,
+    );
+  await arrastrarEsquina(280, 120);
+  await esperarGiro(Math.PI / 2);
+  const camaraVitrina = await leerCamara();
+  await page.screenshot({ path: resolve(salida, 'esquina-vitrina.png') });
+  await arrastrarEsquina(120, 280);
+  await esperarGiro(0);
+  informe.revisiones.push({
+    nombre: 'esquina-ida-y-vuelta',
+    camaraVitrina,
+    camaraRegreso: await leerCamara(),
+  });
   const manifest = (await (await fetch(`${origen}/manifest.webmanifest`)).json()) as {
     display: string;
     start_url: string;
@@ -296,11 +454,13 @@ try {
   for (const icono of manifest.icons)
     if (!(await fetch(new URL(icono.src, origen))).ok)
       informe.errores.push(`Icono no disponible: ${icono.src}`);
-  await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 });
-  page.off('request', interceptar);
-  await page.setRequestInterception(false);
-  await page.goto(origen, { waitUntil: 'networkidle0' });
-  await page.evaluate(() =>
+  // La comprobación sin red usa otra página, sin WebGL ni interceptores de datos ficticios.
+  await page.close();
+  const pagePwa = await navegador.newPage();
+  pagePwa.on('pageerror', (e) => informe.errores.push(`Error de página: ${String(e)}`));
+  await pagePwa.setViewport({ width: 390, height: 844 });
+  await pagePwa.goto(origen, { waitUntil: 'networkidle0' });
+  await pagePwa.evaluate(() =>
     Promise.race([
       navigator.serviceWorker.ready,
       new Promise((_, reject) =>
@@ -308,8 +468,8 @@ try {
       ),
     ]),
   );
-  await page.reload({ waitUntil: 'networkidle0' });
-  const cache = await page.evaluate(async () => {
+  await pagePwa.reload({ waitUntil: 'networkidle0' });
+  const cache = await pagePwa.evaluate(async () => {
     const claves = await caches.keys();
     const rutas: string[] = [];
     for (const clave of claves)
@@ -318,9 +478,9 @@ try {
   });
   if (cache.rutas.some((p) => p.startsWith('/api/') || p.startsWith('/media/')))
     informe.errores.push('La caché de la PWA contiene rutas de datos.');
-  await page.setOfflineMode(true);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('textarea');
+  await pagePwa.setOfflineMode(true);
+  await pagePwa.reload({ waitUntil: 'domcontentloaded' });
+  await pagePwa.waitForSelector('textarea');
   informe.pwa = { manifest, cache, portadaSinRed: true, instalacionFisica: 'pendiente' };
 } catch (error) {
   informe.errores.push(error instanceof Error ? error.message : String(error));

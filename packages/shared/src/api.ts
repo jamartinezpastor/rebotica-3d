@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FormaCaja, GrupoPaciente } from './dominio';
 import { EstadoCatalogoPublico } from './catalogo';
+import { InformacionCima } from './seguridad';
 
 /**
  * Contratos de la API pública (plan §Endpoints). Los usan la API para validar lo que envía y
@@ -126,6 +127,7 @@ export const SeccionFichaPublica = z.strictObject({
 });
 
 export const ProductoResponse = z.strictObject({
+  informacionCima: InformacionCima.nullable().optional(),
   /** Solo metadatos: un borrador nunca se envía como regla ejecutable. */
   borradorDosis: z
     .strictObject({ id: z.string().min(1), version: z.number().int().positive() })

@@ -39,6 +39,7 @@ export const Detalle = z.object({
   conduc: z.boolean().default(false),
   triangulo: z.boolean().default(false),
   psum: z.boolean().default(false),
+  notas: z.boolean().optional(),
   dosis: z.string().nullish(),
   formaFarmaceutica: nombreId.nullish(),
   principiosActivos: z.array(z.object({ nombre: z.string() })).default([]),

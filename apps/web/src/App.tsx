@@ -513,9 +513,11 @@ export function App() {
         <footer className="border-t border-black/10 pt-4 text-sm text-tinta-suave">
           <p>{AVISO_LEGAL}</p>
           <EnlaceInformacion />
-          <div className="mt-3">
-            <EstadoServidor />
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-3">
+              <EstadoServidor />
+            </div>
+          )}
         </footer>
       </div>
     </div>

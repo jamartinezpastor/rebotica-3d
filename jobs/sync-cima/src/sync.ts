@@ -18,6 +18,8 @@ import {
 } from './cima';
 import { Detalle, Listado, SeccionesFT, type ItemListado } from './esquemas';
 import { categoriaLegible, hashTexto, htmlATexto, reunirSecciones } from './texto';
+import { InformacionCima } from '@rebotica/shared';
+import { obtenerInformacionCima } from './seguridad';
 
 /** Cualquier base PostgreSQL de Drizzle (node-postgres en producción, PGlite en los tests). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,6 +131,10 @@ export async function sincronizar(
     }
     log(`error en ${contexto}: ${mensajeDe(err)}`);
   };
+  // Los datos adicionales fallidos quedan a null y se reintentan en la siguiente pasada.
+  // No deben impedir que avance la sincronización del catálogo y las fichas técnicas.
+  const avisarInformacion = (contexto: string, err: unknown) =>
+    log(`información adicional pendiente en ${contexto}: ${mensajeDe(err)}`);
 
   // ---------- 1. Medicamentos sin receta: detalle, presentaciones y secciones 4.1–4.7 ----------
   const vistos: string[] = [];
@@ -157,7 +163,8 @@ export async function sincronizar(
         }
         const secciones =
           (await cliente.obtener(urlFichaTecnica(item.nregistro), SeccionesFT)) ?? [];
-        const resultado = await guardarMedicamento(conexion, detalle, secciones);
+        const informacion = await obtenerInformacionCima(cliente, detalle, avisarInformacion);
+        const resultado = await guardarMedicamento(conexion, detalle, secciones, informacion);
         vistos.push(detalle.nregistro);
         informe.sinReceta.sincronizados++;
         informe.sinReceta.presentaciones += resultado.presentaciones;
@@ -201,7 +208,17 @@ export async function sincronizar(
               if (detalle?.comerc) {
                 const secciones =
                   (await cliente.obtener(urlFichaTecnica(item.nregistro), SeccionesFT)) ?? [];
-                const resultado = await guardarMedicamento(conexion, detalle, secciones);
+                const informacion = await obtenerInformacionCima(
+                  cliente,
+                  detalle,
+                  avisarInformacion,
+                );
+                const resultado = await guardarMedicamento(
+                  conexion,
+                  detalle,
+                  secciones,
+                  informacion,
+                );
                 vistos.push(detalle.nregistro);
                 informe.vitrina.sincronizados++;
                 informe.sinReceta.reglasARevisar += resultado.reglasARevisar;
@@ -346,6 +363,7 @@ export async function guardarMedicamento(
   base: BaseDatos,
   detalle: Detalle,
   secciones: SeccionesFT,
+  informacion?: InformacionCima,
 ): Promise<ResultadoGuardado> {
   const db = base as unknown as Db;
   const pactivos =
@@ -362,6 +380,7 @@ export async function guardarMedicamento(
     conduc: detalle.conduc,
     triangulo: detalle.triangulo,
     psum: detalle.psum,
+    informacionCima: informacion ? InformacionCima.parse(informacion) : null,
     forma: detalle.formaFarmaceutica?.nombre ?? null,
     dosis: detalle.dosis ?? null,
     categoria: categoriaDe(detalle),

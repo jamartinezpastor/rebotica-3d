@@ -228,7 +228,7 @@ describe('recorrido informativo simplificado', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fiebre' }));
     fireEvent.click(await screen.findByRole('button', { name: /PRODUCTO DE DEMOSTRACIÓN 1/ }));
     await screen.findByText('Indicación ficticia de prueba');
-    fireEvent.click(screen.getByRole('tab', { name: 'Precauciones' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Avisos y precauciones' }));
     expect(screen.getByText('Precaución ficticia de prueba')).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Dosis' }));
     expect(screen.getByText('Posología ficticia de prueba')).toBeTruthy();

@@ -37,6 +37,8 @@ export const medicamento = pgTable(
     conduc: boolean('conduc').notNull().default(false),
     triangulo: boolean('triangulo').notNull().default(false),
     psum: boolean('psum').notNull().default(false),
+    /** Copia validada de las incidencias y notas de CIMA; nula hasta la primera consulta. */
+    informacionCima: jsonb('informacion_cima'),
     forma: text('forma'),
     dosis: text('dosis'),
     /** Categoría terapéutica legible (nombre ATC de nivel 3 en CIMA); la usa la caja 3D. */

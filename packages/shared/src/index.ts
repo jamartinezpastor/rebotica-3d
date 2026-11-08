@@ -4,8 +4,9 @@ import { z } from 'zod';
  * Aviso permanente que se muestra en toda la app (principios de producto, plan §1).
  * Cualquier cambio de texto debe revisarlo el farmacéutico responsable.
  */
-export const AVISO_LEGAL =
-  'Información orientativa. No sustituye la valoración de un médico o farmacéutico; ante cualquier duda, consulta presencial.';
+export const AVISO_FICHA =
+  'Información orientativa. No sustituye la valoración de un médico o farmacéutico.';
+export const AVISO_LEGAL = `${AVISO_FICHA.slice(0, -1)}; ante cualquier duda, consulta presencial.`;
 
 export const AVISO_RECETA =
   'Requiere receta médica. Consulta su información con precaución: no inicies ni cambies el tratamiento sin indicación de tu médico.';
@@ -33,3 +34,4 @@ export * from './exploracion';
 export * from './catalogo';
 export * from './indicaciones';
 export * from './informacion';
+export * from './seguridad';

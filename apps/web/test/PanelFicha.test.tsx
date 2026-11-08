@@ -1,4 +1,4 @@
-import { AVISO_LEGAL, type ProductoResponse, type ProductoResumen } from '@rebotica/shared';
+import { AVISO_FICHA, type ProductoResponse, type ProductoResumen } from '@rebotica/shared';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelFicha } from '../src/escena/PanelFicha';
@@ -93,6 +93,29 @@ afterEach(() => {
 });
 
 describe('PanelFicha', () => {
+  it('los iconos abren las secciones con todos sus desplegables cerrados, incluso al repetir', async () => {
+    responder(ficha());
+    render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+    await screen.findByText('Para qué se usa');
+    const abiertos = () => screen.getByRole('tabpanel').querySelectorAll('details[open]');
+    expect(abiertos()).toHaveLength(0);
+    for (const nombre of ['Uso', 'Avisos y precauciones', 'Dosis']) {
+      const tab = screen.getByRole('tab', { name: nombre });
+      expect(tab.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+      fireEvent.click(tab);
+      expect(abiertos()).toHaveLength(0);
+      const apartado = screen.getByRole('tabpanel').querySelector('summary');
+      expect(apartado).not.toBeNull();
+      fireEvent.click(apartado!);
+      expect(abiertos()).toHaveLength(1);
+      fireEvent.click(tab);
+      expect(abiertos()).toHaveLength(0);
+      fireEvent.click(screen.getByRole('tabpanel').querySelector('summary')!);
+    }
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Dosis' }), { key: 'Home' });
+    expect(abiertos()).toHaveLength(0);
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Uso' }));
+  });
   it('devuelve el foco al producto al cerrar y permite salir con Escape', async () => {
     responder(ficha());
     const volver = vi.fn();
@@ -118,7 +141,7 @@ describe('PanelFicha', () => {
     responder(ficha());
     render(<PanelFicha producto={resumen} modo="lista" onVolver={() => {}} />);
     await screen.findByRole('link', { name: 'Ficha técnica oficial' });
-    const ultimo = screen.getByRole('link', { name: 'Privacidad y fuentes' });
+    const ultimo = screen.getByRole('link', { name: 'Ficha técnica oficial' });
     const primero = screen.getByRole('button', { name: 'Volver al pasillo' });
     ultimo.focus();
     fireEvent.keyDown(ultimo, { key: 'Tab' });
@@ -205,7 +228,7 @@ describe('PanelFicha', () => {
       responder(ficha({ receta, borradorDosis: { id: 'regla-ficticia', version: 1 } }));
       render(<PanelFicha producto={{ ...resumen, receta }} onVolver={() => {}} modo="lista" />);
       await screen.findByText('Demostración: pendiente de validación farmacéutica');
-      for (const nombre of ['Uso', 'Precauciones', 'Dosis']) {
+      for (const nombre of ['Uso', 'Avisos y precauciones', 'Dosis']) {
         fireEvent.click(screen.getByRole('tab', { name: nombre }));
         expect(screen.getByText('Demostración: pendiente de validación farmacéutica')).toBeTruthy();
         expect(screen.queryByRole('slider')).toBeNull();
@@ -239,13 +262,19 @@ describe('PanelFicha', () => {
     expect(screen.getByText('Para qué se usa')).toBeTruthy();
   });
 
-  it('las tres pestañas cambian de contenido y marcan la activa', async () => {
+  it('las pestañas cambian de contenido y marcan la activa', async () => {
     responder(ficha());
     render(<PanelFicha producto={resumen} onVolver={() => {}} />);
     await screen.findByText('Texto de uso ficticio.');
 
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Uso', 'Precauciones', 'Dosis']);
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      'Uso',
+      'Avisos',
+      'Dosis',
+      'Suministro',
+      'Seguridad',
+    ]);
     expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
 
     fireEvent.click(tabs[1] as HTMLElement);
@@ -274,12 +303,18 @@ describe('PanelFicha', () => {
     const uso = screen.getByRole('tab', { name: 'Uso' });
     uso.focus();
     fireEvent.keyDown(uso, { key: 'ArrowRight' });
-    expect(screen.getByRole('tab', { name: 'Precauciones' }).getAttribute('aria-selected')).toBe(
-      'true',
-    );
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Precauciones' }), { key: 'End' });
-    expect(screen.getByRole('tab', { name: 'Dosis' }).getAttribute('aria-selected')).toBe('true');
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Dosis' }), { key: 'ArrowRight' });
+    expect(
+      screen.getByRole('tab', { name: 'Avisos y precauciones' }).getAttribute('aria-selected'),
+    ).toBe('true');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Avisos y precauciones' }), { key: 'End' });
+    expect(
+      screen
+        .getByRole('tab', { name: 'Seguridad: notas de seguridad' })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Seguridad: notas de seguridad' }), {
+      key: 'ArrowRight',
+    });
     expect(screen.getByRole('tab', { name: 'Uso' }).getAttribute('aria-selected')).toBe('true');
   });
 
@@ -339,7 +374,104 @@ describe('PanelFicha', () => {
     responder(ficha({ problemaSuministro: true }));
     render(<PanelFicha producto={resumen} onVolver={() => {}} />);
     expect(await screen.findByText(/problemas de suministro/)).toBeTruthy();
-    expect(screen.getByText(AVISO_LEGAL)).toBeTruthy();
+    expect(screen.getByText(AVISO_FICHA)).toBeTruthy();
+    expect(screen.queryByText(/ante cualquier duda, consulta presencial/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Privacidad y fuentes' })).toBeNull();
+  });
+
+  it('muestra incidencias por presentación y notas oficiales sin hacer consultas externas', async () => {
+    responder(
+      ficha({
+        problemaSuministro: true,
+        informacionCima: {
+          suministro: {
+            consultadoEn: '2026-01-10T12:00:00.000Z',
+            incidencias: [
+              {
+                cn: '123456',
+                nombre: 'Envase ficticio',
+                inicio: '2026-01-09T12:00:00.000Z',
+                finPrevisto: null,
+                observaciones: 'Observación ficticia de la AEMPS.',
+              },
+            ],
+          },
+          seguridad: {
+            consultadoEn: '2026-01-10T12:00:00.000Z',
+            notas: [
+              {
+                referencia: 'Referencia ficticia',
+                asunto: 'Aviso de seguridad ficticio',
+                fecha: '2026-01-09T12:00:00.000Z',
+                url: 'https://www.aemps.gob.es/nota-ficticia',
+              },
+              {
+                referencia: 'No oficial',
+                asunto: 'Enlace no permitido',
+                fecha: null,
+                url: 'https://aemps.gob.es.example.invalid/nota',
+              },
+            ],
+          },
+        },
+      }),
+    );
+    render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+    await screen.findByText('Texto de uso ficticio.');
+    fireEvent.click(screen.getByRole('tab', { name: 'Suministro' }));
+    expect(screen.getByRole('tabpanel').querySelectorAll('details[open]')).toHaveLength(0);
+    fireEvent.click(screen.getByText('Envase ficticio'));
+    expect(screen.getByText('Código nacional: 123456')).toBeTruthy();
+    expect(screen.getByText('Sin fecha de fin prevista.')).toBeTruthy();
+    expect(screen.getByText('Observación ficticia de la AEMPS.')).toBeTruthy();
+    expect(screen.getByText(/No indica existencias en farmacias/)).toBeTruthy();
+    expect(screen.getByText(/más de 48 horas/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'Seguridad: notas de seguridad' }));
+    expect(screen.getByText('Aviso de seguridad ficticio')).toBeTruthy();
+    expect(screen.getByRole('tabpanel').querySelectorAll('details[open]')).toHaveLength(0);
+    expect(
+      screen.getByRole('link', { name: 'Leer nota completa en la AEMPS' }).closest('details')?.open,
+    ).toBe(false);
+    fireEvent.click(screen.getByText('Aviso de seguridad ficticio'));
+    const enlaces = screen.getAllByRole('link', { name: 'Leer nota completa en la AEMPS' });
+    expect(enlaces).toHaveLength(1);
+    expect(enlaces[0]?.getAttribute('href')).toBe('https://www.aemps.gob.es/nota-ficticia');
+    fireEvent.click(screen.getByRole('tab', { name: 'Suministro' }));
+    expect(screen.getByRole('tabpanel').querySelectorAll('details[open]')).toHaveLength(0);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([null, { suministro: null, seguridad: null }])(
+    'no confunde datos ausentes con ausencia de incidencias: %s',
+    async (informacionCima) => {
+      responder(ficha({ informacionCima }));
+      render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+      await screen.findByText('Texto de uso ficticio.');
+      fireEvent.click(screen.getByRole('tab', { name: 'Suministro' }));
+      expect(screen.getByText(/No podemos confirmar si hay incidencias/)).toBeTruthy();
+      expect(screen.queryByText(/Sin incidencias de suministro/)).toBeNull();
+      fireEvent.click(screen.getByRole('tab', { name: 'Seguridad: notas de seguridad' }));
+      expect(screen.getByText(/todavía no están disponibles/)).toBeTruthy();
+      expect(screen.queryByText(/No constan notas/)).toBeNull();
+    },
+  );
+
+  it('una consulta sin incidencias no garantiza stock ni ausencia de precauciones', async () => {
+    const consultadoEn = new Date().toISOString();
+    responder(
+      ficha({
+        informacionCima: {
+          suministro: { consultadoEn, incidencias: [] },
+          seguridad: { consultadoEn, notas: [] },
+        },
+      }),
+    );
+    render(<PanelFicha producto={resumen} onVolver={() => {}} />);
+    await screen.findByText('Texto de uso ficticio.');
+    fireEvent.click(screen.getByRole('tab', { name: 'Suministro' }));
+    expect(screen.getByText(/Esto no garantiza disponibilidad/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'Seguridad: notas de seguridad' }));
+    expect(screen.getByText(/Consulta también las precauciones y el prospecto/)).toBeTruthy();
   });
 
   it('si la ficha no existe o falla, lo dice y deja volver', async () => {

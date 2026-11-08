@@ -1,0 +1,1 @@
+ALTER TABLE "medicamento" ADD COLUMN "informacion_cima" jsonb;

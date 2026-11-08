@@ -1,3 +1,5 @@
+import type { EsquinaRiel } from './trayectoPasillo';
+
 /**
  * Control de la cámara sobre raíl (plan §Cámara y gestos). La cámara no es libre: viaja por un
  * raíl a lo largo del pasillo y se ajusta a cada producto; el gesto vertical cambia de balda.
@@ -13,6 +15,8 @@ export const TAU_INERCIA = 0.22;
 export const PX_POR_FILA = 170;
 /** Arrastre mínimo (px) para decidir si el gesto es horizontal o vertical. */
 export const UMBRAL_EJE = 8;
+/** Un gesto deliberado permite superar el hueco sin productos de la esquina. */
+export const UMBRAL_CRUCE_ESQUINA = 48;
 /** Un gesto vertical cambia de balda si recorre más de esto (px) o va más rápido (px/s). */
 export const UMBRAL_CAMBIO_FILA = 48;
 export const UMBRAL_VELOCIDAD_FILA = 450;
@@ -77,6 +81,7 @@ export interface ConfiguracionRiel {
   instantaneo?: boolean;
   filaInicial?: number;
   xInicial?: number;
+  esquina?: EsquinaRiel;
 }
 
 type Eje = 'x' | 'y' | null;
@@ -104,10 +109,19 @@ export class ControlRiel {
   private acumY = 0;
   private filaAlEmpezar = 0;
   private vy = 0;
+  private xAlEmpezar = 0;
+  private esquina?: EsquinaRiel;
 
-  constructor({ puntos, instantaneo = false, filaInicial = 0, xInicial }: ConfiguracionRiel) {
+  constructor({
+    puntos,
+    instantaneo = false,
+    filaInicial = 0,
+    xInicial,
+    esquina,
+  }: ConfiguracionRiel) {
     this.puntos = puntos;
     this.instantaneo = instantaneo;
+    this.esquina = esquina && esquina.inicio < esquina.fin ? esquina : undefined;
     this.filaObjetivo = acotar(Math.round(filaInicial), 0, Math.max(0, puntos.length - 1));
     this.fila = this.filaObjetivo;
     this.x =
@@ -171,6 +185,7 @@ export class ControlRiel {
     this.vx = 0;
     this.vy = 0;
     this.filaAlEmpezar = this.fila;
+    this.xAlEmpezar = this.x;
   }
 
   /** `dx`/`dy` en píxeles desde el último evento y `dt` en segundos. */
@@ -209,7 +224,8 @@ export class ControlRiel {
     this.arrastrando = false;
     if (this.eje === 'x') {
       const puntos = this.puntosDe(this.filaObjetivo);
-      this.objetivoX = ajusteTrasLanzamiento(this.x, this.vx, puntos);
+      if (!this.cruzarTrasArrastre())
+        this.objetivoX = ajusteTrasLanzamiento(this.x, this.vx, puntos);
     } else if (this.eje === 'y') {
       const rapido = Math.abs(this.vy) > UMBRAL_VELOCIDAD_FILA;
       const largo = Math.abs(this.acumY) > UMBRAL_CAMBIO_FILA;
@@ -229,14 +245,65 @@ export class ControlRiel {
 
   // ---- Teclado y rueda ---------------------------------------------------------------------
 
+  /** Conserva la fila si hay productos al otro lado; si no, usa la altura más cercana. */
+  private pasarEsquina(sentido: 1 | -1, proyectada: number): boolean {
+    const esquina = this.esquina;
+    if (!esquina) return false;
+    const filas = this.puntos
+      .map((puntos, fila) => ({
+        fila,
+        puntos: puntos.filter((x) => (sentido === 1 ? x >= esquina.fin : x <= esquina.inicio)),
+      }))
+      .filter((fila) => fila.puntos.length > 0)
+      .sort((a, b) => Math.abs(a.fila - this.filaObjetivo) - Math.abs(b.fila - this.filaObjetivo));
+    const destino = filas[0];
+    if (!destino) return false;
+    this.filaObjetivo = destino.fila;
+    this.objetivoX = puntoMasCercano(destino.puntos, proyectada);
+    return true;
+  }
+
+  private cruzarTrasArrastre(): boolean {
+    const esquina = this.esquina;
+    if (!esquina || Math.abs(this.acumX) < UMBRAL_CRUCE_ESQUINA) return false;
+    const puntos = this.puntosDe(this.filaObjetivo);
+    const proyectada = this.x + this.vx * TAU_INERCIA;
+    if (this.acumX < 0 && this.xAlEmpezar < esquina.fin) {
+      const borde = Math.max(...puntos.filter((x) => x <= esquina.inicio));
+      if (Number.isFinite(borde) && this.x > borde && proyectada > borde)
+        return this.pasarEsquina(1, proyectada);
+    } else if (this.acumX > 0 && this.xAlEmpezar > esquina.inicio) {
+      const borde = Math.min(...puntos.filter((x) => x >= esquina.fin));
+      if (Number.isFinite(borde) && this.x < borde && proyectada < borde)
+        return this.pasarEsquina(-1, proyectada);
+    }
+    return false;
+  }
+
+  private avanzarHorizontal(sentido: 1 | -1): void {
+    const siguiente = puntoSiguiente(this.puntosDe(this.filaObjetivo), this.objetivoX, sentido);
+    const esquina = this.esquina;
+    if ((siguiente - this.objetivoX) * sentido <= 0 && esquina) {
+      if (sentido === 1 && this.objetivoX < esquina.fin && this.pasarEsquina(1, esquina.fin))
+        return;
+      if (
+        sentido === -1 &&
+        this.objetivoX > esquina.inicio &&
+        this.pasarEsquina(-1, esquina.inicio)
+      )
+        return;
+    }
+    this.objetivoX = siguiente;
+  }
+
   /** Devuelve true si la tecla se ha usado (para evitar el desplazamiento de la página). */
   teclado(tecla: string): boolean {
     switch (tecla) {
       case 'ArrowRight':
-        this.objetivoX = puntoSiguiente(this.puntosDe(this.filaObjetivo), this.objetivoX, 1);
+        this.avanzarHorizontal(1);
         return true;
       case 'ArrowLeft':
-        this.objetivoX = puntoSiguiente(this.puntosDe(this.filaObjetivo), this.objetivoX, -1);
+        this.avanzarHorizontal(-1);
         return true;
       case 'ArrowUp':
         this.irAFila(this.filaObjetivo + 1);

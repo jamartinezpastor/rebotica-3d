@@ -6,6 +6,7 @@ import { App } from '../src/App';
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 function stubFetch(respuesta: Promise<Response>) {
@@ -16,6 +17,14 @@ function stubFetch(respuesta: Promise<Response>) {
 }
 
 describe('App', () => {
+  it('oculta el estado técnico del servidor en producción y conserva las fuentes', () => {
+    vi.stubEnv('DEV', false);
+    stubFetch(new Promise(() => {}));
+    render(<App />);
+    expect(screen.queryByText(/servidor/i)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Privacidad y fuentes' })).toBeTruthy();
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('muestra el nombre y el aviso legal', () => {
     stubFetch(new Promise(() => {}));
     render(<App />);

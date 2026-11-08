@@ -26,6 +26,7 @@ const detalle = (n: string, extra: object = {}) => ({
   pactivos: 'principio ficticio',
   receta: false,
   comerc: true,
+  notas: false,
   formaFarmaceutica: { nombre: 'COMPRIMIDO' },
   presentaciones: [{ cn: `${n}01`, nombre: 'envase', comerc: true }],
   ...extra,
@@ -119,6 +120,14 @@ const estadoRegla = async () =>
   (await db.select().from(reglaDosis).where(eq(reglaDosis.nregistro, '1001')))[0]?.estado;
 
 describe('sincronizarCambios', () => {
+  it('actualiza las notas de seguridad cuando cambia su registro en CIMA', async () => {
+    cambios = [{ nregistro: '1001', tipoCambio: 3, cambio: ['notasSeguridad'] }];
+    const informe = await sincronizarCambios(db, cliente(), new Date('2026-10-10'));
+    expect(informe.errores).toEqual([]);
+    expect(informe.releidos).toBe(1);
+    const [fila] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '1001'));
+    expect(fila?.informacionCima).toMatchObject({ seguridad: { notas: [] } });
+  });
   it('si cambia la 4.2, la regla pasa a revisar y se invalida el resumen', async () => {
     cambios = [{ nregistro: '1001', tipoCambio: 3, cambio: ['ft'] }];
     posologia = 'Posología modificada por la AEMPS.';
@@ -199,6 +208,39 @@ describe('sincronizarCambios', () => {
 });
 
 describe('sincronizacionDiaria', () => {
+  it('un fallo de notas no bloquea el catálogo y se reintenta en la siguiente pasada', async () => {
+    await db
+      .insert(syncEstado)
+      .values({ clave: 'cima.ultima_sincronizacion', valor: '2026-10-10T00:00:00.000Z' });
+    detalles = { '1001': detalle('1001', { notas: true }) };
+    const resultado = await sincronizacionDiaria(db, cliente(), {
+      ahora: () => new Date('2026-10-11T00:00:00.000Z'),
+    });
+    expect(resultado.informe.errores).toEqual([]);
+    const [primera] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '1001'));
+    expect(primera?.informacionCima).toMatchObject({ seguridad: null });
+    const [marca] = await db.select().from(syncEstado);
+    expect(marca?.valor).toBe('2026-10-11T00:00:00.000Z');
+    detalles = { '1001': detalle('1001', { notas: false }) };
+    await sincronizacionDiaria(db, cliente());
+    const [segunda] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '1001'));
+    expect(segunda?.informacionCima).toMatchObject({ seguridad: { notas: [] } });
+  });
+  it('completa los datos de un catálogo existente aunque no haya cambios en CIMA', async () => {
+    await db
+      .insert(syncEstado)
+      .values({ clave: 'cima.ultima_sincronizacion', valor: '2026-10-10T00:00:00.000Z' });
+    const resultado = await sincronizacionDiaria(db, cliente());
+    expect(resultado.informe.errores).toEqual([]);
+    const [fila] = await db.select().from(medicamento).where(eq(medicamento.nregistro, '1001'));
+    expect(fila?.informacionCima).toMatchObject({
+      suministro: { incidencias: [] },
+      seguridad: { notas: [] },
+    });
+    peticiones.length = 0;
+    await sincronizacionDiaria(db, cliente());
+    expect(peticiones.filter((p) => p.includes('/medicamento?'))).toHaveLength(0);
+  });
   it.each([
     { forzarCompleto: false, anterior: false },
     { forzarCompleto: true, anterior: false },
